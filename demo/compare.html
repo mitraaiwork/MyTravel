@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compare Destinations — MyTravel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Page hero bar ───────────────────────────────── */
+    .page-hero {
+      background: linear-gradient(135deg, #0d1f16 0%, #1a3a28 55%, #0f2a1e 100%);
+      padding: 28px 32px 24px;
+      position: relative; overflow: hidden;
+    }
+    .page-hero::after {
+      content: '🗺';
+      position: absolute; right: 32px; top: 50%; transform: translateY(-50%);
+      font-size: 80px; opacity: 0.07; pointer-events: none;
+    }
+    .page-hero h1 {
+      font-size: 22px; font-weight: 800; color: #fff;
+      letter-spacing: -0.4px; margin-bottom: 4px;
+    }
+    .page-hero p { font-size: 14px; color: rgba(255,255,255,0.55); }
+    .hero-badge-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(52,199,123,0.15); border: 1px solid rgba(52,199,123,0.3);
+      border-radius: 100px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #74c69d;
+    }
+
+    /* ── Input panel ────────────────────────────────── */
+    .input-panel {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid rgba(0,0,0,0.07);
+      box-shadow: 0 2px 16px rgba(13,31,22,0.06);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .input-panel-header {
+      padding: 18px 24px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .input-panel-header h2 { font-size: 16px; font-weight: 700; color: #0d1f16; }
+    .input-panel-header p  { font-size: 13px; color: #6e9678; margin-top: 2px; }
+    .dest-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 18px 24px;
+    }
+    .dest-slot {
+      border: 2px solid rgba(45,106,79,0.14);
+      border-radius: 14px;
+      padding: 16px;
+      position: relative;
+      background: #f5f7f5;
+      transition: all 0.2s;
+    }
+    .dest-slot:focus-within { border-color: #52b788; background: #fff; box-shadow: 0 0 0 4px rgba(82,183,136,0.10); }
+    .dest-slot-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: white; margin-bottom: 10px;
+    }
+    .dest-slot:nth-child(1) .dest-slot-num { background: linear-gradient(135deg, #065f46, #059669); }
+    .dest-slot:nth-child(2) .dest-slot-num { background: linear-gradient(135deg, #0c4a6e, #0284c7); }
+    .dest-slot:nth-child(3) .dest-slot-num { background: linear-gradient(135deg, #4c1d95, #7c3aed); }
+    .dest-slot label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #6e9678; display: block; margin-bottom: 8px; }
+    .dest-slot input[type="text"] {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid rgba(45,106,79,0.15);
+      border-radius: 8px; font-size: 14px; font-weight: 600;
+      color: #0d1f16; background: #fff; outline: none;
+      transition: border-color 0.2s;
+    }
+    .dest-slot input[type="text"]:focus { border-color: #52b788; }
+    .dest-slot input[type="text"]::placeholder { color: #a0bfa8; font-weight: 400; }
+    .dest-flag { font-size: 26px; margin-bottom: 8px; display: block; }
+    .dest-remove {
+      position: absolute; top: 10px; right: 10px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(220,38,38,0.08); border: none;
+      color: #dc2626; font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .dest-slot:hover .dest-remove { opacity: 1; }
+    .dest-slot.optional { border-style: dashed; background: #fafcfa; }
+    .dest-slot.optional .dest-flag { opacity: 0.35; }
+
+    /* ── Preferences ─────────────────────────────────── */
+    .prefs-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      padding: 0 24px 20px;
+      border-top: 1px solid rgba(45,106,79,0.08);
+      padding-top: 18px;
+    }
+    .pref-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #6e9678; display: block; margin-bottom: 7px; }
+    .pref-group select, .pref-group input[type="text"] {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid rgba(45,106,79,0.15);
+      border-radius: 8px; font-size: 13px; font-weight: 500;
+      color: #0d1f16; background: #fff; outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236e9678' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+    }
+    .pref-group select:focus, .pref-group input[type="text"]:focus { border-color: #52b788; }
+
+    /* Style tags */
+    .style-tags-input { display: flex; flex-wrap: wrap; gap: 6px; }
+    .style-toggle {
+      padding: 5px 11px; border-radius: 100px; font-size: 12px; font-weight: 500;
+      border: 1.5px solid rgba(45,106,79,0.18); cursor: pointer;
+      background: #fff; color: #3d6b52; transition: all 0.15s;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .style-toggle:hover { border-color: #52b788; background: rgba(82,183,136,0.06); }
+    .style-toggle.selected { background: rgba(45,106,79,0.10); border-color: #52b788; color: #0d1f16; font-weight: 600; }
+
+    /* ── CTA row ─────────────────────────────────────── */
+    .compare-cta-row {
+      padding: 16px 24px 24px;
+      display: flex; align-items: center; gap: 14px;
+      border-top: 1px solid rgba(45,106,79,0.08);
+    }
+    .btn-compare {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 13px 28px; border-radius: 12px;
+      background: linear-gradient(135deg, #0d6e3c, #34c77b, #0ea5e9);
+      color: white; font-size: 15px; font-weight: 700;
+      border: none; cursor: pointer; font-family: inherit;
+      box-shadow: 0 6px 24px rgba(52,199,123,0.35);
+      transition: all 0.25s;
+    }
+    .btn-compare:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(52,199,123,0.50); filter: brightness(1.06); }
+    .compare-note { font-size: 13px; color: #6e9678; }
+
+    /* ── Loading state ───────────────────────────────── */
+    .loading-state {
+      display: none;
+      text-align: center;
+      padding: 60px 24px;
+    }
+    .loading-state.visible { display: block; }
+    .loading-destinations {
+      display: flex; align-items: center; justify-content: center; gap: 32px;
+      margin-bottom: 28px;
+    }
+    .loading-dest {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .loading-dest .dest-orb {
+      width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; position: relative;
+    }
+    .loading-dest:nth-child(1) .dest-orb { background: linear-gradient(135deg, rgba(5,150,105,0.15), rgba(52,199,123,0.10)); border: 2px solid rgba(52,199,123,0.35); animation: orb-scan 1.4s ease-in-out infinite; }
+    .loading-dest:nth-child(2) .dest-orb { background: linear-gradient(135deg, rgba(2,132,199,0.15), rgba(14,165,233,0.10)); border: 2px solid rgba(14,165,233,0.35); animation: orb-scan 1.4s ease-in-out 0.3s infinite; }
+    .loading-dest:nth-child(3) .dest-orb { background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(167,139,250,0.10)); border: 2px solid rgba(124,58,237,0.30); animation: orb-scan 1.4s ease-in-out 0.6s infinite; }
+    @keyframes orb-scan {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52,199,123,0.3); }
+      50% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(52,199,123,0); }
+    }
+    .loading-dest span { font-size: 13px; font-weight: 600; color: #3d6b52; }
+    .loading-connector { color: #a0bfa8; font-size: 20px; font-weight: 300; }
+    .loading-label { font-size: 15px; font-weight: 600; color: #0d1f16; margin-bottom: 8px; }
+    .loading-sub { font-size: 13px; color: #6e9678; margin-bottom: 20px; }
+    .loading-bar-wrap { max-width: 300px; margin: 0 auto; height: 4px; background: rgba(45,106,79,0.12); border-radius: 2px; overflow: hidden; }
+    .loading-bar { height: 100%; background: linear-gradient(90deg, #52b788, #48cae4); border-radius: 2px; animation: load-progress 2.2s ease-in-out forwards; }
+    @keyframes load-progress { from { width: 0%; } to { width: 100%; } }
+
+    /* ── Results ─────────────────────────────────────── */
+    #results-section { display: none; }
+    #results-section.visible { display: block; animation: fadeInUp 0.5s ease; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Winner banner */
+    .winner-banner {
+      background: linear-gradient(135deg, #0d1f16 0%, #1a3a28 55%, #0c2e1a 100%);
+      border-radius: 18px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      flex-wrap: wrap;
+      position: relative; overflow: hidden;
+    }
+    .winner-banner::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 80% 50%, rgba(52,199,123,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 10% 80%, rgba(14,165,233,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .winner-left { position: relative; z-index: 1; }
+    .winner-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(52,199,123,0.15); border: 1px solid rgba(52,199,123,0.3);
+      border-radius: 100px; padding: 4px 12px;
+      font-size: 12px; font-weight: 700; color: #74c69d; margin-bottom: 10px;
+    }
+    .winner-banner h2 { font-size: 26px; font-weight: 900; color: white; letter-spacing: -0.6px; margin-bottom: 4px; }
+    .winner-banner .winner-sub { font-size: 14px; color: rgba(255,255,255,0.60); max-width: 420px; line-height: 1.6; }
+    .winner-score-badge {
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(52,199,123,0.12); border: 1.5px solid rgba(52,199,123,0.3);
+      border-radius: 16px; padding: 16px 24px; position: relative; z-index: 1;
+    }
+    .winner-score-badge .score-num { font-size: 42px; font-weight: 900; color: #74c69d; line-height: 1; }
+    .winner-score-badge .score-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.40); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
+    .winner-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 22px; border-radius: 10px;
+      background: linear-gradient(135deg, #34c77b, #059669);
+      color: white; font-size: 14px; font-weight: 700; border: none;
+      cursor: pointer; font-family: inherit; text-decoration: none;
+      box-shadow: 0 4px 16px rgba(52,199,123,0.40);
+      transition: all 0.2s; position: relative; z-index: 1; margin-top: 14px;
+    }
+    .winner-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(52,199,123,0.55); }
+
+    /* AI reasoning */
+    .ai-reasoning {
+      background: #fff;
+      border: 1px solid rgba(45,106,79,0.10);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 20px;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .ai-reasoning .ai-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(45,106,79,0.15), rgba(52,199,123,0.10));
+      border: 1px solid rgba(52,199,123,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .ai-reasoning h4 { font-size: 13px; font-weight: 700; color: #0d1f16; margin-bottom: 6px; }
+    .ai-reasoning p { font-size: 13px; color: #3d6b52; line-height: 1.65; }
+
+    /* ── Score cards ────────────────────────────────── */
+    .score-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .score-card {
+      background: #fff;
+      border-radius: 18px;
+      border: 2px solid rgba(45,106,79,0.08);
+      overflow: hidden;
+      transition: all 0.25s;
+      box-shadow: 0 2px 12px rgba(13,31,22,0.06);
+    }
+    .score-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(13,31,22,0.12); }
+    .score-card.winner { border-color: rgba(52,199,123,0.35); box-shadow: 0 4px 24px rgba(52,199,123,0.15); }
+    .score-card-header {
+      padding: 18px 20px 14px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .score-card-header .dest-info {}
+    .score-card-header .dest-emoji { font-size: 28px; margin-bottom: 4px; display: block; }
+    .score-card-header .dest-name { font-size: 17px; font-weight: 800; color: #0d1f16; }
+    .score-card-header .dest-country { font-size: 12px; color: #6e9678; font-weight: 500; }
+    .winner-crown { font-size: 20px; }
+    .overall-score {
+      display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .overall-score .num { font-size: 32px; font-weight: 900; line-height: 1; }
+    .overall-score .out-of { font-size: 12px; color: #6e9678; font-weight: 500; }
+    .score-card.winner .overall-score .num { color: #059669; }
+    .score-card:nth-child(2) .overall-score .num { color: #0284c7; }
+    .score-card:nth-child(3) .overall-score .num { color: #7c3aed; }
+
+    .score-bars { padding: 16px 20px; }
+    .score-row { margin-bottom: 11px; }
+    .score-row:last-child { margin-bottom: 0; }
+    .score-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .score-row-label { font-size: 12px; font-weight: 500; color: #3d6b52; display: flex; align-items: center; gap: 5px; }
+    .score-row-val { font-size: 12px; font-weight: 700; color: #0d1f16; }
+    .score-bar-bg { height: 6px; background: rgba(45,106,79,0.08); border-radius: 3px; overflow: hidden; }
+    .score-bar-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 1s ease 0.3s;
+    }
+    .score-card.winner .score-bar-fill { background: linear-gradient(90deg, #059669, #34c77b); }
+    .score-card:nth-child(2) .score-bar-fill { background: linear-gradient(90deg, #0c4a6e, #0ea5e9); }
+    .score-card:nth-child(3) .score-bar-fill { background: linear-gradient(90deg, #4c1d95, #a78bfa); }
+
+    /* Pros/cons */
+    .score-card-footer { padding: 0 20px 18px; }
+    .pro-con-divider { height: 1px; background: rgba(45,106,79,0.07); margin-bottom: 12px; }
+    .pros-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .pros-list li { font-size: 12px; color: #3d6b52; display: flex; align-items: flex-start; gap: 6px; }
+    .pros-list li .pro-icon { color: #059669; flex-shrink: 0; }
+    .pros-list li .con-icon { color: #d97706; flex-shrink: 0; }
+    .plan-btn {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      width: 100%; padding: 11px; border-radius: 10px; margin-top: 14px;
+      font-size: 13px; font-weight: 700; border: none; cursor: pointer;
+      font-family: inherit; text-decoration: none; transition: all 0.2s;
+    }
+    .score-card.winner .plan-btn {
+      background: linear-gradient(135deg, #059669, #34c77b);
+      color: white; box-shadow: 0 4px 16px rgba(52,199,123,0.30);
+    }
+    .score-card.winner .plan-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(52,199,123,0.45); }
+    .score-card:not(.winner) .plan-btn {
+      background: rgba(45,106,79,0.06);
+      color: #2d6a4f;
+      border: 1.5px solid rgba(45,106,79,0.14);
+    }
+    .score-card:not(.winner) .plan-btn:hover { background: rgba(45,106,79,0.10); }
+
+    /* ── Comparison table ───────────────────────────── */
+    .compare-table-wrap {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid rgba(45,106,79,0.08);
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(13,31,22,0.06);
+      margin-bottom: 16px;
+    }
+    .compare-table-title {
+      padding: 16px 22px 14px;
+      font-size: 14px; font-weight: 700; color: #0d1f16;
+      border-bottom: 1px solid rgba(45,106,79,0.08);
+      display: flex; align-items: center; gap: 8px;
+    }
+    table.compare-table { width: 100%; border-collapse: collapse; }
+    .compare-table th {
+      padding: 12px 16px; text-align: center;
+      font-size: 12px; font-weight: 700; color: #3d6b52; text-transform: uppercase; letter-spacing: 0.6px;
+      background: #f5f7f5;
+    }
+    .compare-table th.cat-col { text-align: left; width: 160px; }
+    .compare-table th.winner-col { background: rgba(5,150,105,0.06); }
+    .compare-table td {
+      padding: 11px 16px; text-align: center;
+      font-size: 13px; border-bottom: 1px solid rgba(45,106,79,0.06);
+    }
+    .compare-table td.cat-col { text-align: left; color: #6e9678; font-weight: 500; font-size: 13px; }
+    .compare-table td.winner-col { background: rgba(5,150,105,0.03); }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table tr:hover td { background: #f9fbf9; }
+    .compare-table tr:hover td.winner-col { background: rgba(5,150,105,0.06); }
+    .cell-score { font-weight: 700; }
+    .cell-score.best { color: #059669; }
+    .cell-score.good { color: #2d6a4f; }
+    .cell-score.mid  { color: #d97706; }
+    .cell-score.low  { color: #dc2626; }
+    .cell-check { font-size: 16px; }
+    .winner-header-marker {
+      display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    }
+
+    /* ── Quick facts ────────────────────────────────── */
+    .quick-facts-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      margin-bottom: 24px;
+    }
+    .quick-fact-card {
+      background: #fff; border-radius: 14px; padding: 16px 18px;
+      border: 1px solid rgba(45,106,79,0.08); box-shadow: 0 1px 8px rgba(13,31,22,0.05);
+    }
+    .quick-fact-card h4 { font-size: 12px; font-weight: 700; color: #6e9678; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .fact-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
+    .fact-row:last-child { margin-bottom: 0; }
+    .fact-dest { color: #3d6b52; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+    .fact-val { font-weight: 700; color: #0d1f16; }
+    .fact-best { color: #059669; }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 1000px) {
+      .dest-grid { grid-template-columns: 1fr; }
+      .prefs-grid { grid-template-columns: repeat(2, 1fr); }
+      .score-cards-grid { grid-template-columns: 1fr; }
+      .quick-facts-grid { grid-template-columns: 1fr; }
+      .winner-banner { flex-direction: column; }
+    }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search destinations…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" title="Notifications">🔔</button>
+      <div class="avatar avatar-md avatar-forest" title="Account">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html"   class="nav-item active"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <a href="packing.html" class="nav-item premium-nav">
+      <span class="nav-icon">🎒</span> Packing Lists
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="avatar avatar-md avatar-forest">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Alex Johnson</div>
+          <div class="sidebar-user-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="#" class="nav-item text-sm"><span class="nav-icon">⚙</span> Settings</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="app-main">
+    <div class="page-hero">
+      <div class="hero-badge-row">
+        <span class="hero-pill">✦ Free Feature</span>
+      </div>
+      <h1>⚖️ Destination Matchmaker</h1>
+      <p>Can't decide where to go? Enter up to 3 destinations and let MyTravel-AI rank them for your exact trip.</p>
+    </div>
+
+    <div class="app-main-inner">
+
+      <!-- Input Panel -->
+      <div class="input-panel" id="input-panel">
+        <div class="input-panel-header">
+          <div>
+            <h2>Your destinations</h2>
+            <p>Enter 2 or 3 places you're choosing between</p>
+          </div>
+        </div>
+
+        <!-- Destination slots -->
+        <div class="dest-grid">
+          <div class="dest-slot" id="slot-1">
+            <span class="dest-flag" id="flag-1">🗼</span>
+            <label>Destination 1</label>
+            <input type="text" id="dest-1" value="Tokyo, Japan" placeholder="e.g. Tokyo, Japan">
+          </div>
+          <div class="dest-slot" id="slot-2">
+            <span class="dest-flag" id="flag-2">🌴</span>
+            <label>Destination 2</label>
+            <input type="text" id="dest-2" value="Bali, Indonesia" placeholder="e.g. Bali, Indonesia">
+          </div>
+          <div class="dest-slot" id="slot-3">
+            <span class="dest-flag" id="flag-3">🗼</span>
+            <label>Destination 3 <span style="font-weight:400;color:#a0bfa8;text-transform:none;font-size:10px">(optional)</span></label>
+            <input type="text" id="dest-3" value="Paris, France" placeholder="e.g. Paris, France">
+            <button class="dest-remove" onclick="clearSlot(3)" title="Remove">×</button>
+          </div>
+        </div>
+
+        <!-- Preferences -->
+        <div class="prefs-grid">
+          <div class="pref-group">
+            <label>Trip Duration</label>
+            <select id="pref-duration">
+              <option>5 days</option>
+              <option selected>7 days</option>
+              <option>10 days</option>
+              <option>2 weeks</option>
+            </select>
+          </div>
+          <div class="pref-group">
+            <label>Travel Month</label>
+            <select id="pref-month">
+              <option>January</option><option>February</option><option>March</option>
+              <option selected>April</option><option>May</option><option>June</option>
+              <option>July</option><option>August</option><option>September</option>
+              <option>October</option><option>November</option><option>December</option>
+            </select>
+          </div>
+          <div class="pref-group">
+            <label>Budget Level</label>
+            <select id="pref-budget">
+              <option>Budget (under $100/day)</option>
+              <option selected>Moderate ($100–200/day)</option>
+              <option>Comfortable ($200–350/day)</option>
+              <option>Luxury ($350+/day)</option>
+            </select>
+          </div>
+          <div class="pref-group">
+            <label>Group Type</label>
+            <select id="pref-group">
+              <option>Solo traveller</option>
+              <option selected>Couple</option>
+              <option>Friends group</option>
+              <option>Family with kids</option>
+            </select>
+          </div>
+          <div class="pref-group">
+            <label>Top Priority</label>
+            <select id="pref-priority">
+              <option>Best value</option>
+              <option>Weather</option>
+              <option selected>Culture &amp; food</option>
+              <option>Adventure &amp; nature</option>
+              <option>Relaxation</option>
+              <option>Nightlife &amp; social</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="compare-cta-row">
+          <button class="btn-compare" id="compare-btn" onclick="startCompare()">
+            <span>⚖️</span> Compare with AI
+          </button>
+          <span class="compare-note">Takes about 2 seconds · Free to use</span>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-state" id="loading-state">
+        <div class="loading-destinations">
+          <div class="loading-dest">
+            <div class="dest-orb">🗼</div>
+            <span id="load-dest-1">Tokyo</span>
+          </div>
+          <div class="loading-connector">⚡</div>
+          <div class="loading-dest">
+            <div class="dest-orb">🌴</div>
+            <span id="load-dest-2">Bali</span>
+          </div>
+          <div class="loading-connector">⚡</div>
+          <div class="loading-dest">
+            <div class="dest-orb" style="font-size:20px">🥐</div>
+            <span id="load-dest-3">Paris</span>
+          </div>
+        </div>
+        <div class="loading-label">MyTravel-AI is analysing your destinations…</div>
+        <div class="loading-sub">Comparing weather, budget, activities, crowds, and 4 more factors</div>
+        <div class="loading-bar-wrap">
+          <div class="loading-bar" id="loading-bar"></div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results-section">
+
+        <!-- Winner banner -->
+        <div class="winner-banner">
+          <div class="winner-left">
+            <div class="winner-tag">🏆 AI Recommendation</div>
+            <h2>Tokyo, Japan</h2>
+            <p class="winner-sub">Best overall match for a couple in April with a moderate budget who want culture &amp; food. Cherry blossom season is peak Tokyo — you'd regret missing it.</p>
+            <a href="new-trip.html" class="winner-cta">Plan Tokyo Trip →</a>
+          </div>
+          <div class="winner-score-badge">
+            <div class="score-num">8.6</div>
+            <div class="score-label">Matchmaker Score</div>
+          </div>
+        </div>
+
+        <!-- AI reasoning -->
+        <div class="ai-reasoning">
+          <div class="ai-icon">🧠</div>
+          <div>
+            <h4>Why Tokyo wins for your trip</h4>
+            <p>
+              April is cherry blossom season in Tokyo — a once-a-year spectacle that aligns perfectly with your travel month.
+              Your moderate budget ($100–200/day) works well: mid-range hotels, quality meals, and transport are all accessible.
+              As a culture &amp; food priority, Tokyo offers an unmatched density of temples, markets, and Michelin-starred ramen
+              within a single city. Bali scores higher on pure relaxation, and Paris is richer in museums — but neither
+              matches Tokyo's all-round performance for your exact preferences this April.
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick facts -->
+        <div class="quick-facts-grid">
+          <div class="quick-fact-card">
+            <h4>💰 Estimated Daily Cost (couple)</h4>
+            <div class="fact-row"><span class="fact-dest">🗼 Tokyo</span><span class="fact-val fact-best">¥28,000 (~$185)</span></div>
+            <div class="fact-row"><span class="fact-dest">🌴 Bali</span><span class="fact-val">$95 – $130</span></div>
+            <div class="fact-row"><span class="fact-dest">🗺 Paris</span><span class="fact-val">€190 – €260</span></div>
+          </div>
+          <div class="quick-fact-card">
+            <h4>🌤 April Weather</h4>
+            <div class="fact-row"><span class="fact-dest">🗼 Tokyo</span><span class="fact-val fact-best">18°C · Cherry blossoms 🌸</span></div>
+            <div class="fact-row"><span class="fact-dest">🌴 Bali</span><span class="fact-val">29°C · Dry season starts</span></div>
+            <div class="fact-row"><span class="fact-dest">🗺 Paris</span><span class="fact-val">12°C · Unpredictable rain</span></div>
+          </div>
+          <div class="quick-fact-card">
+            <h4>✈ Flight (from US East Coast)</h4>
+            <div class="fact-row"><span class="fact-dest">🗼 Tokyo</span><span class="fact-val">~14h direct · $650–$900</span></div>
+            <div class="fact-row"><span class="fact-dest">🌴 Bali</span><span class="fact-val">~20h (1 stop) · $700–$1,100</span></div>
+            <div class="fact-row"><span class="fact-dest">🗺 Paris</span><span class="fact-val fact-best">~7h direct · $450–$700</span></div>
+          </div>
+        </div>
+
+        <!-- Score cards -->
+        <div class="score-cards-grid" id="score-cards">
+
+          <!-- Tokyo (winner) -->
+          <div class="score-card winner">
+            <div class="score-card-header">
+              <div class="dest-info">
+                <span class="dest-emoji">🗼</span>
+                <div class="dest-name">Tokyo</div>
+                <div class="dest-country">Japan</div>
+              </div>
+              <div>
+                <div class="winner-crown">🏆</div>
+                <div class="overall-score">
+                  <span class="num">8.6</span>
+                  <span class="out-of">/ 10</span>
+                </div>
+              </div>
+            </div>
+            <div class="score-bars">
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🌤 Weather (April)</span><span class="score-row-val">9/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="90%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">💰 Budget fit</span><span class="score-row-val">8/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="80%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🎭 Activity match</span><span class="score-row-val">9/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="90%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">👥 Crowd level</span><span class="score-row-val">7/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="70%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🌍 Cultural depth</span><span class="score-row-val">10/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="100%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🍜 Food scene</span><span class="score-row-val">10/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="100%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🔒 Visa / entry</span><span class="score-row-val">9/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="90%"></div></div>
+              </div>
+            </div>
+            <div class="score-card-footer">
+              <div class="pro-con-divider"></div>
+              <ul class="pros-list">
+                <li><span class="pro-icon">✓</span> Cherry blossom season perfectly aligned</li>
+                <li><span class="pro-icon">✓</span> Most Michelin stars of any city on Earth</li>
+                <li><span class="pro-icon">✓</span> Safest major city — ideal for first-timers</li>
+                <li><span class="con-icon">⚠</span> Long-haul flight from most Western cities</li>
+              </ul>
+              <a href="new-trip.html" class="plan-btn">Plan Tokyo Trip →</a>
+            </div>
+          </div>
+
+          <!-- Bali -->
+          <div class="score-card">
+            <div class="score-card-header">
+              <div class="dest-info">
+                <span class="dest-emoji">🌴</span>
+                <div class="dest-name">Bali</div>
+                <div class="dest-country">Indonesia</div>
+              </div>
+              <div class="overall-score">
+                <span class="num">7.3</span>
+                <span class="out-of">/ 10</span>
+              </div>
+            </div>
+            <div class="score-bars">
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🌤 Weather (April)</span><span class="score-row-val">8/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="80%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">💰 Budget fit</span><span class="score-row-val">9/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="90%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🎭 Activity match</span><span class="score-row-val">6/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="60%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">👥 Crowd level</span><span class="score-row-val">6/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="60%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🌍 Cultural depth</span><span class="score-row-val">7/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="70%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🍜 Food scene</span><span class="score-row-val">7/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="70%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🔒 Visa / entry</span><span class="score-row-val">8/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="80%"></div></div>
+              </div>
+            </div>
+            <div class="score-card-footer">
+              <div class="pro-con-divider"></div>
+              <ul class="pros-list">
+                <li><span class="pro-icon">✓</span> Best value — 30–40% cheaper than Tokyo</li>
+                <li><span class="pro-icon">✓</span> Dry season just starting — good beach weather</li>
+                <li><span class="pro-icon">✓</span> Stunning rice terraces, Hindu temples</li>
+                <li><span class="con-icon">⚠</span> Wellness/nature focus — less food culture depth</li>
+              </ul>
+              <a href="new-trip.html" class="plan-btn">Plan Bali Trip →</a>
+            </div>
+          </div>
+
+          <!-- Paris -->
+          <div class="score-card">
+            <div class="score-card-header">
+              <div class="dest-info">
+                <span class="dest-emoji">🗺️</span>
+                <div class="dest-name">Paris</div>
+                <div class="dest-country">France</div>
+              </div>
+              <div class="overall-score">
+                <span class="num">7.1</span>
+                <span class="out-of">/ 10</span>
+              </div>
+            </div>
+            <div class="score-bars">
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🌤 Weather (April)</span><span class="score-row-val">6/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="60%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">💰 Budget fit</span><span class="score-row-val">5/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="50%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🎭 Activity match</span><span class="score-row-val">8/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="80%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">👥 Crowd level</span><span class="score-row-val">5/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="50%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🌍 Cultural depth</span><span class="score-row-val">10/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="100%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🍜 Food scene</span><span class="score-row-val">9/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="90%"></div></div>
+              </div>
+              <div class="score-row">
+                <div class="score-row-top"><span class="score-row-label">🔒 Visa / entry</span><span class="score-row-val">9/10</span></div>
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:0%" data-width="90%"></div></div>
+              </div>
+            </div>
+            <div class="score-card-footer">
+              <div class="pro-con-divider"></div>
+              <ul class="pros-list">
+                <li><span class="pro-icon">✓</span> World-class museums, history, architecture</li>
+                <li><span class="pro-icon">✓</span> Shorter flight from US/Europe</li>
+                <li><span class="pro-icon">✓</span> Finest dining scene in Europe</li>
+                <li><span class="con-icon">⚠</span> Most expensive — can stretch moderate budget</li>
+              </ul>
+              <a href="new-trip.html" class="plan-btn">Plan Paris Trip →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparison table -->
+        <div class="compare-table-wrap">
+          <div class="compare-table-title">📊 Full Category Comparison</div>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th class="cat-col">Category</th>
+                <th class="winner-col"><span class="winner-header-marker">🏆 Tokyo</span></th>
+                <th>🌴 Bali</th>
+                <th>🗺️ Paris</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cat-col">🌤 April weather</td>
+                <td class="winner-col"><span class="cell-score best">9/10</span> — Cool &amp; blossoms</td>
+                <td><span class="cell-score good">8/10</span> — Warm, dry starting</td>
+                <td><span class="cell-score mid">6/10</span> — Mild, rainy spells</td>
+              </tr>
+              <tr>
+                <td class="cat-col">💰 Budget fit</td>
+                <td class="winner-col"><span class="cell-score best">8/10</span> — Mid-range viable</td>
+                <td><span class="cell-score best">9/10</span> — Very affordable</td>
+                <td><span class="cell-score low">5/10</span> — Expensive</td>
+              </tr>
+              <tr>
+                <td class="cat-col">🎭 Culture &amp; food match</td>
+                <td class="winner-col"><span class="cell-score best">9/10</span> — Perfect fit</td>
+                <td><span class="cell-score mid">6/10</span> — Nature-first</td>
+                <td><span class="cell-score good">8/10</span> — Strong match</td>
+              </tr>
+              <tr>
+                <td class="cat-col">👥 Tourist crowds</td>
+                <td class="winner-col"><span class="cell-score good">7/10</span> — Busy, manageable</td>
+                <td><span class="cell-score mid">6/10</span> — Heavily touristed</td>
+                <td><span class="cell-score low">5/10</span> — Very crowded in April</td>
+              </tr>
+              <tr>
+                <td class="cat-col">✈ Flight from US East</td>
+                <td class="winner-col"><span class="cell-score good">7/10</span> — 14h direct</td>
+                <td><span class="cell-score mid">6/10</span> — 20h, 1 stop</td>
+                <td><span class="cell-score best">9/10</span> — 7h direct</td>
+              </tr>
+              <tr>
+                <td class="cat-col">🌍 Cultural depth</td>
+                <td class="winner-col"><span class="cell-score best">10/10</span> — Extraordinary</td>
+                <td><span class="cell-score good">7/10</span> — Rich Hindu culture</td>
+                <td><span class="cell-score best">10/10</span> — World-class</td>
+              </tr>
+              <tr>
+                <td class="cat-col">🍜 Food scene</td>
+                <td class="winner-col"><span class="cell-score best">10/10</span> — #1 globally</td>
+                <td><span class="cell-score good">7/10</span> — Good, not iconic</td>
+                <td><span class="cell-score best">9/10</span> — Culinary capital</td>
+              </tr>
+              <tr>
+                <td class="cat-col">🔒 Visa / entry ease</td>
+                <td class="winner-col"><span class="cell-score best">9/10</span> — Visa-free many</td>
+                <td><span class="cell-score good">8/10</span> — Visa on arrival</td>
+                <td><span class="cell-score best">9/10</span> — Schengen (visa-free)</td>
+              </tr>
+              <tr style="font-weight:700;background:#f9fbf9">
+                <td class="cat-col" style="font-weight:700;color:#0d1f16">⭐ Overall Score</td>
+                <td class="winner-col" style="font-weight:900;color:#059669;font-size:15px">8.6 / 10</td>
+                <td style="font-weight:700;color:#0284c7;font-size:15px">7.3 / 10</td>
+                <td style="font-weight:700;color:#7c3aed;font-size:15px">7.1 / 10</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Re-compare CTA -->
+        <div style="text-align:center;padding:8px 0 16px">
+          <button onclick="resetCompare()" style="background:none;border:none;color:#6e9678;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:3px">
+            ↺ Adjust preferences and compare again
+          </button>
+        </div>
+
+      </div><!-- /results -->
+    </div><!-- /app-main-inner -->
+  </main>
+</div>
+
+<script>
+function startCompare() {
+  const d1 = document.getElementById('dest-1').value.split(',')[0].trim() || 'Destination 1';
+  const d2 = document.getElementById('dest-2').value.split(',')[0].trim() || 'Destination 2';
+  const d3 = document.getElementById('dest-3').value.split(',')[0].trim() || '';
+
+  document.getElementById('load-dest-1').textContent = d1;
+  document.getElementById('load-dest-2').textContent = d2;
+  document.getElementById('load-dest-3').textContent = d3 || '—';
+
+  // Show loading
+  document.getElementById('input-panel').style.display = 'none';
+  document.getElementById('loading-state').classList.add('visible');
+  document.getElementById('results-section').classList.remove('visible');
+
+  // Recreate loading bar animation
+  const bar = document.getElementById('loading-bar');
+  bar.style.animation = 'none';
+  bar.offsetHeight; // reflow
+  bar.style.animation = 'load-progress 2.2s ease-in-out forwards';
+
+  // Show results after delay
+  setTimeout(() => {
+    document.getElementById('loading-state').classList.remove('visible');
+    const results = document.getElementById('results-section');
+    results.classList.add('visible');
+    // Animate score bars
+    setTimeout(animateBars, 200);
+  }, 2300);
+}
+
+function animateBars() {
+  document.querySelectorAll('.score-bar-fill[data-width]').forEach(bar => {
+    bar.style.width = bar.getAttribute('data-width');
+  });
+}
+
+function resetCompare() {
+  document.getElementById('results-section').classList.remove('visible');
+  document.getElementById('input-panel').style.display = '';
+  // Reset bars
+  document.querySelectorAll('.score-bar-fill[data-width]').forEach(bar => {
+    bar.style.width = '0%';
+  });
+}
+
+function clearSlot(n) {
+  const slot = document.getElementById('slot-' + n);
+  const input = document.getElementById('dest-' + n);
+  const flag  = document.getElementById('flag-' + n);
+  input.value = '';
+  flag.textContent = '✦';
+  slot.classList.add('optional');
+}
+
+// Animate bars on page load if results were pre-visible (not needed for demo, but good practice)
+document.addEventListener('DOMContentLoaded', () => {
+  // bars start at 0% — only animate after compare
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cottages & Cabins — MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Page hero ── */
+    .page-hero {
+      background: linear-gradient(135deg, #0d1f16 0%, #1a3a28 55%, #0f2a1e 100%);
+      padding: 28px 32px 24px;
+      position: relative; overflow: hidden;
+    }
+    .page-hero::after {
+      content: '🏡';
+      position: absolute; right: 32px; top: 50%; transform: translateY(-50%);
+      font-size: 90px; opacity: 0.07; pointer-events: none;
+    }
+    .page-hero h1 { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.4px; margin-bottom: 4px; }
+    .page-hero p  { font-size: 14px; color: rgba(255,255,255,0.55); }
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(52,199,123,0.15); border: 1px solid rgba(52,199,123,0.3);
+      border-radius: 100px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #74c69d; margin-bottom: 10px;
+    }
+
+    /* ── Search bar ── */
+    .search-bar {
+      background: white; border-radius: var(--r-xl); padding: 14px 20px;
+      display: flex; align-items: center; gap: 0;
+      box-shadow: var(--shadow-lg); margin-bottom: 24px;
+      border: 1px solid var(--border-light);
+    }
+    .search-field {
+      flex: 1; padding: 8px 16px; border: none; outline: none;
+      font-family: inherit; font-size: 14px; color: var(--text-dark);
+      background: transparent;
+    }
+    .search-field:not(:last-of-type) {
+      border-right: 1px solid var(--border-light);
+    }
+    .search-field-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
+    .search-field input, .search-field select {
+      border: none; outline: none; font-family: inherit;
+      font-size: 14px; font-weight: 600; color: var(--text-dark);
+      background: transparent; width: 100%; cursor: pointer;
+    }
+    .search-btn {
+      background: var(--grad-forest); color: white; border: none;
+      border-radius: var(--r-lg); padding: 12px 22px; font-size: 14px;
+      font-weight: 700; cursor: pointer; transition: var(--trans);
+      display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0;
+    }
+    .search-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-color-forest); }
+
+    /* ── Layout ── */
+    .browse-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ── Filter sidebar ── */
+    .filter-sidebar {
+      background: white; border-radius: var(--r-xl);
+      border: 1px solid var(--border-light); box-shadow: var(--shadow-sm);
+      padding: 20px; position: sticky; top: 80px;
+    }
+    .filter-sidebar h3 { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .filter-group { margin-bottom: 22px; }
+    .filter-group-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .filter-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; cursor: pointer; border-radius: var(--r-sm);
+      transition: var(--trans);
+    }
+    .filter-option:hover { color: var(--forest); }
+    .filter-option input[type="checkbox"] { accent-color: var(--forest); width: 15px; height: 15px; }
+    .filter-option label { font-size: 13px; color: var(--text-dark); cursor: pointer; flex: 1; }
+    .filter-option .count { font-size: 11px; color: var(--text-faint); background: var(--bg-light); border-radius: var(--r-full); padding: 1px 7px; }
+    .filter-divider { height: 1px; background: var(--border-light); margin: 16px 0; }
+    .price-range { display: flex; align-items: center; gap: 10px; }
+    .price-input {
+      flex: 1; border: 1px solid var(--border-mid); border-radius: var(--r-sm);
+      padding: 8px 10px; font-size: 13px; font-weight: 600; color: var(--text-dark);
+      outline: none; transition: var(--trans);
+    }
+    .price-input:focus { border-color: var(--forest-light); }
+    .price-sep { font-size: 12px; color: var(--text-faint); }
+    .bedroom-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .bedroom-btn {
+      border: 1px solid var(--border-mid); border-radius: var(--r-full);
+      padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+      color: var(--text-mid); background: white; transition: var(--trans);
+    }
+    .bedroom-btn:hover, .bedroom-btn.active { background: var(--forest); color: white; border-color: var(--forest); }
+    .clear-link { font-size: 12px; color: var(--forest-light); cursor: pointer; font-weight: 600; }
+    .clear-link:hover { text-decoration: underline; }
+
+    /* ── Results area ── */
+    .results-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .results-count { font-size: 14px; color: var(--text-mid); }
+    .results-count strong { color: var(--text-dark); font-weight: 700; }
+    .sort-select {
+      border: 1px solid var(--border-mid); border-radius: var(--r-sm);
+      padding: 7px 12px; font-size: 13px; font-weight: 500;
+      color: var(--text-dark); background: white; cursor: pointer; outline: none;
+    }
+
+    /* ── Property cards grid ── */
+    .properties-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+    .prop-card {
+      background: white; border-radius: var(--r-xl);
+      border: 1px solid var(--border-light); box-shadow: var(--shadow-sm);
+      overflow: hidden; cursor: pointer; transition: var(--trans); text-decoration: none;
+    }
+    .prop-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--border-mid); }
+    .prop-photo {
+      height: 180px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; font-size: 64px;
+    }
+    .prop-photo::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.35) 100%);
+    }
+    .prop-badge {
+      position: absolute; top: 12px; left: 12px; z-index: 2;
+      background: rgba(255,255,255,0.92); border-radius: var(--r-full);
+      padding: 4px 10px; font-size: 11px; font-weight: 700; color: var(--text-dark);
+      backdrop-filter: blur(4px); display: flex; align-items: center; gap: 4px;
+    }
+    .prop-badge-new {
+      position: absolute; top: 12px; right: 12px; z-index: 2;
+      background: var(--grad-forest); border-radius: var(--r-full);
+      padding: 4px 10px; font-size: 10px; font-weight: 700; color: white;
+    }
+    .prop-body { padding: 14px 16px 16px; }
+    .prop-name { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 3px; }
+    .prop-location { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+    .prop-rating { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-dark); font-weight: 600; margin-bottom: 10px; }
+    .prop-rating .stars { color: #f59e0b; }
+    .prop-rating .reviews { color: var(--text-muted); font-weight: 400; }
+    .prop-stats { display: flex; gap: 12px; margin-bottom: 10px; }
+    .prop-stat { font-size: 12px; color: var(--text-mid); display: flex; align-items: center; gap: 4px; }
+    .prop-amenities { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .amenity-tag {
+      background: var(--bg-mint); color: var(--forest);
+      border-radius: var(--r-full); padding: 3px 9px; font-size: 11px; font-weight: 600;
+    }
+    .prop-footer { display: flex; align-items: center; justify-content: space-between; }
+    .prop-price { font-size: 15px; font-weight: 800; color: var(--text-dark); }
+    .prop-price span { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+
+    /* ── Empty state (hidden by default) ── */
+    .empty-state { text-align: center; padding: 64px 24px; color: var(--text-muted); }
+    .empty-state .emoji { font-size: 56px; margin-bottom: 16px; }
+
+    /* ── View toggle ── */
+    .view-toggle { display: flex; gap: 4px; }
+    .view-btn {
+      border: 1px solid var(--border-mid); background: white; border-radius: var(--r-sm);
+      padding: 6px 10px; font-size: 14px; cursor: pointer; transition: var(--trans); color: var(--text-muted);
+    }
+    .view-btn.active { background: var(--forest); color: white; border-color: var(--forest); }
+
+    /* ── Map toggle banner ── */
+    .map-hint {
+      background: linear-gradient(135deg, #eef7f0, #e8f7fb);
+      border: 1px solid var(--border-light); border-radius: var(--r-lg);
+      padding: 12px 18px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; color: var(--text-mid);
+    }
+    .map-hint strong { color: var(--forest); }
+
+    /* ── Pagination ── */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 28px; }
+    .page-btn {
+      border: 1px solid var(--border-mid); background: white; border-radius: var(--r-sm);
+      padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--text-mid); transition: var(--trans);
+    }
+    .page-btn:hover { border-color: var(--forest); color: var(--forest); }
+    .page-btn.active { background: var(--forest); color: white; border-color: var(--forest); }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search cottages, cabins, locations…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" title="Notifications">🔔</button>
+      <div class="avatar avatar-md avatar-forest" id="user-avatar">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item active"><span class="nav-icon">🏡</span> Cottages & Cabins</a>
+    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <a href="packing.html" class="nav-item premium-nav">
+      <span class="nav-icon">🎒</span> Packing Lists
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest" id="sidebar-avatar">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Alex Johnson</div>
+          <div class="sidebar-user-email" id="sidebar-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="#" class="nav-item text-sm"><span class="nav-icon">⚙</span> Settings</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    <div class="app-main-inner">
+
+      <!-- Page Hero -->
+      <div class="page-hero" style="border-radius:var(--r-2xl);margin-bottom:20px;">
+        <div class="hero-pill">🏡 New Feature</div>
+        <h1>Cottages & Cabins</h1>
+        <p>Find the perfect getaway — lakefront retreats, forest hideaways, mountain lodges & more.</p>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="search-bar">
+        <div class="search-field" style="flex:2">
+          <span class="search-field-label">Where</span>
+          <input type="text" placeholder="Muskoka, Algonquin, Blue Mountains…" id="search-where">
+        </div>
+        <div class="search-field">
+          <span class="search-field-label">Check-in</span>
+          <input type="date" id="search-checkin">
+        </div>
+        <div class="search-field">
+          <span class="search-field-label">Check-out</span>
+          <input type="date" id="search-checkout">
+        </div>
+        <div class="search-field">
+          <span class="search-field-label">Guests</span>
+          <select id="search-guests">
+            <option>1 guest</option>
+            <option selected>2 guests</option>
+            <option>3 guests</option>
+            <option>4 guests</option>
+            <option>6 guests</option>
+            <option>8+ guests</option>
+          </select>
+        </div>
+        <button class="search-btn" onclick="doSearch()">🔍 Search</button>
+      </div>
+
+      <!-- Browse Layout -->
+      <div class="browse-layout">
+
+        <!-- Filter Sidebar -->
+        <aside class="filter-sidebar">
+          <h3>🎛 Filters <span class="clear-link" style="margin-left:auto;font-size:11px" onclick="clearFilters()">Clear all</span></h3>
+
+          <!-- Property Type -->
+          <div class="filter-group">
+            <div class="filter-group-label">Property Type</div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-cottage" checked>
+              <label for="f-cottage">Cottage</label>
+              <span class="count">14</span>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-cabin" checked>
+              <label for="f-cabin">Cabin</label>
+              <span class="count">11</span>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-chalet">
+              <label for="f-chalet">Chalet</label>
+              <span class="count">6</span>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-treehouse">
+              <label for="f-treehouse">Treehouse</label>
+              <span class="count">3</span>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-farmhouse">
+              <label for="f-farmhouse">Farmhouse</label>
+              <span class="count">5</span>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-lodge">
+              <label for="f-lodge">Lodge</label>
+              <span class="count">4</span>
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Bedrooms -->
+          <div class="filter-group">
+            <div class="filter-group-label">Bedrooms</div>
+            <div class="bedroom-btns">
+              <button class="bedroom-btn active" onclick="setBedrooms(this,'any')">Any</button>
+              <button class="bedroom-btn" onclick="setBedrooms(this,'1')">1+</button>
+              <button class="bedroom-btn" onclick="setBedrooms(this,'2')">2+</button>
+              <button class="bedroom-btn" onclick="setBedrooms(this,'3')">3+</button>
+              <button class="bedroom-btn" onclick="setBedrooms(this,'4')">4+</button>
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Price range -->
+          <div class="filter-group">
+            <div class="filter-group-label">Price per Night (CAD)</div>
+            <div class="price-range" style="margin-top:8px">
+              <input type="number" class="price-input" placeholder="Min" value="50">
+              <span class="price-sep">—</span>
+              <input type="number" class="price-input" placeholder="Max" value="600">
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Amenities -->
+          <div class="filter-group">
+            <div class="filter-group-label">Amenities</div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-lakefront" checked>
+              <label for="f-lakefront">🏖 Lakefront / Waterfront</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-hottub">
+              <label for="f-hottub">♨️ Hot Tub</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-fireplace" checked>
+              <label for="f-fireplace">🔥 Fireplace</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-dock">
+              <label for="f-dock">⛵ Private Dock</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-pets">
+              <label for="f-pets">🐾 Pet Friendly</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-wifi">
+              <label for="f-wifi">📶 WiFi</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-sauna">
+              <label for="f-sauna">🧖 Sauna</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-canoe">
+              <label for="f-canoe">🛶 Canoe / Kayak</label>
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Setting -->
+          <div class="filter-group">
+            <div class="filter-group-label">Setting</div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-lake">
+              <label for="f-lake">🌊 Lakeside</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-forest">
+              <label for="f-forest">🌲 Forest / Wooded</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-mountain">
+              <label for="f-mountain">⛰ Mountain / Ski</label>
+            </div>
+            <div class="filter-option">
+              <input type="checkbox" id="f-river">
+              <label for="f-river">🏞 Riverside</label>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="doSearch()">Apply Filters</button>
+        </aside>
+
+        <!-- Results -->
+        <div>
+          <!-- Map hint -->
+          <div class="map-hint">
+            🗺 <div><strong>Map View</strong> — See all properties on an interactive map. <a href="#" style="color:var(--forest);font-weight:600">Open Map</a></div>
+          </div>
+
+          <div class="results-header">
+            <div class="results-count"><strong id="result-count">43</strong> properties found</div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <select class="sort-select" onchange="sortResults(this.value)">
+                <option value="recommended">Sort: Recommended</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating">Rating: Highest</option>
+                <option value="newest">Newest First</option>
+              </select>
+              <div class="view-toggle">
+                <button class="view-btn active" title="Grid view">⊞</button>
+                <button class="view-btn" title="List view">☰</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="properties-grid" id="properties-grid">
+
+            <!-- Card 1: Muskoka Lakefront Cottage -->
+            <a href="cottage-detail.html?id=1" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#fed7aa,#fb923c,#ea580c)">
+                🏡
+                <div class="prop-badge">🏖 Lakefront</div>
+                <div class="prop-badge-new">⭐ Top Rated</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Muskoka Lakefront Retreat</div>
+                <div class="prop-location">📍 Lake Rosseau, Muskoka, ON</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★★</span>
+                  <span>4.97</span>
+                  <span class="reviews">(142 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 4 beds</span>
+                  <span class="prop-stat">🚿 2 baths</span>
+                  <span class="prop-stat">👥 8 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">🔥 Fireplace</span>
+                  <span class="amenity-tag">⛵ Dock</span>
+                  <span class="amenity-tag">🛶 Canoe</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$385 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 2: Algonquin Forest Cabin -->
+            <a href="cottage-detail.html?id=2" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#bbf7d0,#4ade80,#16a34a)">
+                🌲
+                <div class="prop-badge">🌲 Forest</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Algonquin Forest Hideaway</div>
+                <div class="prop-location">📍 Dwight, Algonquin Park, ON</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★★</span>
+                  <span>4.92</span>
+                  <span class="reviews">(88 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 3 beds</span>
+                  <span class="prop-stat">🚿 2 baths</span>
+                  <span class="prop-stat">👥 6 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">🔥 Fireplace</span>
+                  <span class="amenity-tag">♨️ Hot Tub</span>
+                  <span class="amenity-tag">🐾 Pets OK</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$210 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 3: Blue Mountains Chalet -->
+            <a href="cottage-detail.html?id=3" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#bfdbfe,#60a5fa,#2563eb)">
+                ⛰
+                <div class="prop-badge">⛰ Mountain</div>
+                <div class="prop-badge-new">❄️ Ski-in/Ski-out</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Blue Mountains Ski Chalet</div>
+                <div class="prop-location">📍 The Blue Mountains, ON</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★½</span>
+                  <span>4.85</span>
+                  <span class="reviews">(211 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 5 beds</span>
+                  <span class="prop-stat">🚿 3 baths</span>
+                  <span class="prop-stat">👥 10 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">♨️ Hot Tub</span>
+                  <span class="amenity-tag">🧖 Sauna</span>
+                  <span class="amenity-tag">📶 WiFi</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$520 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 4: Haliburton Treehouse -->
+            <a href="cottage-detail.html?id=4" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#d1fae5,#6ee7b7,#059669)">
+                🌳
+                <div class="prop-badge">🌳 Treehouse</div>
+                <div class="prop-badge-new">✨ Unique Stay</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Haliburton Highlands Treehouse</div>
+                <div class="prop-location">📍 Haliburton, ON</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★★</span>
+                  <span>4.99</span>
+                  <span class="reviews">(54 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 2 beds</span>
+                  <span class="prop-stat">🚿 1 bath</span>
+                  <span class="prop-stat">👥 4 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">🌲 Forest View</span>
+                  <span class="amenity-tag">🔥 Wood Stove</span>
+                  <span class="amenity-tag">🛶 Kayak</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$285 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 5: Georgian Bay Waterfront -->
+            <a href="cottage-detail.html?id=5" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#cffafe,#67e8f9,#0891b2)">
+                🌊
+                <div class="prop-badge">🌊 Waterfront</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Georgian Bay Island Cottage</div>
+                <div class="prop-location">📍 Parry Sound, Georgian Bay, ON</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★½</span>
+                  <span>4.88</span>
+                  <span class="reviews">(97 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 3 beds</span>
+                  <span class="prop-stat">🚿 2 baths</span>
+                  <span class="prop-stat">👥 6 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">⛵ Boat Access</span>
+                  <span class="amenity-tag">🎣 Fishing</span>
+                  <span class="amenity-tag">🔥 Fireplace</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$340 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 6: Prince Edward County Farmhouse -->
+            <a href="cottage-detail.html?id=6" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#fef9c3,#fde047,#ca8a04)">
+                🌾
+                <div class="prop-badge">🌾 Farmhouse</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Prince Edward County Farmhouse</div>
+                <div class="prop-location">📍 Picton, Prince Edward County, ON</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★½</span>
+                  <span>4.79</span>
+                  <span class="reviews">(63 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 4 beds</span>
+                  <span class="prop-stat">🚿 2 baths</span>
+                  <span class="prop-stat">👥 8 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">🍷 Wine Country</span>
+                  <span class="amenity-tag">🐾 Pets OK</span>
+                  <span class="amenity-tag">🔥 Fire Pit</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$195 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 7: Kawartha Lakes Retreat -->
+            <a href="cottage-detail.html?id=7" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#ede9fe,#a78bfa,#7c3aed)">
+                🏘
+                <div class="prop-badge">🏖 Lakeside</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Kawartha Lakes Log Cabin</div>
+                <div class="prop-location">📍 Bobcaygeon, Kawartha Lakes, ON</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★</span>
+                  <span>4.72</span>
+                  <span class="reviews">(39 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 2 beds</span>
+                  <span class="prop-stat">🚿 1 bath</span>
+                  <span class="prop-stat">👥 4 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">🛶 Canoe</span>
+                  <span class="amenity-tag">🔥 Fireplace</span>
+                  <span class="amenity-tag">📶 WiFi</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$160 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 8: Tremblant Mountain Lodge -->
+            <a href="cottage-detail.html?id=8" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#fce7f3,#f9a8d4,#db2777)">
+                🏔
+                <div class="prop-badge">⛷ Ski Resort</div>
+                <div class="prop-badge-new">🔥 Popular</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Mont-Tremblant Slope-Side Lodge</div>
+                <div class="prop-location">📍 Mont-Tremblant, QC</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★★</span>
+                  <span>4.94</span>
+                  <span class="reviews">(178 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 6 beds</span>
+                  <span class="prop-stat">🚿 4 baths</span>
+                  <span class="prop-stat">👥 12 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">♨️ Hot Tub</span>
+                  <span class="amenity-tag">🧖 Sauna</span>
+                  <span class="amenity-tag">⛷ Ski-in</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$695 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+            <!-- Card 9: Ucluelet Oceanfront Cabin -->
+            <a href="cottage-detail.html?id=9" class="prop-card">
+              <div class="prop-photo" style="background:linear-gradient(135deg,#e0f2fe,#38bdf8,#0284c7)">
+                🌊
+                <div class="prop-badge">🌊 Oceanfront</div>
+              </div>
+              <div class="prop-body">
+                <div class="prop-name">Ucluelet Rainforest Cabin</div>
+                <div class="prop-location">📍 Ucluelet, Vancouver Island, BC</div>
+                <div class="prop-rating">
+                  <span class="stars">★★★★★</span>
+                  <span>4.96</span>
+                  <span class="reviews">(121 reviews)</span>
+                </div>
+                <div class="prop-stats">
+                  <span class="prop-stat">🛏 2 beds</span>
+                  <span class="prop-stat">🚿 2 baths</span>
+                  <span class="prop-stat">👥 4 guests</span>
+                </div>
+                <div class="prop-amenities">
+                  <span class="amenity-tag">🌊 Ocean View</span>
+                  <span class="amenity-tag">🐋 Whale Watch</span>
+                  <span class="amenity-tag">🔥 Fireplace</span>
+                </div>
+                <div class="prop-footer">
+                  <div class="prop-price">$420 <span>/ night</span></div>
+                  <span class="btn btn-primary btn-sm">View →</span>
+                </div>
+              </div>
+            </a>
+
+          </div><!-- /properties-grid -->
+
+          <!-- Pagination -->
+          <div class="pagination">
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">4</button>
+            <button class="page-btn" style="gap:4px">Next →</button>
+          </div>
+
+        </div><!-- /results col -->
+      </div><!-- /browse-layout -->
+
+    </div><!-- /app-main-inner -->
+  </main><!-- /app-main -->
+</div><!-- /app-shell -->
+
+<script>
+  // Load user info
+  const user = JSON.parse(sessionStorage.getItem('mtUser') || '{"name":"Alex Johnson","email":"alex@example.com","initials":"AJ"}');
+  document.getElementById('user-avatar').textContent = user.initials;
+  document.getElementById('sidebar-avatar').textContent = user.initials;
+  document.getElementById('sidebar-name').textContent = user.name;
+  document.getElementById('sidebar-email').textContent = user.email;
+
+  // Set default dates
+  const today = new Date();
+  const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
+  const weekAfter = new Date(today); weekAfter.setDate(today.getDate() + 14);
+  document.getElementById('search-checkin').value  = nextWeek.toISOString().split('T')[0];
+  document.getElementById('search-checkout').value = weekAfter.toISOString().split('T')[0];
+
+  function doSearch() {
+    const where = document.getElementById('search-where').value;
+    const count = Math.floor(Math.random() * 20) + 30;
+    document.getElementById('result-count').textContent = count;
+    // Animate cards
+    document.querySelectorAll('.prop-card').forEach((c,i) => {
+      c.style.opacity = '0'; c.style.transform = 'translateY(16px)';
+      setTimeout(() => { c.style.transition = 'all 0.3s ease'; c.style.opacity = '1'; c.style.transform = ''; }, i * 60);
+    });
+  }
+
+  function setBedrooms(btn, val) {
+    document.querySelectorAll('.bedroom-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function clearFilters() {
+    document.querySelectorAll('.filter-sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.bedroom-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.bedroom-btn').classList.add('active');
+  }
+
+  function sortResults(val) {
+    // In a real app, this would re-sort/re-fetch
+    const grid = document.getElementById('properties-grid');
+    grid.style.opacity = '0.5';
+    setTimeout(() => { grid.style.opacity = '1'; }, 400);
+  }
+
+  // View toggle
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan a Trip — MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    .wizard-wrap { max-width:680px; margin:0 auto; padding:32px 0 60px; }
+
+    /* Step indicator */
+    .steps-indicator { display:flex; align-items:center; margin-bottom:40px; }
+    .step-dot {
+      display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; position:relative;
+    }
+    .step-dot:not(:last-child)::after {
+      content:''; position:absolute; top:16px; left:50%; width:100%; height:2px;
+      background:var(--border-mid); z-index:0;
+    }
+    .step-dot.done::after { background:var(--forest); }
+    .step-circle {
+      width:32px; height:32px; border-radius:50%; border:2px solid var(--border-mid);
+      background:var(--bg-white); display:flex; align-items:center; justify-content:center;
+      font-size:13px; font-weight:700; color:var(--text-muted); z-index:1; transition:var(--trans);
+    }
+    .step-dot.active .step-circle { border-color:var(--forest); background:var(--forest); color:white; }
+    .step-dot.done .step-circle { border-color:var(--forest); background:var(--forest); color:white; }
+    .step-label { font-size:12px; font-weight:500; color:var(--text-muted); text-align:center; }
+    .step-dot.active .step-label { color:var(--forest); font-weight:600; }
+    .step-dot.done .step-label { color:var(--forest-light); }
+
+    /* Step panels */
+    .step-panel { display:none; }
+    .step-panel.active { display:block; animation:pageFadeIn 0.3s ease; }
+    .step-title { font-size:22px; font-weight:800; color:var(--text-dark); margin-bottom:6px; }
+    .step-sub { font-size:15px; color:var(--text-muted); margin-bottom:28px; }
+
+    /* Style tags grid */
+    .style-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px; }
+    .style-card {
+      border:1.5px solid var(--border-mid); border-radius:var(--r-md);
+      padding:16px; text-align:center; cursor:pointer; transition:var(--trans);
+      background:var(--bg-white); user-select:none;
+    }
+    .style-card:hover { border-color:var(--forest); background:var(--bg-mint); }
+    .style-card.selected { border-color:var(--forest); background:rgba(45,106,79,0.08); }
+    .style-card .style-emoji { font-size:28px; display:block; margin-bottom:6px; }
+    .style-card .style-name { font-size:13px; font-weight:600; color:var(--text-dark); }
+
+    /* Pill selectors */
+    .pill-group { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+    .pill-option {
+      padding:8px 18px; border-radius:var(--r-full); border:1.5px solid var(--border-mid);
+      background:var(--bg-white); font-size:14px; font-weight:500; color:var(--text-mid);
+      cursor:pointer; transition:var(--trans); user-select:none;
+    }
+    .pill-option:hover { border-color:var(--forest); color:var(--forest); }
+    .pill-option.selected { border-color:var(--forest); background:rgba(45,106,79,0.1); color:var(--forest); font-weight:600; }
+
+    /* Counter */
+    .counter { display:flex; align-items:center; gap:12px; }
+    .counter-btn {
+      width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border-mid);
+      background:var(--bg-white); font-size:20px; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:var(--trans); font-weight:500; color:var(--text-mid); line-height:1;
+    }
+    .counter-btn:hover { border-color:var(--forest); color:var(--forest); background:var(--bg-mint); }
+    .counter-val { font-size:20px; font-weight:700; color:var(--text-dark); min-width:24px; text-align:center; }
+
+    /* Review summary */
+    .review-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border-light); font-size:14px; }
+    .review-row:last-child { border-bottom:none; }
+    .review-row .lbl { color:var(--text-muted); }
+    .review-row .val { font-weight:600; color:var(--text-dark); }
+    .ai-info-box {
+      background:var(--bg-mint); border:1px solid var(--border-mid);
+      border-radius:var(--r-md); padding:18px 20px; margin-bottom:24px;
+    }
+    .ai-info-box h4 { font-size:14px; font-weight:700; color:var(--forest); margin-bottom:10px; }
+    .ai-info-box ul { list-style:none; display:flex; flex-direction:column; gap:6px; }
+    .ai-info-box li { font-size:13px; color:var(--text-mid); display:flex; align-items:center; gap:7px; }
+    .ai-info-box li::before { content:'✓'; color:var(--forest); font-weight:700; }
+
+    .nav-btns { display:flex; gap:12px; margin-top:32px; }
+    .currency-row { display:flex; gap:10px; }
+    .currency-row .form-select { width:100px; flex-shrink:0; }
+    .currency-row .form-input { flex:1; }
+    .date-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .duration-chip { background:var(--bg-mint); border:1px solid var(--border-mid); border-radius:var(--r-full); padding:4px 12px; font-size:13px; font-weight:600; color:var(--forest); display:inline-block; margin-top:6px; }
+    .suggestion-chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .suggestion-chip { background:var(--bg-white); border:1px solid var(--border-mid); border-radius:var(--r-full); padding:5px 13px; font-size:13px; color:var(--text-mid); cursor:pointer; transition:var(--trans); }
+    .suggestion-chip:hover { border-color:var(--forest); color:var(--forest); background:var(--bg-mint); }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-right" style="margin-left:auto">
+      <a href="dashboard.html" class="btn btn-ghost btn-sm">← Back to Dashboard</a>
+      <div class="avatar avatar-md avatar-forest" id="user-avatar">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item active"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <a href="packing.html" class="nav-item premium-nav">
+      <span class="nav-icon">🎒</span> Packing Lists
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="app-main">
+    <div class="wizard-wrap">
+      <div style="margin-bottom:8px; font-size:14px; color:var(--text-muted)">
+        <a href="dashboard.html" style="color:var(--forest)">My Trips</a> / Plan New Trip
+      </div>
+
+      <!-- Steps indicator -->
+      <div class="steps-indicator">
+        <div class="step-dot active" id="sdot-1">
+          <div class="step-circle">1</div>
+          <div class="step-label">Where & When</div>
+        </div>
+        <div class="step-dot" id="sdot-2">
+          <div class="step-circle">2</div>
+          <div class="step-label">Travel Style</div>
+        </div>
+        <div class="step-dot" id="sdot-3">
+          <div class="step-circle">3</div>
+          <div class="step-label">Group & Budget</div>
+        </div>
+        <div class="step-dot" id="sdot-4">
+          <div class="step-circle">4</div>
+          <div class="step-label">Review & Generate</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Where & When -->
+      <div class="step-panel active" id="step-1">
+        <h2 class="step-title">Where do you want to go?</h2>
+        <p class="step-sub">Tell us your destination and when you're travelling.</p>
+        <a href="compare.html" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;background:rgba(13,148,136,0.07);border:1px solid rgba(13,148,136,0.2);border-radius:10px;font-size:13px;font-weight:600;color:#0d9488;text-decoration:none;margin-bottom:18px;transition:all 0.2s" onmouseover="this.style.background='rgba(13,148,136,0.12)'" onmouseout="this.style.background='rgba(13,148,136,0.07)'">
+          ⚖️ Not sure where to go? Try the Destination Matchmaker →
+        </a>
+        <div class="form-group">
+          <label class="form-label">Destination</label>
+          <div class="input-wrap">
+            <span class="input-prefix">📍</span>
+            <input id="destination" class="form-input has-prefix" type="text" value="Tokyo, Japan" placeholder="City, country or region">
+          </div>
+          <div class="suggestion-chips">
+            <div class="suggestion-chip" onclick="setDest('Tokyo, Japan 🇯🇵')">🇯🇵 Tokyo</div>
+            <div class="suggestion-chip" onclick="setDest('Paris, France 🇫🇷')">🇫🇷 Paris</div>
+            <div class="suggestion-chip" onclick="setDest('Bali, Indonesia 🇮🇩')">🇮🇩 Bali</div>
+            <div class="suggestion-chip" onclick="setDest('Rome, Italy 🇮🇹')">🇮🇹 Rome</div>
+            <div class="suggestion-chip" onclick="setDest('New York, USA 🇺🇸')">🇺🇸 New York</div>
+          </div>
+        </div>
+        <div class="date-row">
+          <div class="form-group">
+            <label class="form-label">From</label>
+            <input id="date-from" class="form-input" type="date" value="2026-04-12">
+          </div>
+          <div class="form-group">
+            <label class="form-label">To</label>
+            <input id="date-to" class="form-input" type="date" value="2026-04-17">
+          </div>
+        </div>
+        <div id="duration-display" class="duration-chip">5 days · 4 nights</div>
+        <div class="nav-btns">
+          <button class="btn btn-primary btn-lg" onclick="goStep(2)">Next: Travel Style →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Travel Style -->
+      <div class="step-panel" id="step-2">
+        <h2 class="step-title">What kind of traveller are you?</h2>
+        <p class="step-sub">Select everything that interests you — the more you pick, the better the plan.</p>
+        <div class="style-grid">
+          <div class="style-card selected" onclick="toggleStyle(this)"><span class="style-emoji">🌿</span><span class="style-name">Nature</span></div>
+          <div class="style-card selected" onclick="toggleStyle(this)"><span class="style-emoji">🍜</span><span class="style-name">Food & Dining</span></div>
+          <div class="style-card selected" onclick="toggleStyle(this)"><span class="style-emoji">🏛</span><span class="style-name">Culture & History</span></div>
+          <div class="style-card" onclick="toggleStyle(this)"><span class="style-emoji">🧗</span><span class="style-name">Adventure</span></div>
+          <div class="style-card" onclick="toggleStyle(this)"><span class="style-emoji">😌</span><span class="style-name">Relaxation</span></div>
+          <div class="style-card" onclick="toggleStyle(this)"><span class="style-emoji">🌃</span><span class="style-name">Nightlife</span></div>
+          <div class="style-card selected" onclick="toggleStyle(this)"><span class="style-emoji">🏗</span><span class="style-name">Architecture</span></div>
+          <div class="style-card" onclick="toggleStyle(this)"><span class="style-emoji">🛍</span><span class="style-name">Shopping</span></div>
+          <div class="style-card" onclick="toggleStyle(this)"><span class="style-emoji">📷</span><span class="style-name">Photography</span></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobility Level</label>
+          <div class="pill-group">
+            <div class="pill-option selected" onclick="selectPill(this, 'mobility')">🚶 Full mobility</div>
+            <div class="pill-option" onclick="selectPill(this, 'mobility')">🦽 Some limitations</div>
+            <div class="pill-option" onclick="selectPill(this, 'mobility')">♿ Wheelchair accessible</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Travel Pace</label>
+          <div class="pill-group">
+            <div class="pill-option" onclick="selectPill(this, 'pace')">🌸 Relaxed</div>
+            <div class="pill-option selected" onclick="selectPill(this, 'pace')">⚡ Moderate</div>
+            <div class="pill-option" onclick="selectPill(this, 'pace')">🔥 Packed</div>
+          </div>
+        </div>
+        <div class="nav-btns">
+          <button class="btn btn-secondary btn-lg" onclick="goStep(1)">← Back</button>
+          <button class="btn btn-primary btn-lg" onclick="goStep(3)">Next: Group & Budget →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Group & Budget -->
+      <div class="step-panel" id="step-3">
+        <h2 class="step-title">Who's coming and what's the budget?</h2>
+        <p class="step-sub">We'll tailor recommendations to your group and keep costs in check.</p>
+        <div class="form-group">
+          <label class="form-label">Total Budget</label>
+          <div class="currency-row">
+            <select class="form-select" id="currency">
+              <option value="JPY" selected>¥ JPY</option>
+              <option value="USD">$ USD</option>
+              <option value="EUR">€ EUR</option>
+              <option value="GBP">£ GBP</option>
+              <option value="AUD">A$ AUD</option>
+            </select>
+            <input id="budget" class="form-input" type="number" value="200000" placeholder="e.g. 1500">
+          </div>
+          <div class="form-hint">Excludes accommodation unless you want us to factor it in.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Number of Travellers</label>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount(-1)">−</button>
+            <span class="counter-val" id="traveller-count">2</span>
+            <button class="counter-btn" onclick="changeCount(1)">+</button>
+            <span style="font-size:14px; color:var(--text-muted); margin-left:8px" id="traveller-label">people</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Group Type</label>
+          <div class="pill-group">
+            <div class="pill-option" onclick="selectPill(this, 'group')">🧑 Solo</div>
+            <div class="pill-option selected" onclick="selectPill(this, 'group')">💑 Couple</div>
+            <div class="pill-option" onclick="selectPill(this, 'group')">👨‍👩‍👧 Family</div>
+            <div class="pill-option" onclick="selectPill(this, 'group')">👫 Friends</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Anything specific you'd like? <span style="color:var(--text-faint);font-weight:400">(optional)</span></label>
+          <textarea id="interests" class="form-textarea" placeholder="e.g. We love street food, sake bars, modern architecture and discovering hidden neighbourhoods. Prefer to avoid super touristy spots.">We love street food, trying local sake bars, architecture, and discovering hidden neighbourhoods. Prefer to avoid super touristy spots.</textarea>
+        </div>
+        <div class="nav-btns">
+          <button class="btn btn-secondary btn-lg" onclick="goStep(2)">← Back</button>
+          <button class="btn btn-primary btn-lg" onclick="goStep(4)">Review My Trip →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Review & Generate -->
+      <div class="step-panel" id="step-4">
+        <h2 class="step-title">Ready to generate your itinerary?</h2>
+        <p class="step-sub">Here's everything MyTravel-AI will work with.</p>
+
+        <div class="card" style="margin-bottom:24px; padding:0; overflow:hidden">
+          <div style="background:linear-gradient(135deg,var(--bg-mint),var(--bg-white)); padding:20px 24px 0; border-bottom:1px solid var(--border-light)">
+            <div style="font-size:22px; margin-bottom:4px">🗼 Tokyo, Japan</div>
+            <div style="font-size:14px; color:var(--text-muted); margin-bottom:16px">Apr 12–17, 2026 · 5 days · 4 nights</div>
+          </div>
+          <div style="padding:0 24px 4px">
+            <div class="review-row"><span class="lbl">Travel Styles</span><span class="val" style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge badge-green">🍜 Food</span><span class="badge badge-blue">🏛 Culture</span><span class="badge badge-terra">🏗 Architecture</span><span class="badge badge-gray">🌿 Nature</span></span></div>
+            <div class="review-row"><span class="lbl">Budget</span><span class="val">¥200,000 (~$1,300 USD)</span></div>
+            <div class="review-row"><span class="lbl">Group</span><span class="val">2 travellers · Couple</span></div>
+            <div class="review-row"><span class="lbl">Pace</span><span class="val">⚡ Moderate</span></div>
+            <div class="review-row"><span class="lbl">Mobility</span><span class="val">🚶 Full mobility</span></div>
+            <div class="review-row"><span class="lbl">Weather</span><span class="val">🌤 Apr forecast: 16–22°C · Mix of sun and cloud</span></div>
+          </div>
+        </div>
+
+        <div class="ai-info-box">
+          <h4>✦ What MyTravel-AI will do with this:</h4>
+          <ul>
+            <li>Fetch the live weather forecast for Apr 12–17</li>
+            <li>Shortlist 200+ activities, restaurants and landmarks in Tokyo</li>
+            <li>Sequence each day's activities to minimise backtracking</li>
+            <li>Explain why each activity was chosen (builds your trust)</li>
+            <li>Estimate cost per activity and flag anything over budget</li>
+            <li>Your complete itinerary — ready in about 30 seconds</li>
+          </ul>
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-full" onclick="generate()" style="padding:16px; font-size:16px; letter-spacing:-0.2px">
+          ✦ Generate My Tokyo Itinerary
+        </button>
+        <div style="text-align:center; font-size:12px; color:var(--text-faint); margin-top:10px">
+          Uses 1 of your 1 remaining free generations this month
+        </div>
+        <div class="nav-btns" style="justify-content:center; margin-top:8px">
+          <button class="btn btn-ghost btn-sm" onclick="goStep(3)">← Edit details</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const user = JSON.parse(sessionStorage.getItem('mtUser') || '{"initials":"AJ"}');
+document.getElementById('user-avatar').textContent = user.initials;
+
+let currentStep = 1;
+let travellerCount = 2;
+
+function goStep(n) {
+  document.getElementById(`step-${currentStep}`).classList.remove('active');
+  document.getElementById(`sdot-${currentStep}`).classList.remove('active');
+  if (n > currentStep) document.getElementById(`sdot-${currentStep}`).classList.add('done');
+  else document.getElementById(`sdot-${currentStep}`).classList.remove('done');
+  currentStep = n;
+  document.getElementById(`step-${currentStep}`).classList.add('active');
+  document.getElementById(`sdot-${currentStep}`).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function setDest(val) { document.getElementById('destination').value = val; }
+
+function toggleStyle(el) { el.classList.toggle('selected'); }
+
+function selectPill(el, group) {
+  el.closest('.pill-group').querySelectorAll('.pill-option').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function changeCount(delta) {
+  travellerCount = Math.max(1, Math.min(12, travellerCount + delta));
+  document.getElementById('traveller-count').textContent = travellerCount;
+  document.getElementById('traveller-label').textContent = travellerCount === 1 ? 'person' : 'people';
+}
+
+function calcDuration() {
+  const from = new Date(document.getElementById('date-from').value);
+  const to   = new Date(document.getElementById('date-to').value);
+  if (!isNaN(from) && !isNaN(to) && to > from) {
+    const days = Math.round((to - from) / 86400000) + 1;
+    const nights = days - 1;
+    document.getElementById('duration-display').textContent = `${days} days · ${nights} night${nights !== 1 ? 's' : ''}`;
+  }
+}
+document.getElementById('date-from').addEventListener('change', calcDuration);
+document.getElementById('date-to').addEventListener('change', calcDuration);
+
+function generate() {
+  window.location.href = 'itinerary.html';
+}
+</script>
+</body>
+</html>

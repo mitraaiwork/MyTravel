@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+</head>
+<body class="page-enter">
+<div class="auth-shell">
+
+  <!-- Brand Panel -->
+  <div class="auth-brand">
+    <div class="auth-brand-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </div>
+    <h2 class="auth-brand-headline">Plan trips that feel like they were planned by a local friend.</h2>
+    <ul class="auth-brand-features">
+      <li>AI-crafted day-by-day itineraries in under 30 seconds</li>
+      <li>Activities sequenced by geography — no backtracking</li>
+      <li>Live weather, budget, and travel style all factored in</li>
+      <li>Share with friends and plan together</li>
+    </ul>
+    <div class="auth-brand-quote">
+      <p>"I used to spend an entire weekend planning a trip. MyTravel built a better itinerary in 28 seconds. I tweaked two things and it was perfect."</p>
+      <cite>— Sarah M., travel blogger · 42 countries</cite>
+    </div>
+  </div>
+
+  <!-- Form Panel -->
+  <div class="auth-form-wrap">
+    <div class="auth-form-inner">
+      <h1>Create your account</h1>
+      <p class="auth-subtitle">Free forever. No credit card required.</p>
+
+      <button class="btn btn-google" onclick="googleDemo()">
+        <div class="g-icon"></div>
+        Continue with Google
+      </button>
+
+      <div class="form-divider">or continue with email</div>
+
+      <form id="register-form" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label class="form-label" for="full-name">Full Name</label>
+          <input id="full-name" class="form-input" type="text" placeholder="e.g. Alex Johnson" required autocomplete="name">
+          <span class="form-error" id="name-error">Please enter your name.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input id="email" class="form-input" type="email" placeholder="you@example.com" required autocomplete="email">
+          <span class="form-error" id="email-error">Please enter a valid email.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-wrap">
+            <input id="password" class="form-input" type="password" placeholder="At least 8 characters" required>
+            <span class="input-suffix" onclick="togglePass('password', this)">Show</span>
+          </div>
+          <span class="form-error" id="pass-error">Password must be at least 8 characters.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirm-password">Confirm Password</label>
+          <div class="input-wrap">
+            <input id="confirm-password" class="form-input" type="password" placeholder="Repeat your password" required>
+            <span class="input-suffix" onclick="togglePass('confirm-password', this)">Show</span>
+          </div>
+          <span class="form-error" id="confirm-error">Passwords don't match.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" id="terms" required>
+            I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+          </label>
+          <span class="form-error" id="terms-error">You must agree to the terms.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:6px">
+          Create Account — Free
+        </button>
+      </form>
+
+      <p style="text-align:center; font-size:14px; color:var(--text-muted); margin-top:20px">
+        Already have an account?
+        <a href="login.html" style="color:var(--forest); font-weight:600">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePass(id, el) {
+  const input = document.getElementById(id);
+  if (input.type === 'password') { input.type = 'text'; el.textContent = 'Hide'; }
+  else { input.type = 'password'; el.textContent = 'Show'; }
+}
+
+function googleDemo() {
+  const name = 'Alex Johnson';
+  const email = 'alex@example.com';
+  sessionStorage.setItem('mtUser', JSON.stringify({ name, email, initials: 'AJ' }));
+  window.location.href = 'dashboard.html';
+}
+
+function handleRegister(e) {
+  e.preventDefault();
+  let valid = true;
+  const name  = document.getElementById('full-name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('password').value;
+  const conf  = document.getElementById('confirm-password').value;
+  const terms = document.getElementById('terms').checked;
+
+  document.querySelectorAll('.form-error').forEach(el => el.classList.remove('show'));
+
+  if (!name) { document.getElementById('name-error').classList.add('show'); valid = false; }
+  if (!email.includes('@')) { document.getElementById('email-error').classList.add('show'); valid = false; }
+  if (pass.length < 8) { document.getElementById('pass-error').classList.add('show'); valid = false; }
+  if (pass !== conf) { document.getElementById('confirm-error').classList.add('show'); valid = false; }
+  if (!terms) { document.getElementById('terms-error').classList.add('show'); valid = false; }
+
+  if (!valid) return;
+
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+  sessionStorage.setItem('mtUser', JSON.stringify({ name, email, initials }));
+  window.location.href = 'dashboard.html';
+}
+</script>
+</body>
+</html>

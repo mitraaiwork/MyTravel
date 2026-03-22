@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tokyo 2026 — Completed Trip | MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+
+    /* ── Trip hero ── */
+    .trip-hero {
+      background: var(--grad-nature);
+      border-radius: var(--r-2xl); padding: 28px 32px; margin-bottom: 0;
+      position: relative; overflow: hidden; box-shadow: var(--shadow-lg);
+    }
+    .trip-hero::before { content:'🗼'; position:absolute; right:60px; top:-18px; font-size:120px; opacity:0.1; transform:rotate(-8deg); pointer-events:none; }
+    .trip-hero::after  { content:''; position:absolute; left:-50px; bottom:-50px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
+    .trip-hero-inner   { position:relative; z-index:1; }
+    .trip-hero-top     { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+    .trip-hero h1      { font-size:26px; font-weight:800; color:white; letter-spacing:-0.4px; margin-bottom:6px; }
+    .trip-hero-meta    { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    .hero-pill         { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.15); border-radius:var(--r-full); padding:5px 12px; font-size:13px; color:rgba(255,255,255,0.9); }
+    .trip-hero-actions { display:flex; gap:10px; flex-shrink:0; }
+    .btn-hero-white    { background:white; color:var(--forest); font-weight:700; box-shadow:0 4px 16px rgba(0,0,0,0.15); }
+    .btn-hero-white:hover { background:var(--bg-mint); transform:translateY(-2px); }
+    .btn-hero-ghost    { background:rgba(255,255,255,0.12); color:white; border:1px solid rgba(255,255,255,0.25); }
+    .btn-hero-ghost:hover { background:rgba(255,255,255,0.2); }
+    .member-row        { display:flex; align-items:center; gap:8px; margin-top:16px; }
+    .member-stack      { display:flex; }
+    .member-stack .avatar { border:2px solid rgba(255,255,255,0.4); margin-right:-8px; }
+    .member-stack .avatar:last-child { margin-right:0; }
+    .member-label      { font-size:13px; color:rgba(255,255,255,0.75); margin-left:16px; }
+
+    /* ── Tabs (sticky under hero) ── */
+    .trip-tabs-wrap {
+      position:sticky; top:0; z-index:40;
+      background:var(--bg-white);
+      border-bottom:2px solid var(--border-light);
+      box-shadow:var(--shadow-sm);
+      margin-bottom:28px;
+    }
+    .trip-tabs { display:flex; padding:0 4px; gap:2px; }
+    .trip-tab  {
+      display:flex; align-items:center; gap:7px;
+      padding:14px 22px; font-size:14px; font-weight:500; color:var(--text-muted);
+      background:none; border:none; border-bottom:2.5px solid transparent;
+      margin-bottom:-2px; cursor:pointer; transition:var(--trans);
+      border-radius:var(--r-sm) var(--r-sm) 0 0;
+    }
+    .trip-tab:hover { color:var(--forest); background:var(--bg-mint); }
+    .trip-tab.active { color:var(--forest); border-bottom-color:var(--forest); font-weight:700; background:rgba(45,106,79,0.04); }
+    .tab-count { font-size:11px; background:var(--bg-light); color:var(--text-muted); border-radius:var(--r-full); padding:2px 7px; font-weight:600; }
+    .trip-tab.active .tab-count { background:rgba(45,106,79,0.1); color:var(--forest); }
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* ── Overview ── */
+    .ov-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+    .ov-stat-card { background:var(--bg-white); border:1px solid var(--border-light); border-radius:var(--r-xl); padding:18px 20px; box-shadow:var(--shadow-sm); text-align:center; }
+    .ov-stat-card .num { font-size:26px; font-weight:800; color:var(--text-dark); line-height:1; }
+    .ov-stat-card .lbl { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .ov-stat-card .icon { font-size:24px; margin-bottom:8px; }
+    .highlight-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+    .highlight-list li { display:flex; align-items:flex-start; gap:10px; font-size:14px; color:var(--text-mid); line-height:1.5; padding:10px 12px; background:var(--bg-light); border-radius:var(--r-sm); }
+    .highlight-list li::before { content:attr(data-icon); font-size:18px; flex-shrink:0; }
+    .member-summary-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+    .member-summary-card { background:var(--bg-white); border:1px solid var(--border-light); border-radius:var(--r-lg); padding:16px; display:flex; gap:12px; align-items:center; box-shadow:var(--shadow-sm); }
+    .member-stat-row { display:flex; gap:16px; margin-top:6px; }
+    .member-stat { font-size:12px; color:var(--text-muted); }
+    .member-stat strong { font-size:14px; font-weight:700; color:var(--text-dark); display:block; }
+
+    /* ── Expense tab ── */
+    .expense-layout  { display:grid; grid-template-columns:1fr 340px; gap:22px; }
+    @media (max-width:900px) { .expense-layout { grid-template-columns:1fr; } }
+
+    /* Add expense form */
+    .add-expense-btn {
+      display:flex; align-items:center; gap:10px;
+      padding:14px 18px; background:var(--bg-white); border:2px dashed var(--border-mid);
+      border-radius:var(--r-xl); cursor:pointer; transition:var(--trans); width:100%; margin-bottom:16px;
+      font-size:14px; color:var(--text-muted); font-weight:500;
+    }
+    .add-expense-btn:hover { border-color:var(--leaf); background:var(--bg-mint); color:var(--forest); }
+    .add-expense-form-wrap {
+      background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-xl); padding:22px; margin-bottom:16px;
+      box-shadow:var(--shadow-md); display:none;
+    }
+    .add-expense-form-wrap.open { display:block; animation:slideUp 0.2s ease; }
+    .split-member-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .split-toggle {
+      display:flex; align-items:center; gap:7px; padding:7px 12px;
+      background:var(--bg-light); border:1.5px solid var(--border-light);
+      border-radius:var(--r-full); cursor:pointer; transition:var(--trans); font-size:13px;
+    }
+    .split-toggle:hover { border-color:var(--leaf); }
+    .split-toggle.selected { background:rgba(45,106,79,0.1); border-color:var(--forest); color:var(--forest); font-weight:600; }
+    .split-toggle .member-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .cat-select-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .cat-chip {
+      padding:5px 12px; background:var(--bg-light); border:1.5px solid var(--border-light);
+      border-radius:var(--r-full); font-size:12px; cursor:pointer; transition:var(--trans);
+      display:flex; align-items:center; gap:5px;
+    }
+    .cat-chip:hover { border-color:var(--leaf); }
+    .cat-chip.selected { background:rgba(45,106,79,0.1); border-color:var(--forest); color:var(--forest); font-weight:600; }
+
+    /* Expense list */
+    .expense-item {
+      background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-lg); padding:14px 16px; margin-bottom:10px;
+      display:flex; align-items:center; gap:14px; box-shadow:var(--shadow-sm);
+      transition:var(--trans);
+    }
+    .expense-item:hover { box-shadow:var(--shadow-md); border-color:var(--border-mid); }
+    .exp-cat-icon { width:42px; height:42px; border-radius:var(--r-md); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .exp-info { flex:1; min-width:0; }
+    .exp-desc { font-size:14px; font-weight:600; color:var(--text-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .exp-meta { font-size:12px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .exp-amount-col { text-align:right; flex-shrink:0; }
+    .exp-amount { font-size:16px; font-weight:800; color:var(--text-dark); }
+    .exp-per-person { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .exp-paid-by { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
+    .exp-paid-by .mini-avatar { width:18px; height:18px; border-radius:50%; font-size:8px; font-weight:700; color:white; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .exp-delete { opacity:0; background:none; border:none; color:var(--red); font-size:16px; cursor:pointer; padding:4px; border-radius:var(--r-xs); transition:var(--trans); flex-shrink:0; }
+    .expense-item:hover .exp-delete { opacity:1; }
+    .exp-delete:hover { background:rgba(220,38,38,0.1); }
+
+    /* Settlement panel */
+    .settlement-panel { height:fit-content; position:sticky; top:80px; }
+    .balance-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px; border-radius:var(--r-md); margin-bottom:8px;
+      background:var(--bg-light); border:1px solid var(--border-light);
+    }
+    .balance-row.positive { background:rgba(5,150,105,0.06); border-color:rgba(5,150,105,0.2); }
+    .balance-row.negative { background:rgba(220,38,38,0.05); border-color:rgba(220,38,38,0.15); }
+    .balance-amount { font-size:15px; font-weight:800; }
+    .balance-amount.positive { color:var(--emerald); }
+    .balance-amount.negative { color:var(--red); }
+
+    .settlement-card {
+      background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-lg); padding:16px 18px; margin-bottom:10px;
+      box-shadow:var(--shadow-sm); transition:var(--trans);
+    }
+    .settlement-card:hover { box-shadow:var(--shadow-md); }
+    .settlement-flow { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .settlement-arrow { font-size:18px; color:var(--text-faint); }
+    .settlement-amount { font-size:22px; font-weight:800; color:var(--text-dark); margin:0 4px; }
+    .settlement-btn-row { display:flex; gap:8px; }
+    .mark-paid-btn { flex:1; padding:7px; font-size:12px; font-weight:600; border-radius:var(--r-sm); cursor:pointer; border:1.5px solid var(--border-mid); background:var(--bg-white); color:var(--text-mid); transition:var(--trans); }
+    .mark-paid-btn:hover { background:var(--bg-mint); border-color:var(--leaf); color:var(--forest); }
+    .mark-paid-btn.paid { background:rgba(5,150,105,0.1); border-color:rgba(5,150,105,0.3); color:var(--emerald); }
+    .summary-totals { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .summary-total-card { background:var(--bg-light); border-radius:var(--r-md); padding:12px 14px; text-align:center; }
+    .summary-total-card .num { font-size:18px; font-weight:800; color:var(--text-dark); }
+    .summary-total-card .lbl { font-size:11px; color:var(--text-muted); margin-top:3px; }
+
+    /* Category bar chart */
+    .cat-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .cat-bar-label { font-size:12px; color:var(--text-mid); width:100px; flex-shrink:0; display:flex; align-items:center; gap:6px; }
+    .cat-bar-track { flex:1; height:8px; background:var(--bg-light); border-radius:var(--r-full); overflow:hidden; }
+    .cat-bar-fill  { height:100%; border-radius:var(--r-full); transition:width 0.6s ease; }
+    .cat-bar-amount { font-size:12px; font-weight:600; color:var(--text-dark); width:72px; text-align:right; flex-shrink:0; }
+
+    /* ── Photos tab ── */
+    .photos-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+    .photos-filter-row { display:flex; gap:6px; flex-wrap:wrap; }
+    .filter-chip { padding:5px 14px; border-radius:var(--r-full); font-size:12px; font-weight:500; background:var(--bg-white); border:1.5px solid var(--border-light); cursor:pointer; transition:var(--trans); color:var(--text-muted); }
+    .filter-chip:hover { border-color:var(--leaf); color:var(--forest); }
+    .filter-chip.active { background:rgba(45,106,79,0.1); border-color:var(--forest); color:var(--forest); font-weight:600; }
+
+    .photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; margin-bottom:28px; }
+    .photo-card {
+      border-radius:var(--r-lg); overflow:hidden; aspect-ratio:1;
+      position:relative; cursor:pointer; transition:var(--trans);
+      box-shadow:var(--shadow-sm);
+    }
+    .photo-card:hover { transform:scale(1.03); box-shadow:var(--shadow-lg); z-index:2; }
+    .photo-card-inner { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:54px; position:relative; }
+    .photo-overlay {
+      position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 55%);
+      padding:10px; display:flex; flex-direction:column; justify-content:flex-end;
+    }
+    .photo-overlay-title { font-size:11px; font-weight:700; color:white; margin-bottom:2px; }
+    .photo-overlay-meta  { font-size:10px; color:rgba(255,255,255,0.75); display:flex; align-items:center; gap:6px; }
+    .photo-like-count { display:flex; align-items:center; gap:3px; font-size:10px; color:rgba(255,255,255,0.85); }
+    .photo-day-badge {
+      position:absolute; top:8px; left:8px;
+      background:rgba(0,0,0,0.4); backdrop-filter:blur(4px);
+      color:white; font-size:10px; font-weight:700; padding:3px 8px; border-radius:var(--r-full);
+    }
+    .photo-taker {
+      position:absolute; top:8px; right:8px;
+      width:24px; height:24px; border-radius:50%; border:1.5px solid white;
+      display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:white;
+    }
+
+    /* Add photo section */
+    .add-photo-zone {
+      border:2px dashed var(--border-mid); border-radius:var(--r-xl);
+      padding:32px; text-align:center; margin-bottom:24px;
+      background:var(--bg-white); cursor:pointer; transition:var(--trans);
+    }
+    .add-photo-zone:hover { border-color:var(--leaf); background:var(--bg-mint); }
+    .add-photo-zone h4 { font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:6px; }
+    .add-photo-zone p  { font-size:13px; color:var(--text-muted); margin-bottom:16px; }
+
+    /* Album links */
+    .album-link-card {
+      background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-xl); padding:18px 20px; margin-bottom:12px;
+      display:flex; align-items:center; gap:16px; box-shadow:var(--shadow-sm);
+      transition:var(--trans); cursor:pointer;
+    }
+    .album-link-card:hover { box-shadow:var(--shadow-md); border-color:var(--border-mid); transform:translateX(2px); }
+    .album-icon { width:46px; height:46px; border-radius:var(--r-md); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+    .album-info { flex:1; min-width:0; }
+    .album-info strong { font-size:14px; font-weight:700; color:var(--text-dark); display:block; }
+    .album-info span   { font-size:12px; color:var(--text-muted); }
+    .album-count { font-size:13px; color:var(--text-muted); flex-shrink:0; }
+
+    /* Add album form */
+    .add-album-form {
+      background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-xl); padding:20px; box-shadow:var(--shadow-sm); display:none;
+    }
+    .add-album-form.open { display:block; animation:slideUp 0.2s ease; }
+
+    /* ── Memories tab ── */
+    .memories-layout { display:grid; grid-template-columns:1fr 320px; gap:22px; }
+    @media (max-width:900px) { .memories-layout { grid-template-columns:1fr; } }
+    .ai-summary-card {
+      background:linear-gradient(135deg, var(--forest-dark), var(--forest));
+      border-radius:var(--r-xl); padding:24px; margin-bottom:22px; position:relative; overflow:hidden;
+    }
+    .ai-summary-card::before { content:'✨'; position:absolute; right:20px; top:16px; font-size:40px; opacity:0.2; }
+    .ai-summary-card h3 { font-size:16px; font-weight:700; color:white; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+    .ai-summary-card p  { font-size:14px; color:rgba(255,255,255,0.85); line-height:1.7; }
+    .moment-card {
+      background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-lg); padding:16px 18px; margin-bottom:10px;
+      display:flex; gap:14px; align-items:flex-start; box-shadow:var(--shadow-sm);
+    }
+    .moment-icon { font-size:28px; flex-shrink:0; }
+    .moment-title  { font-size:14px; font-weight:700; color:var(--text-dark); margin-bottom:3px; }
+    .moment-detail { font-size:13px; color:var(--text-muted); line-height:1.5; }
+    .notes-area {
+      width:100%; resize:vertical; border:1.5px solid var(--border-mid);
+      border-radius:var(--r-lg); padding:14px 16px; font-size:14px; color:var(--text-dark);
+      font-family:inherit; background:var(--bg-white); outline:none; line-height:1.6;
+      min-height:120px; transition:var(--trans);
+    }
+    .notes-area:focus { border-color:var(--leaf); box-shadow:0 0 0 3px rgba(82,183,136,0.12); }
+    .future-ref-card {
+      background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-xl); padding:20px; box-shadow:var(--shadow-sm); height:fit-content;
+    }
+    .ref-stat { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-light); font-size:13px; }
+    .ref-stat:last-of-type { border-bottom:none; }
+    .ref-stat strong { color:var(--text-dark); font-weight:600; }
+    .ref-stat span { color:var(--text-muted); }
+    .tag-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+
+    /* Photo lightbox */
+    .lightbox {
+      position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.92);
+      display:flex; align-items:center; justify-content:center;
+      animation:fadeIn 0.2s ease;
+    }
+    .lightbox.hidden { display:none; }
+    .lightbox-card { background:var(--bg-white); border-radius:var(--r-2xl); overflow:hidden; max-width:460px; width:100%; margin:20px; box-shadow:var(--shadow-xl); animation:slideUp 0.25s ease; }
+    .lightbox-photo { height:280px; display:flex; align-items:center; justify-content:center; font-size:80px; }
+    .lightbox-body { padding:18px 22px; }
+    .lightbox-close { position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.15); border:none; color:white; font-size:22px; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--trans); }
+    .lightbox-close:hover { background:rgba(255,255,255,0.25); }
+
+    /* Toast override */
+    .toast { bottom:28px; right:28px; }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search destinations, saved trips…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" title="Notifications">🔔</button>
+      <div class="avatar avatar-md avatar-forest" id="user-avatar">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item active"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav"><span class="nav-icon">💬</span> AI Concierge <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span></a>
+    <a href="packing.html" class="nav-item premium-nav"><span class="nav-icon">🎒</span> Packing Lists <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span></a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest" id="sidebar-avatar">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Alex Johnson</div>
+          <div class="sidebar-user-email" id="sidebar-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="#" class="nav-item text-sm"><span class="nav-icon">⚙</span> Settings</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="app-main">
+    <div class="app-main-inner" style="max-width:1100px">
+
+      <!-- Breadcrumb -->
+      <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; display:flex; align-items:center; gap:6px;">
+        <a href="dashboard.html" style="color:var(--forest)">My Trips</a>
+        <span>/</span>
+        <span style="color:var(--text-dark); font-weight:600">Tokyo, Japan 2026</span>
+      </div>
+
+      <!-- Trip hero -->
+      <div class="trip-hero" style="margin-bottom:0">
+        <div class="trip-hero-inner">
+          <div class="trip-hero-top">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span class="badge" style="background:rgba(5,150,105,0.25); color:#a7f3d0; border:1px solid rgba(167,243,208,0.3); font-size:12px;">✓ Trip Completed</span>
+                <span style="font-size:13px; color:rgba(255,255,255,0.6)">Apr 17, 2026</span>
+              </div>
+              <h1>🇯🇵 Tokyo, Japan</h1>
+              <div class="trip-hero-meta">
+                <div class="hero-pill">📅 Apr 12–17, 2026</div>
+                <div class="hero-pill">👥 4 travellers</div>
+                <div class="hero-pill">🗓 5 days</div>
+                <div class="hero-pill">🗺 17 activities</div>
+                <div class="hero-pill">💴 ¥205,760 total spent</div>
+              </div>
+            </div>
+            <div class="trip-hero-actions">
+              <a href="itinerary.html" class="btn btn-hero-ghost btn-sm">View Itinerary</a>
+              <button class="btn btn-hero-white btn-sm" onclick="alert('Trip PDF export coming soon!')">↓ Export Trip</button>
+            </div>
+          </div>
+          <div class="member-row">
+            <div class="member-stack">
+              <div class="avatar avatar-md" style="background:linear-gradient(135deg,#2d6a4f,#52b788)">AJ</div>
+              <div class="avatar avatar-md" style="background:linear-gradient(135deg,#db2777,#ec4899)">PS</div>
+              <div class="avatar avatar-md" style="background:linear-gradient(135deg,#7c3aed,#9333ea)">RK</div>
+              <div class="avatar avatar-md" style="background:linear-gradient(135deg,#0891b2,#06b6d4)">DC</div>
+            </div>
+            <span class="member-label">Alex · Priya · Raj · David</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticky tabs -->
+      <div class="trip-tabs-wrap" style="margin-top:0; border-radius:0 0 var(--r-md) var(--r-md);">
+        <div class="trip-tabs">
+          <button class="trip-tab active" onclick="showPanel('overview',this)">🗺 Overview</button>
+          <button class="trip-tab" onclick="showPanel('expenses',this)">💴 Expenses <span class="tab-count" id="exp-tab-count">12</span></button>
+          <button class="trip-tab" onclick="showPanel('photos',this)">📷 Photos <span class="tab-count" id="ph-tab-count">12</span></button>
+          <button class="trip-tab" onclick="showPanel('memories',this)">💭 Memories</button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ OVERVIEW -->
+      <div class="panel active" id="panel-overview">
+
+        <div class="ov-stats">
+          <div class="ov-stat-card"><div class="icon">✈</div><div class="num">17</div><div class="lbl">Activities completed</div></div>
+          <div class="ov-stat-card"><div class="icon">🍜</div><div class="num">11</div><div class="lbl">Restaurants visited</div></div>
+          <div class="ov-stat-card"><div class="icon">📷</div><div class="num" id="ov-photo-count">12</div><div class="lbl">Photos added</div></div>
+          <div class="ov-stat-card"><div class="icon">💴</div><div class="num">¥205K</div><div class="lbl">Total group spend</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-bottom:22px;">
+          <!-- Highlights -->
+          <div class="card" style="padding:20px 22px;">
+            <div class="section-title" style="margin-bottom:14px">✨ Trip Highlights</div>
+            <ul class="highlight-list">
+              <li data-icon="🌸">Cherry blossom walk at Shinjuku Gyoen — late-blooming yae-zakura were perfectly in bloom on Day 2.</li>
+              <li data-icon="🎨">TeamLab Planets on a rainy afternoon — the waterfall room was everyone's favourite moment.</li>
+              <li data-icon="🗼">Sunset from Tokyo Skytree — golden-hour city panorama that lived up to the hype.</li>
+              <li data-icon="⛩">Nikko day trip — Toshogu shrine and Kegon waterfall were worth every minute of the 2-hour train ride.</li>
+              <li data-icon="🍜">Discovered Uobei conveyor-belt sushi — ¥100/plate and better than many fancy restaurants.</li>
+            </ul>
+          </div>
+
+          <!-- Member summary -->
+          <div class="card" style="padding:20px 22px;">
+            <div class="section-title" style="margin-bottom:14px">👥 Member Summary</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div class="member-summary-card">
+                <div class="avatar avatar-md" style="background:linear-gradient(135deg,#2d6a4f,#52b788)">AJ</div>
+                <div class="flex-1">
+                  <div style="font-size:13px; font-weight:700; color:var(--text-dark)">Alex Johnson <span style="font-size:11px; color:var(--emerald); font-weight:600">(You)</span></div>
+                  <div class="member-stat-row">
+                    <div class="member-stat"><strong style="color:var(--emerald)">+¥66,160</strong> net balance</div>
+                    <div class="member-stat"><strong>¥117,600</strong> paid</div>
+                  </div>
+                </div>
+              </div>
+              <div class="member-summary-card">
+                <div class="avatar avatar-md" style="background:linear-gradient(135deg,#db2777,#ec4899)">PS</div>
+                <div class="flex-1">
+                  <div style="font-size:13px; font-weight:700; color:var(--text-dark)">Priya Sharma</div>
+                  <div class="member-stat-row">
+                    <div class="member-stat"><strong style="color:var(--red)">−¥21,960</strong> owes Alex</div>
+                    <div class="member-stat"><strong>¥29,480</strong> paid</div>
+                  </div>
+                </div>
+              </div>
+              <div class="member-summary-card">
+                <div class="avatar avatar-md" style="background:linear-gradient(135deg,#7c3aed,#9333ea)">RK</div>
+                <div class="flex-1">
+                  <div style="font-size:13px; font-weight:700; color:var(--text-dark)">Raj Kumar</div>
+                  <div class="member-stat-row">
+                    <div class="member-stat"><strong style="color:var(--red)">−¥30,840</strong> owes Alex</div>
+                    <div class="member-stat"><strong>¥20,600</strong> paid</div>
+                  </div>
+                </div>
+              </div>
+              <div class="member-summary-card">
+                <div class="avatar avatar-md" style="background:linear-gradient(135deg,#0891b2,#06b6d4)">DC</div>
+                <div class="flex-1">
+                  <div style="font-size:13px; font-weight:700; color:var(--text-dark)">David Chen</div>
+                  <div class="member-stat-row">
+                    <div class="member-stat"><strong style="color:var(--red)">−¥13,360</strong> owes Alex</div>
+                    <div class="member-stat"><strong>¥38,080</strong> paid</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px;">
+          <div class="card card-hover" style="padding:18px 20px; cursor:pointer;" onclick="showPanel('expenses',document.querySelectorAll('.trip-tab')[1])">
+            <div style="font-size:28px; margin-bottom:8px;">💴</div>
+            <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:3px;">Settle Expenses</div>
+            <div style="font-size:13px; color:var(--text-muted);">3 settlements pending · ¥66,160 total</div>
+          </div>
+          <div class="card card-hover" style="padding:18px 20px; cursor:pointer;" onclick="showPanel('photos',document.querySelectorAll('.trip-tab')[2])">
+            <div style="font-size:28px; margin-bottom:8px;">📷</div>
+            <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:3px;">View Photos</div>
+            <div style="font-size:13px; color:var(--text-muted);" id="ov-photo-cta">12 photos · 2 shared albums</div>
+          </div>
+          <div class="card card-hover" style="padding:18px 20px; cursor:pointer;" onclick="showPanel('memories',document.querySelectorAll('.trip-tab')[3])">
+            <div style="font-size:28px; margin-bottom:8px;">💭</div>
+            <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:3px;">Trip Memories</div>
+            <div style="font-size:13px; color:var(--text-muted);">AI summary · notes · use as template</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ EXPENSES -->
+      <div class="panel" id="panel-expenses">
+        <div class="expense-layout">
+
+          <!-- Left: list -->
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+              <div style="font-size:16px; font-weight:700; color:var(--text-dark);">All Expenses</div>
+              <div style="display:flex; gap:8px;">
+                <select id="exp-filter" onchange="renderExpenses()" class="form-input" style="width:auto; padding:6px 10px; font-size:13px; height:auto;">
+                  <option value="all">All categories</option>
+                  <option value="food">🍜 Food</option>
+                  <option value="transport">🚆 Transport</option>
+                  <option value="accommodation">🏨 Accommodation</option>
+                  <option value="activities">⚡ Activities</option>
+                  <option value="shopping">🛍 Shopping</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Add expense toggle -->
+            <button class="add-expense-btn" id="add-exp-toggle" onclick="toggleAddExpense()">
+              <span style="font-size:20px; font-weight:300">＋</span>
+              <span>Add expense</span>
+            </button>
+
+            <!-- Add expense form -->
+            <div class="add-expense-form-wrap" id="add-expense-form">
+              <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:16px;">New Expense</div>
+              <div class="form-group">
+                <label class="form-label">Description</label>
+                <input class="form-input" type="text" id="new-exp-desc" placeholder="e.g. Lunch at Ichiran Ramen">
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label">Amount (¥)</label>
+                  <input class="form-input" type="number" id="new-exp-amount" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Paid by</label>
+                  <select class="form-input" id="new-exp-paidby">
+                    <option value="alex">Alex Johnson</option>
+                    <option value="priya">Priya Sharma</option>
+                    <option value="raj">Raj Kumar</option>
+                    <option value="david">David Chen</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Category</label>
+                <div class="cat-select-row" id="cat-chips">
+                  <div class="cat-chip selected" data-cat="food" onclick="selectCat(this)">🍜 Food</div>
+                  <div class="cat-chip" data-cat="transport"      onclick="selectCat(this)">🚆 Transport</div>
+                  <div class="cat-chip" data-cat="accommodation"  onclick="selectCat(this)">🏨 Stay</div>
+                  <div class="cat-chip" data-cat="activities"     onclick="selectCat(this)">⚡ Activities</div>
+                  <div class="cat-chip" data-cat="shopping"       onclick="selectCat(this)">🛍 Shopping</div>
+                  <div class="cat-chip" data-cat="other"          onclick="selectCat(this)">• Other</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Split among</label>
+                <div style="margin-bottom:6px; display:flex; gap:6px; align-items:center;">
+                  <button class="btn btn-secondary btn-xs" onclick="toggleAllSplit(true)">All</button>
+                  <button class="btn btn-secondary btn-xs" onclick="toggleAllSplit(false)">None</button>
+                </div>
+                <div class="split-member-row" id="split-members">
+                  <div class="split-toggle selected" data-member="alex"  onclick="toggleSplit(this)"><div class="member-dot" style="background:#2d6a4f"></div> Alex</div>
+                  <div class="split-toggle selected" data-member="priya" onclick="toggleSplit(this)"><div class="member-dot" style="background:#db2777"></div> Priya</div>
+                  <div class="split-toggle selected" data-member="raj"   onclick="toggleSplit(this)"><div class="member-dot" style="background:#7c3aed"></div> Raj</div>
+                  <div class="split-toggle selected" data-member="david" onclick="toggleSplit(this)"><div class="member-dot" style="background:#0891b2"></div> David</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-primary" style="flex:1" onclick="addExpense()">Add Expense</button>
+                <button class="btn btn-secondary" onclick="toggleAddExpense()">Cancel</button>
+              </div>
+            </div>
+
+            <!-- Expense list -->
+            <div id="expense-list"></div>
+          </div>
+
+          <!-- Right: settlement panel -->
+          <div class="settlement-panel">
+
+            <!-- Totals -->
+            <div class="card" style="padding:20px; margin-bottom:16px;">
+              <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:14px;">Group Summary</div>
+              <div class="summary-totals">
+                <div class="summary-total-card">
+                  <div class="num" id="total-spent-display">¥205,760</div>
+                  <div class="lbl">Total spent</div>
+                </div>
+                <div class="summary-total-card">
+                  <div class="num" id="per-person-display">¥51,440</div>
+                  <div class="lbl">Per person</div>
+                </div>
+              </div>
+
+              <!-- Category breakdown -->
+              <div style="font-size:13px; font-weight:600; color:var(--text-mid); margin-bottom:10px; margin-top:4px;">By category</div>
+              <div id="cat-breakdown"></div>
+            </div>
+
+            <!-- Balances -->
+            <div class="card" style="padding:20px; margin-bottom:16px;">
+              <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:12px;">Net Balances</div>
+              <div id="balances-display"></div>
+            </div>
+
+            <!-- Settlements -->
+            <div class="card" style="padding:20px;">
+              <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:4px;">💸 Settle Up</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Minimum transactions to settle all debts</div>
+              <div id="settlements-display"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ PHOTOS -->
+      <div class="panel" id="panel-photos">
+
+        <!-- Toolbar -->
+        <div class="photos-toolbar">
+          <div class="photos-filter-row">
+            <button class="filter-chip active" data-day="all"   onclick="filterPhotos('all',this)">All Days</button>
+            <button class="filter-chip" data-day="1"  onclick="filterPhotos('1',this)">Day 1</button>
+            <button class="filter-chip" data-day="2"  onclick="filterPhotos('2',this)">Day 2</button>
+            <button class="filter-chip" data-day="3"  onclick="filterPhotos('3',this)">Day 3</button>
+            <button class="filter-chip" data-day="4"  onclick="filterPhotos('4',this)">Day 4</button>
+            <button class="filter-chip" data-day="5"  onclick="filterPhotos('5',this)">Day 5</button>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('add-album-form').classList.toggle('open')">+ Add Album Link</button>
+            <button class="btn btn-primary btn-sm" onclick="triggerPhotoAdd()">+ Add Photo</button>
+          </div>
+        </div>
+
+        <!-- Album links -->
+        <div style="margin-bottom:22px;">
+          <div class="section-title" style="margin-bottom:12px">📁 Shared Albums</div>
+
+          <div class="album-link-card" onclick="alert('Opens Google Photos album (demo)')">
+            <div class="album-icon" style="background:linear-gradient(135deg,#fbbf24,#f59e0b)">📸</div>
+            <div class="album-info">
+              <strong>Tokyo April 2026 — Google Photos</strong>
+              <span>Shared by Alex · 47 photos · Updated Apr 17</span>
+            </div>
+            <span class="album-count">47 📷</span>
+          </div>
+
+          <div class="album-link-card" onclick="alert('Opens iCloud shared album (demo)')">
+            <div class="album-icon" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9)">☁</div>
+            <div class="album-info">
+              <strong>Japan Trip — Priya's iCloud</strong>
+              <span>Shared by Priya · 31 photos · Nikko + Asakusa focus</span>
+            </div>
+            <span class="album-count">31 📷</span>
+          </div>
+
+          <!-- Add album form -->
+          <div class="add-album-form" id="add-album-form" style="margin-top:12px">
+            <div style="font-size:14px; font-weight:700; color:var(--text-dark); margin-bottom:12px;">Add Shared Album Link</div>
+            <div class="form-group">
+              <label class="form-label">Album title</label>
+              <input class="form-input" type="text" id="album-title" placeholder="e.g. Tokyo Day 3 Photos">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Album URL</label>
+              <input class="form-input" type="url" id="album-url" placeholder="https://photos.google.com/... or iCloud / Dropbox link">
+            </div>
+            <div class="flex gap-10">
+              <button class="btn btn-primary btn-sm" onclick="addAlbum()">Save Link</button>
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('add-album-form').classList.remove('open')">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload zone -->
+        <div class="add-photo-zone" onclick="triggerPhotoAdd()" id="photo-drop-zone">
+          <div style="font-size:40px; margin-bottom:10px">📷</div>
+          <h4>Add photos from your device</h4>
+          <p>Drag &amp; drop or click to upload · Shared with all trip members</p>
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <span class="btn btn-primary btn-sm">📁 Browse Files</span>
+            <span class="btn btn-secondary btn-sm">📱 From Phone</span>
+          </div>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
+
+        <!-- Photo grid -->
+        <div class="section-title" style="margin-bottom:14px">Trip Photos</div>
+        <div class="photo-grid" id="photo-grid"></div>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ MEMORIES -->
+      <div class="panel" id="panel-memories">
+        <div class="memories-layout">
+
+          <!-- Left -->
+          <div>
+            <!-- AI Summary -->
+            <div class="ai-summary-card">
+              <h3>✨ AI Trip Summary</h3>
+              <p>Your Tokyo adventure was a masterclass in balancing the ancient and the ultramodern. From the misty forested path of Shinjuku Gyoen bursting with late cherry blossoms, to the pulsing neon energy of Shibuya crossing at rush hour — the geographic sequencing meant you experienced the full emotional range of the city without ever doubling back. The Nikko day trip on Day 4 stood out as the group's top-rated moment: the towering cryptomeria forests and Toshogu's gold-leaf gates left a lasting impression. Food was a highlight throughout — the spontaneous stop at the Uobei conveyor-belt sushi on Day 3 became a group favourite that no one had planned.</p>
+            </div>
+
+            <!-- Top moments -->
+            <div style="font-size:16px; font-weight:700; color:var(--text-dark); margin-bottom:14px;">🌟 Top Moments</div>
+            <div class="moment-card">
+              <div class="moment-icon">🌸</div>
+              <div><div class="moment-title">Shinjuku Gyoen at dawn — late sakura in full bloom</div><div class="moment-detail">Arrived at 7:30am before the gates opened. The yae-zakura (double-petal) variety were at absolute peak. Zero crowds for the first hour.</div></div>
+            </div>
+            <div class="moment-card">
+              <div class="moment-icon">🎨</div>
+              <div><div class="moment-title">TeamLab Planets — the waterfall room</div><div class="moment-detail">Three floors of digital nature. The ankle-deep water room with falling light was the single most-photographed moment of the trip.</div></div>
+            </div>
+            <div class="moment-card">
+              <div class="moment-icon">⛩</div>
+              <div><div class="moment-title">Nikko: Toshogu Shrine in morning mist</div><div class="moment-detail">The 2-hour N'EX ride was 100% worth it. Mist through the cedar trees around the shrine complex was otherworldly.</div></div>
+            </div>
+            <div class="moment-card">
+              <div class="moment-icon">🍶</div>
+              <div><div class="moment-title">Golden Gai — Albatross Bar, second floor</div><div class="moment-detail">David's recommendation paid off. The eight-seat bar with a city-view window and ¥800 cocktails was a perfect first-night ending.</div></div>
+            </div>
+
+            <!-- Personal notes -->
+            <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin:22px 0 10px;">📝 Trip Notes</div>
+            <textarea class="notes-area" id="trip-notes" placeholder="Add your personal notes, learnings, or memories from this trip…">Tokyo is incredibly navigable once you get a Suica card. Google Maps transit directions are 100% accurate.
+
+The hotel location in Shinjuku was perfect — central for everything, and the 24-hour convenience store downstairs was a lifesaver.
+
+Things to do differently next time: book Ghibli Museum in advance (it was sold out), and do Nikko as Day 2 instead of Day 4 when we had more energy.
+
+The ¥200,000 budget per couple was slightly tight because of shopping at Harajuku — next time budget ¥250,000.</textarea>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn btn-primary btn-sm" onclick="saveNotes()">Save Notes</button>
+              <span style="font-size:12px; color:var(--text-faint); align-self:center; margin-left:4px;" id="notes-saved"></span>
+            </div>
+          </div>
+
+          <!-- Right: Reference panel -->
+          <div>
+            <div class="future-ref-card" style="margin-bottom:16px;">
+              <div style="font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:14px;">📌 Reference for Future Trips</div>
+              <div class="ref-stat"><span>Destination</span><strong>Tokyo, Japan</strong></div>
+              <div class="ref-stat"><span>Duration</span><strong>5 days</strong></div>
+              <div class="ref-stat"><span>Group size</span><strong>4 people</strong></div>
+              <div class="ref-stat"><span>Budget / person</span><strong>¥51,440 (~$340)</strong></div>
+              <div class="ref-stat"><span>Best months</span><strong>Mar–Apr, Oct–Nov</strong></div>
+              <div class="ref-stat"><span>Avg daily walk</span><strong>~15,000 steps</strong></div>
+              <div class="ref-stat"><span>Transport</span><strong>Suica IC card</strong></div>
+              <div class="ref-stat"><span>Top restaurant</span><strong>Uobei Sushi</strong></div>
+              <div class="ref-stat"><span>Must-book ahead</span><strong>TeamLab, Ghibli</strong></div>
+              <div class="ref-stat"><span>Overall rating</span><strong>⭐⭐⭐⭐⭐ 5/5</strong></div>
+              <div class="tag-row">
+                <span class="badge badge-green">Culture</span>
+                <span class="badge badge-teal">Food</span>
+                <span class="badge badge-amber">Shopping</span>
+                <span class="badge badge-blue">Temples</span>
+                <span class="badge badge-violet">Art</span>
+              </div>
+            </div>
+
+            <div class="card" style="padding:18px 20px; margin-bottom:16px;">
+              <div style="font-size:14px; font-weight:700; color:var(--text-dark); margin-bottom:10px;">🔄 Plan a Similar Trip</div>
+              <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; line-height:1.5;">Use this Tokyo trip as a template to plan your next adventure to Japan or a similar destination.</div>
+              <a href="new-trip.html" class="btn btn-primary w-full" style="justify-content:center; display:flex;">✦ Use as Template</a>
+            </div>
+
+            <div class="card" style="padding:18px 20px;">
+              <div style="font-size:14px; font-weight:700; color:var(--text-dark); margin-bottom:10px;">📊 Trip Rating</div>
+              <div style="display:flex; gap:6px; font-size:28px; cursor:pointer; margin-bottom:10px;" id="star-row">
+                <span class="star" data-v="1" onclick="rate(1)">⭐</span>
+                <span class="star" data-v="2" onclick="rate(2)">⭐</span>
+                <span class="star" data-v="3" onclick="rate(3)">⭐</span>
+                <span class="star" data-v="4" onclick="rate(4)">⭐</span>
+                <span class="star" data-v="5" onclick="rate(5)">⭐</span>
+              </div>
+              <div style="font-size:12px; color:var(--text-muted);" id="rating-label">You rated this trip 5/5</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /.app-main-inner -->
+  </main>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox hidden" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.add('hidden')">✕</button>
+  <div class="lightbox-card" onclick="event.stopPropagation()">
+    <div class="lightbox-photo" id="lb-photo" style="background:#eef7f0"></div>
+    <div class="lightbox-body">
+      <div style="font-size:16px; font-weight:700; color:var(--text-dark); margin-bottom:4px;" id="lb-title"></div>
+      <div style="font-size:13px; color:var(--text-muted); margin-bottom:12px;" id="lb-meta"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="togglePhotoLike()" id="lb-like">👍 Like</button>
+        <button class="btn btn-secondary btn-sm" onclick="alert('Download feature coming soon!')">↓ Download</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('lightbox').classList.add('hidden')" style="margin-left:auto">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast hidden" id="toast"></div>
+
+<script>
+/* ── User ── */
+const user = JSON.parse(sessionStorage.getItem('mtUser') || '{"name":"Alex Johnson","email":"alex@example.com","initials":"AJ"}');
+document.getElementById('user-avatar').textContent = user.initials;
+document.getElementById('sidebar-avatar').textContent = user.initials;
+document.getElementById('sidebar-name').textContent = user.name;
+document.getElementById('sidebar-email').textContent = user.email;
+
+/* ── Members ── */
+const MEMBERS = {
+  alex:  { name:'Alex Johnson', initials:'AJ', color:'#2d6a4f', grad:'linear-gradient(135deg,#2d6a4f,#52b788)' },
+  priya: { name:'Priya Sharma',  initials:'PS', color:'#db2777', grad:'linear-gradient(135deg,#db2777,#ec4899)' },
+  raj:   { name:'Raj Kumar',     initials:'RK', color:'#7c3aed', grad:'linear-gradient(135deg,#7c3aed,#9333ea)' },
+  david: { name:'David Chen',    initials:'DC', color:'#0891b2', grad:'linear-gradient(135deg,#0891b2,#06b6d4)' },
+};
+const memberOrder = ['alex','priya','raj','david'];
+
+/* ── Expense data ── */
+const CAT_META = {
+  food:          { icon:'🍜', label:'Food & Drink',    color:'#f97316', bg:'rgba(249,115,22,0.1)' },
+  transport:     { icon:'🚆', label:'Transport',        color:'#0891b2', bg:'rgba(8,145,178,0.1)' },
+  accommodation: { icon:'🏨', label:'Accommodation',    color:'#7c3aed', bg:'rgba(124,58,237,0.1)' },
+  activities:    { icon:'⚡', label:'Activities',       color:'#059669', bg:'rgba(5,150,105,0.1)' },
+  shopping:      { icon:'🛍', label:'Shopping',         color:'#d97706', bg:'rgba(217,119,6,0.1)' },
+  other:         { icon:'•',  label:'Other',            color:'#6b7280', bg:'rgba(107,114,128,0.1)' },
+};
+
+let expenses = [
+  { id:1,  desc:'Hotel Gracery Shinjuku (5 nights)', cat:'accommodation', paidBy:'alex',  amount:90000, split:['alex','priya','raj','david'], date:'Apr 12' },
+  { id:2,  desc:'Narita Express × 4 tickets',        cat:'transport',     paidBy:'priya', amount:12280, split:['alex','priya','raj','david'], date:'Apr 12' },
+  { id:3,  desc:'Tokyo Skytree entry × 4',           cat:'activities',    paidBy:'alex',  amount:8400,  split:['alex','priya','raj','david'], date:'Apr 13' },
+  { id:4,  desc:'Omoide Yokocho dinner (Day 1)',      cat:'food',          paidBy:'david', amount:9800,  split:['alex','priya','raj','david'], date:'Apr 12' },
+  { id:5,  desc:'TeamLab Planets tickets × 4',       cat:'activities',    paidBy:'raj',   amount:8400,  split:['alex','priya','raj','david'], date:'Apr 14' },
+  { id:6,  desc:'Sensoji temple offerings',          cat:'activities',    paidBy:'alex',  amount:4800,  split:['alex','priya','raj','david'], date:'Apr 13' },
+  { id:7,  desc:'Nikko day trip pass × 4',           cat:'transport',     paidBy:'priya', amount:14000, split:['alex','priya','raj','david'], date:'Apr 15' },
+  { id:8,  desc:'Golden Gai bar hopping (Day 1)',    cat:'food',          paidBy:'david', amount:16000, split:['alex','priya','raj','david'], date:'Apr 12' },
+  { id:9,  desc:'Group lunches (ramen + konbini)',   cat:'food',          paidBy:'raj',   amount:12200, split:['alex','priya','raj','david'], date:'Apr 14' },
+  { id:10, desc:'Shibuya crossing dinner',           cat:'food',          paidBy:'alex',  amount:14400, split:['alex','priya','raj','david'], date:'Apr 14' },
+  { id:11, desc:'Harajuku crepes & Takeshita treats',cat:'food',          paidBy:'priya', amount:3200,  split:['alex','priya','raj','david'], date:'Apr 13' },
+  { id:12, desc:'Return airport transfer × 4',       cat:'transport',     paidBy:'david', amount:12280, split:['alex','priya','raj','david'], date:'Apr 17' },
+];
+let nextId = 13;
+
+/* ── Settlement engine ── */
+function calcSettlements() {
+  const paid = {}, owes = {};
+  memberOrder.forEach(m => { paid[m] = 0; owes[m] = 0; });
+  expenses.forEach(e => {
+    paid[e.paidBy] += e.amount;
+    const share = e.amount / e.split.length;
+    e.split.forEach(m => { owes[m] += share; });
+  });
+  const balances = {};
+  memberOrder.forEach(m => { balances[m] = paid[m] - owes[m]; });
+  // Minimize transactions
+  const credits = memberOrder.filter(m => balances[m] > 0.5).map(m => ({ m, v: balances[m] })).sort((a,b) => b.v - a.v);
+  const debts   = memberOrder.filter(m => balances[m] < -0.5).map(m => ({ m, v: -balances[m] })).sort((a,b) => b.v - a.v);
+  const settlements = [];
+  let ci = 0, di = 0;
+  while (ci < credits.length && di < debts.length) {
+    const amt = Math.min(credits[ci].v, debts[di].v);
+    if (amt > 0.5) settlements.push({ from: debts[di].m, to: credits[ci].m, amount: Math.round(amt) });
+    credits[ci].v -= amt; debts[di].v -= amt;
+    if (credits[ci].v < 0.5) ci++;
+    if (debts[di].v < 0.5) di++;
+  }
+  return { paid, owes, balances, settlements };
+}
+
+/* ── Render expenses ── */
+function renderExpenses() {
+  const filter = document.getElementById('exp-filter').value;
+  const filtered = filter === 'all' ? expenses : expenses.filter(e => e.cat === filter);
+  const list = document.getElementById('expense-list');
+  const totalSpent = expenses.reduce((s,e) => s+e.amount, 0);
+  list.innerHTML = filtered.map(e => {
+    const cm = CAT_META[e.cat] || CAT_META.other;
+    const m  = MEMBERS[e.paidBy];
+    const perPerson = Math.round(e.amount / e.split.length);
+    return `<div class="expense-item" id="exp-${e.id}">
+      <div class="exp-cat-icon" style="background:${cm.bg}">${cm.icon}</div>
+      <div class="exp-info">
+        <div class="exp-desc">${escHtml(e.desc)}</div>
+        <div class="exp-meta">
+          <span class="exp-paid-by">
+            <span class="mini-avatar" style="background:${m.grad}">${m.initials}</span>
+            ${m.name}
+          </span>
+          <span>·</span>
+          <span>${e.date}</span>
+          <span>·</span>
+          <span>÷${e.split.length}</span>
+        </div>
+      </div>
+      <div class="exp-amount-col">
+        <div class="exp-amount">¥${e.amount.toLocaleString()}</div>
+        <div class="exp-per-person">¥${perPerson.toLocaleString()} each</div>
+      </div>
+      <button class="exp-delete" onclick="deleteExpense(${e.id})" title="Remove">✕</button>
+    </div>`;
+  }).join('') + (filtered.length === 0 ? '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:14px;">No expenses in this category.</div>' : '');
+  document.getElementById('exp-tab-count').textContent = expenses.length;
+  renderSettlements();
+}
+
+function renderSettlements() {
+  const { paid, owes, balances, settlements } = calcSettlements();
+  const totalSpent = expenses.reduce((s,e) => s+e.amount, 0);
+  const perPerson  = expenses.length ? Math.round(totalSpent / Object.keys(MEMBERS).length) : 0;
+  document.getElementById('total-spent-display').textContent = '¥' + totalSpent.toLocaleString();
+  document.getElementById('per-person-display').textContent  = '¥' + perPerson.toLocaleString();
+
+  // Category breakdown
+  const catTotals = {};
+  expenses.forEach(e => { catTotals[e.cat] = (catTotals[e.cat] || 0) + e.amount; });
+  const maxCat = Math.max(...Object.values(catTotals), 1);
+  document.getElementById('cat-breakdown').innerHTML = Object.entries(catTotals).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => {
+    const cm = CAT_META[cat] || CAT_META.other;
+    return `<div class="cat-bar-row">
+      <div class="cat-bar-label">${cm.icon} ${cm.label.split(' ')[0]}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(amt/maxCat*100)}%; background:${cm.color}"></div></div>
+      <div class="cat-bar-amount">¥${Math.round(amt/1000)}K</div>
+    </div>`;
+  }).join('');
+
+  // Balances
+  document.getElementById('balances-display').innerHTML = memberOrder.map(m => {
+    const b = balances[m] || 0;
+    const cls = b >= 0 ? 'positive' : 'negative';
+    const sign = b >= 0 ? '+' : '';
+    return `<div class="balance-row ${cls}">
+      <div class="flex items-center gap-10">
+        <div class="avatar avatar-sm" style="background:${MEMBERS[m].grad}">${MEMBERS[m].initials}</div>
+        <span style="font-size:13px; font-weight:600; color:var(--text-dark)">${MEMBERS[m].name.split(' ')[0]}</span>
+      </div>
+      <div class="balance-amount ${cls}">${sign}¥${Math.abs(Math.round(b)).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+
+  // Settlements
+  if (settlements.length === 0) {
+    document.getElementById('settlements-display').innerHTML = '<div style="text-align:center;padding:20px;color:var(--emerald);font-weight:600;font-size:14px;">✓ All settled up!</div>';
+    return;
+  }
+  document.getElementById('settlements-display').innerHTML = settlements.map((s, i) => {
+    const fm = MEMBERS[s.from], tm = MEMBERS[s.to];
+    return `<div class="settlement-card" id="stl-${i}">
+      <div class="settlement-flow">
+        <div class="avatar avatar-sm" style="background:${fm.grad}">${fm.initials}</div>
+        <div>
+          <div style="font-size:12px; color:var(--text-muted);">${fm.name.split(' ')[0]} pays</div>
+          <div style="font-size:13px; font-weight:600; color:var(--text-dark);">${tm.name.split(' ')[0]}</div>
+        </div>
+        <div class="settlement-arrow" style="margin:0 auto">→</div>
+        <div class="avatar avatar-sm" style="background:${tm.grad}">${tm.initials}</div>
+        <div style="text-align:right">
+          <div style="font-size:11px; color:var(--text-muted)">amount</div>
+          <div class="settlement-amount">¥${s.amount.toLocaleString()}</div>
+        </div>
+      </div>
+      <div class="settlement-btn-row">
+        <button class="mark-paid-btn" id="paid-btn-${i}" onclick="markPaid(${i},'${s.from}','${s.to}',${s.amount})">✓ Mark as Paid</button>
+        <button class="mark-paid-btn" onclick="alert('Payment link / QR code coming in next update!')">📱 Request Payment</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function markPaid(idx, from, to, amt) {
+  const btn = document.getElementById(`paid-btn-${idx}`);
+  btn.textContent = '✓ Paid';
+  btn.classList.add('paid');
+  btn.disabled = true;
+  showToast(`✓ ${MEMBERS[from].name.split(' ')[0]} → ${MEMBERS[to].name.split(' ')[0]}: ¥${amt.toLocaleString()} marked paid`, 'success');
+}
+
+/* ── Add/delete expense ── */
+function toggleAddExpense() {
+  const form = document.getElementById('add-expense-form');
+  const btn  = document.getElementById('add-exp-toggle');
+  const open = form.classList.toggle('open');
+  btn.style.display = open ? 'none' : 'flex';
+}
+
+function selectCat(el) {
+  document.querySelectorAll('#cat-chips .cat-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function toggleSplit(el) { el.classList.toggle('selected'); }
+function toggleAllSplit(sel) {
+  document.querySelectorAll('#split-members .split-toggle').forEach(t => t.classList.toggle('selected', sel));
+}
+
+function addExpense() {
+  const desc   = document.getElementById('new-exp-desc').value.trim();
+  const amount = parseInt(document.getElementById('new-exp-amount').value);
+  const paidBy = document.getElementById('new-exp-paidby').value;
+  const cat    = document.querySelector('#cat-chips .cat-chip.selected')?.dataset.cat || 'other';
+  const split  = [...document.querySelectorAll('#split-members .split-toggle.selected')].map(t => t.dataset.member);
+  if (!desc)         { showToast('Please enter a description', 'error'); return; }
+  if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+  if (!split.length) { showToast('Select at least one person to split with', 'error'); return; }
+  expenses.push({ id: nextId++, desc, cat, paidBy, amount, split, date: 'Apr 2026' });
+  document.getElementById('new-exp-desc').value = '';
+  document.getElementById('new-exp-amount').value = '';
+  toggleAddExpense();
+  renderExpenses();
+  showToast('✓ Expense added', 'success');
+}
+
+function deleteExpense(id) {
+  expenses = expenses.filter(e => e.id !== id);
+  renderExpenses();
+  showToast('Expense removed');
+}
+
+/* ── Photos ── */
+const PHOTOS = [
+  { id:1, emoji:'🌃', bg:'linear-gradient(135deg,#1e1b4b,#4c1d95)', title:'Shinjuku Night Lights', day:'1', by:'AJ', byGrad:'linear-gradient(135deg,#2d6a4f,#52b788)', likes:5 },
+  { id:2, emoji:'🍶', bg:'linear-gradient(135deg,#92400e,#d97706)', title:'Golden Gai Bar Hopping',  day:'1', by:'DC', byGrad:'linear-gradient(135deg,#0891b2,#06b6d4)', likes:8 },
+  { id:3, emoji:'🌸', bg:'linear-gradient(135deg,#9d174d,#f472b6)', title:'Shinjuku Gyoen Sakura',   day:'2', by:'PS', byGrad:'linear-gradient(135deg,#db2777,#ec4899)', likes:12 },
+  { id:4, emoji:'⛩',  bg:'linear-gradient(135deg,#1b4332,#40916c)', title:'Meiji Shrine Path',        day:'2', by:'RK', byGrad:'linear-gradient(135deg,#7c3aed,#9333ea)', likes:7 },
+  { id:5, emoji:'🏮', bg:'linear-gradient(135deg,#7c2d12,#ea580c)', title:'Sensoji at Dusk',           day:'2', by:'AJ', byGrad:'linear-gradient(135deg,#2d6a4f,#52b788)', likes:9 },
+  { id:6, emoji:'🗼', bg:'linear-gradient(135deg,#0c4a6e,#0ea5e9)', title:'Tokyo Skytree Panorama',    day:'2', by:'DC', byGrad:'linear-gradient(135deg,#0891b2,#06b6d4)', likes:15 },
+  { id:7, emoji:'🎨', bg:'linear-gradient(135deg,#312e81,#6d28d9)', title:'TeamLab Planets',           day:'3', by:'PS', byGrad:'linear-gradient(135deg,#db2777,#ec4899)', likes:22 },
+  { id:8, emoji:'🚶', bg:'linear-gradient(135deg,#1c1917,#44403c)', title:'Shibuya Crossing Rush Hour', day:'3', by:'RK', byGrad:'linear-gradient(135deg,#7c3aed,#9333ea)', likes:11 },
+  { id:9, emoji:'🏯', bg:'linear-gradient(135deg,#134e4a,#0d9488)', title:'Toshogu Shrine Nikko',      day:'4', by:'AJ', byGrad:'linear-gradient(135deg,#2d6a4f,#52b788)', likes:18 },
+  { id:10,emoji:'🌊', bg:'linear-gradient(135deg,#0369a1,#38bdf8)', title:'Kegon Waterfall',           day:'4', by:'PS', byGrad:'linear-gradient(135deg,#db2777,#ec4899)', likes:14 },
+  { id:11,emoji:'🐟', bg:'linear-gradient(135deg,#7f1d1d,#f97316)', title:'Tsukiji Market Breakfast',  day:'5', by:'DC', byGrad:'linear-gradient(135deg,#0891b2,#06b6d4)', likes:6  },
+  { id:12,emoji:'🌿', bg:'linear-gradient(135deg,#052e16,#16a34a)', title:'Hamarikyu Gardens',         day:'5', by:'RK', byGrad:'linear-gradient(135deg,#7c3aed,#9333ea)', likes:10 },
+];
+
+let currentDayFilter = 'all';
+let currentLightboxId = null;
+
+function filterPhotos(day, el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentDayFilter = day;
+  renderPhotos();
+}
+
+function renderPhotos() {
+  const visible = currentDayFilter === 'all' ? PHOTOS : PHOTOS.filter(p => p.day === currentDayFilter);
+  document.getElementById('photo-grid').innerHTML = visible.map(p =>
+    `<div class="photo-card" onclick="openLightbox(${p.id})">
+      <div class="photo-card-inner" style="background:${p.bg}; font-size:52px">${p.emoji}</div>
+      <div class="photo-overlay">
+        <div class="photo-day-badge">Day ${p.day}</div>
+        <div class="photo-taker" style="background:${p.byGrad}">${p.by}</div>
+        <div class="photo-overlay-title">${p.title}</div>
+        <div class="photo-overlay-meta">
+          <span class="photo-like-count">❤ ${p.likes}</span>
+        </div>
+      </div>
+    </div>`
+  ).join('');
+  const c = visible.length;
+  document.getElementById('ph-tab-count').textContent = c;
+  document.getElementById('ov-photo-count').textContent = PHOTOS.length;
+  document.getElementById('ov-photo-cta').textContent = `${PHOTOS.length} photos · 2 shared albums`;
+}
+
+function openLightbox(id) {
+  const p = PHOTOS.find(x => x.id === id);
+  if (!p) return;
+  currentLightboxId = id;
+  document.getElementById('lb-photo').style.background = p.bg;
+  document.getElementById('lb-photo').innerHTML = `<span style="font-size:80px">${p.emoji}</span>`;
+  document.getElementById('lb-title').textContent = p.title;
+  const byM = Object.values(MEMBERS).find(m => m.initials === p.by) || { name: p.by };
+  document.getElementById('lb-meta').textContent = `Day ${p.day} · By ${byM.name} · ❤ ${p.likes} likes`;
+  document.getElementById('lightbox').classList.remove('hidden');
+}
+function closeLightbox(e) {
+  if (e.target === document.getElementById('lightbox')) document.getElementById('lightbox').classList.add('hidden');
+}
+function togglePhotoLike() {
+  const p = PHOTOS.find(x => x.id === currentLightboxId);
+  if (!p) return;
+  const btn = document.getElementById('lb-like');
+  if (btn.dataset.liked) { p.likes--; btn.textContent = '👍 Like'; delete btn.dataset.liked; }
+  else                   { p.likes++; btn.textContent = '❤ Liked'; btn.dataset.liked = '1'; }
+  document.getElementById('lb-meta').textContent = `Day ${p.day} · ❤ ${p.likes} likes`;
+  renderPhotos();
+}
+
+function triggerPhotoAdd() { document.getElementById('photo-input').click(); }
+function handlePhotoUpload(input) {
+  const files = [...input.files];
+  if (!files.length) return;
+  files.forEach(f => {
+    const id = PHOTOS.length + 1;
+    PHOTOS.push({ id, emoji:'📷', bg:'linear-gradient(135deg,#374151,#6b7280)', title: f.name.replace(/\.[^.]+$/, ''), day: String(Math.ceil(Math.random()*5)), by:'AJ', byGrad:'linear-gradient(135deg,#2d6a4f,#52b788)', likes:0 });
+  });
+  renderPhotos();
+  showToast(`✓ ${files.length} photo${files.length > 1 ? 's' : ''} added`, 'success');
+  input.value = '';
+}
+
+/* ── Add album ── */
+function addAlbum() {
+  const title = document.getElementById('album-title').value.trim();
+  const url   = document.getElementById('album-url').value.trim();
+  if (!title || !url) { showToast('Please fill both fields', 'error'); return; }
+  const card = document.createElement('div');
+  card.className = 'album-link-card';
+  card.innerHTML = `<div class="album-icon" style="background:linear-gradient(135deg,#6b7280,#9ca3af)">🔗</div>
+    <div class="album-info"><strong>${escHtml(title)}</strong><span>Just added by ${user.name.split(' ')[0]}</span></div>
+    <span class="album-count">0 📷</span>`;
+  card.onclick = () => window.open(url, '_blank');
+  document.getElementById('add-album-form').before(card);
+  document.getElementById('album-title').value = '';
+  document.getElementById('album-url').value = '';
+  document.getElementById('add-album-form').classList.remove('open');
+  showToast('✓ Album link added', 'success');
+}
+
+/* ── Memories ── */
+function saveNotes() {
+  const saved = document.getElementById('notes-saved');
+  saved.textContent = '✓ Saved just now';
+  saved.style.color = 'var(--emerald)';
+  showToast('Notes saved', 'success');
+  setTimeout(() => { saved.textContent = ''; }, 4000);
+}
+
+let currentRating = 5;
+function rate(v) {
+  currentRating = v;
+  const stars = document.querySelectorAll('.star');
+  stars.forEach((s, i) => { s.textContent = i < v ? '⭐' : '☆'; });
+  document.getElementById('rating-label').textContent = `You rated this trip ${v}/5`;
+  showToast(`Rated ${v}/5 ⭐`);
+}
+
+/* ── Tabs ── */
+function showPanel(id, tabEl) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.trip-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+}
+
+/* ── Utils ── */
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type ? ' ' + type : '');
+  setTimeout(() => { t.className = 'toast hidden'; }, 3200);
+}
+
+/* ── Init ── */
+renderExpenses();
+renderPhotos();
+</script>
+</body>
+</html>

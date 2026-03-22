@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tokyo Itinerary — MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    /* --- Topbar --- */
+    .trip-topbar { display:flex; align-items:center; gap:12px; padding:14px 0 20px; flex-wrap:wrap; }
+    .trip-topbar .breadcrumb { font-size:13px; color:var(--text-muted); }
+    .trip-topbar .breadcrumb a { color:var(--forest); }
+    .trip-topbar .trip-title { font-size:22px; font-weight:800; color:var(--text-dark); letter-spacing:-0.5px; }
+    .trip-topbar-actions { display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+
+    .trip-meta-strip {
+      display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+      padding:12px 16px; background:var(--bg-white); border:1px solid var(--border-light);
+      border-radius:var(--r-md); margin-bottom:20px; box-shadow:var(--shadow-sm); font-size:14px;
+    }
+    .trip-meta-item { display:flex; align-items:center; gap:5px; color:var(--text-mid); }
+
+    /* --- Day cards --- */
+    .day-card { background:var(--bg-white); border:1px solid var(--border-light); border-radius:var(--r-lg); margin-bottom:16px; overflow:hidden; box-shadow:var(--shadow-sm); }
+    .day-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 18px; cursor:pointer; user-select:none;
+      background:linear-gradient(135deg, var(--bg-white), var(--bg-mint));
+      border-bottom:1px solid var(--border-light);
+    }
+    .day-header:hover { background:linear-gradient(135deg, var(--bg-mint), var(--bg-white)); }
+    .day-num { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); }
+    .day-title-text { font-size:15px; font-weight:700; color:var(--text-dark); }
+    .day-theme { font-size:12px; color:var(--text-muted); margin-top:1px; }
+    .day-weather { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); background:var(--bg-cream); border-radius:var(--r-full); padding:4px 10px; flex-shrink:0; }
+    .day-toggle { font-size:14px; color:var(--text-muted); margin-left:12px; transition:var(--trans); }
+    .day-body { padding:0 18px; }
+    .day-body.collapsed { display:none; }
+
+    /* --- Activity items --- */
+    .activity-item { display:grid; grid-template-columns:52px 1fr auto; gap:12px; align-items:start; padding:14px 0; border-bottom:1px solid var(--border-light); }
+    .activity-item:last-child { border-bottom:none; }
+    .activity-time { font-size:12px; font-weight:700; color:var(--text-muted); letter-spacing:0.3px; padding-top:2px; }
+    .activity-name { font-size:14px; font-weight:600; color:var(--text-dark); margin-bottom:4px; }
+    .activity-why { font-size:12px; color:var(--text-mid); line-height:1.55; margin-bottom:6px; font-style:italic; }
+    .activity-why::before { content:'✦ '; color:var(--forest); font-style:normal; font-weight:700; }
+    .activity-badges { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+    .badge-sm { background:var(--bg-cream); border:1px solid var(--border-mid); border-radius:var(--r-full); padding:2px 8px; font-size:11px; color:var(--text-muted); font-weight:500; white-space:nowrap; }
+    .badge-cat { font-size:11px; font-weight:600; border-radius:var(--r-full); padding:2px 9px; white-space:nowrap; }
+    .activity-actions { display:flex; gap:4px; padding-top:2px; opacity:0; transition:var(--trans); }
+    .activity-item:hover .activity-actions { opacity:1; }
+    .action-btn { width:28px; height:28px; border-radius:6px; background:none; border:1px solid var(--border-light); color:var(--text-muted); font-size:13px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:var(--trans); }
+    .action-btn:hover { background:var(--bg-mint); color:var(--forest); border-color:var(--border-mid); }
+    .add-activity { display:flex; align-items:center; gap:6px; padding:10px 0; font-size:13px; color:var(--text-faint); cursor:pointer; border:1.5px dashed var(--border-light); border-radius:var(--r-sm); justify-content:center; margin:8px 0; transition:var(--trans); }
+    .add-activity:hover { border-color:var(--forest); color:var(--forest); background:rgba(45,106,79,0.04); }
+
+    .premium-bar { display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg,#fffbeb,#fef3c7); border:1px solid rgba(212,160,23,0.25); border-radius:var(--r-sm); padding:10px 14px; margin:12px 0 4px; }
+    .premium-bar-text { font-size:13px; color:#92400e; display:flex; align-items:center; gap:6px; }
+
+    /* --- Map --- */
+    #map { height:460px; border-radius:var(--r-md); border:1px solid var(--border-light); }
+    .day-filter-btns { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+    .day-filter-btn { padding:6px 14px; border-radius:var(--r-full); border:1.5px solid var(--border-mid); background:var(--bg-white); font-size:12px; font-weight:600; cursor:pointer; transition:var(--trans); color:var(--text-mid); }
+    .day-filter-btn:hover { border-color:var(--forest); color:var(--forest); }
+    .day-filter-btn.active { color:white; border-color:transparent; }
+
+    /* --- Budget --- */
+    .budget-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+    .budget-stat { background:var(--bg-white); border:1px solid var(--border-light); border-radius:var(--r-md); padding:16px 18px; box-shadow:var(--shadow-sm); }
+    .budget-stat-label { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+    .budget-stat-value { font-size:22px; font-weight:800; color:var(--text-dark); }
+    .budget-stat-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .budget-table { background:var(--bg-white); border:1px solid var(--border-light); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); }
+    .budget-row { display:grid; grid-template-columns:32px 1fr 90px 90px 80px; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border-light); }
+    .budget-row:last-child { border-bottom:none; }
+    .budget-row.header { background:var(--bg-mint); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); padding:10px 18px; }
+    .budget-row .cat-icon { font-size:18px; text-align:center; }
+    .budget-row .cat-name { font-size:14px; font-weight:600; color:var(--text-dark); }
+    .budget-row .cat-bar { margin-top:4px; height:4px; background:var(--border-light); border-radius:2px; overflow:hidden; }
+    .budget-row .cat-bar-fill { height:100%; border-radius:2px; transition:width 0.8s ease; }
+    .budget-row .amount { font-size:13px; font-weight:600; text-align:right; }
+    .budget-row .amount.over { color:#dc2626; }
+    .budget-footer { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:var(--bg-mint); border-top:1px solid var(--border-mid); font-weight:700; }
+    .status-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:var(--r-full); font-size:13px; font-weight:600; }
+    .status-chip.under { background:rgba(64,145,108,0.1); color:var(--forest); border:1px solid rgba(64,145,108,0.2); }
+    .status-chip.over  { background:rgba(220,38,38,0.1); color:#dc2626; border:1px solid rgba(220,38,38,0.2); }
+
+    /* --- Generation overlay --- */
+    #gen-overlay {
+      position:absolute; inset:0; z-index:100;
+      background:rgba(27,67,50,0.96);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:24px; padding:40px;
+    }
+    .gen-logo { width:68px; height:68px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:30px; animation:gentlePulse 2s ease-in-out infinite; }
+    @keyframes gentlePulse { 0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(82,183,136,0.4);} 50%{transform:scale(1.05);box-shadow:0 0 0 14px rgba(82,183,136,0);} }
+    .gen-headline { font-size:20px; font-weight:800; color:white; text-align:center; }
+    .gen-sub { font-size:14px; color:rgba(255,255,255,0.6); text-align:center; }
+    .gen-steps { display:flex; flex-direction:column; gap:10px; width:100%; max-width:420px; }
+    .gen-step { display:flex; align-items:center; gap:10px; font-size:14px; color:rgba(255,255,255,0.4); transition:color 0.4s; }
+    .gen-step.active { color:rgba(255,255,255,0.9); }
+    .gen-step.done   { color:rgba(116,198,157,0.9); }
+    .gen-step-icon { width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; transition:all 0.4s; }
+    .gen-step.active .gen-step-icon { border-color:rgba(255,255,255,0.6); background:rgba(255,255,255,0.1); animation:spin 1s linear infinite; }
+    .gen-step.done   .gen-step-icon { border-color:#74c69d; background:rgba(116,198,157,0.2); color:#74c69d; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .gen-progress-bar { width:100%; max-width:420px; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; }
+    .gen-progress-fill { height:100%; background:linear-gradient(90deg,#52b788,#48cae4); border-radius:2px; transition:width 0.7s ease; }
+
+    /* AI concierge floating button */
+    .concierge-float { position:fixed; right:24px; bottom:28px; z-index:50; background:var(--forest); color:white; border:none; border-radius:var(--r-full); padding:12px 20px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 6px 20px rgba(45,106,79,0.4); display:flex; align-items:center; gap:8px; transition:var(--trans); }
+    .concierge-float:hover { background:var(--forest-dark); transform:translateY(-2px); box-shadow:0 8px 28px rgba(45,106,79,0.5); }
+    .concierge-float .lock { font-size:11px; background:rgba(255,255,255,0.2); border-radius:var(--r-full); padding:2px 7px; }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search your itinerary…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn">🔔</button>
+      <div class="avatar avatar-md avatar-forest" id="user-avatar">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item active"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">This Trip</div>
+    <a href="#day-1" class="nav-item text-sm day-link" id="nday-1"><span style="width:8px;height:8px;border-radius:50%;background:#52b788;flex-shrink:0;display:inline-block"></span> Day 1 · Shinjuku</a>
+    <a href="#day-2" class="nav-item text-sm day-link" id="nday-2"><span style="width:8px;height:8px;border-radius:50%;background:#48cae4;flex-shrink:0;display:inline-block"></span> Day 2 · Asakusa</a>
+    <a href="#day-3" class="nav-item text-sm day-link" id="nday-3"><span style="width:8px;height:8px;border-radius:50%;background:#d4a017;flex-shrink:0;display:inline-block"></span> Day 3 · Harajuku</a>
+    <a href="#day-4" class="nav-item text-sm day-link" id="nday-4"><span style="width:8px;height:8px;border-radius:50%;background:#c77b55;flex-shrink:0;display:inline-block"></span> Day 4 · Ginza</a>
+    <a href="#day-5" class="nav-item text-sm day-link" id="nday-5"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0;display:inline-block"></span> Day 5 · Kamakura</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <a href="packing.html" class="nav-item premium-nav">
+      <span class="nav-icon">🎒</span> Packing Lists
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="app-main" id="app-main" style="position:relative">
+
+    <!-- GENERATION OVERLAY -->
+    <div id="gen-overlay">
+      <div class="gen-logo">✈</div>
+      <div class="gen-headline">MyTravel-AI is crafting your Tokyo itinerary…</div>
+      <div class="gen-sub">Sit back — your personalised 5-day plan is being built.</div>
+      <div class="gen-steps">
+        <div class="gen-step" id="gs-1"><div class="gen-step-icon">○</div> Fetching weather forecast for Apr 12–17</div>
+        <div class="gen-step" id="gs-2"><div class="gen-step-icon">○</div> Analysing 200+ activities and restaurants in Tokyo</div>
+        <div class="gen-step" id="gs-3"><div class="gen-step-icon">○</div> Sequencing Day 1 by geographic proximity</div>
+        <div class="gen-step" id="gs-4"><div class="gen-step-icon">○</div> Generating Days 2, 3 and 4…</div>
+        <div class="gen-step" id="gs-5"><div class="gen-step-icon">○</div> Building Day 5: Kamakura day trip</div>
+        <div class="gen-step" id="gs-6"><div class="gen-step-icon">○</div> Optimising budget · checking all costs</div>
+        <div class="gen-step" id="gs-7"><div class="gen-step-icon">○</div> Itinerary complete — preparing your plan</div>
+      </div>
+      <div class="gen-progress-bar"><div class="gen-progress-fill" id="gen-fill" style="width:0%"></div></div>
+    </div>
+
+    <!-- ITINERARY CONTENT (hidden during generation) -->
+    <div id="itin-content" style="opacity:0; transition:opacity 0.6s ease;">
+    <div class="app-main-inner">
+
+      <!-- Top bar -->
+      <div class="trip-topbar">
+        <div>
+          <div class="breadcrumb"><a href="dashboard.html">My Trips</a> / Tokyo, Japan</div>
+          <div class="trip-title">🗼 Tokyo, Japan — 5-Day Itinerary</div>
+        </div>
+        <div class="trip-topbar-actions">
+          <button id="save-btn" class="btn btn-secondary" onclick="saveTrip()">💾 Save</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('share-modal').classList.remove('hidden')">🔗 Share</button>
+          <a href="trip-completed.html" class="btn btn-primary btn-sm">📊 Trip Summary</a>
+          <button class="btn btn-secondary btn-icon" title="More options">⋯</button>
+        </div>
+      </div>
+
+      <!-- Meta strip -->
+      <div class="trip-meta-strip">
+        <div class="trip-meta-item">🗼 <strong>Tokyo, Japan</strong></div>
+        <div class="trip-meta-item">📅 Apr 12–17, 2026</div>
+        <div class="trip-meta-item">👥 2 travellers · Couple</div>
+        <div class="trip-meta-item">💰 ¥200,000 budget</div>
+        <div class="trip-meta-item">🌤 18°C avg · Mix of sun and cloud</div>
+        <div class="trip-meta-item" style="margin-left:auto"><span class="badge badge-green">✓ Generated</span></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('itinerary',this)">📋 Itinerary</button>
+        <button class="tab-btn" onclick="switchTab('map',this)">🗺️ Map</button>
+        <button class="tab-btn" onclick="switchTab('budget',this)">💰 Budget</button>
+        <button class="tab-btn locked" onclick="premiumAlert()">🎒 Packing List <span class="badge badge-premium" style="font-size:10px">✦ PRO</span></button>
+      </div>
+
+      <!-- ITINERARY TAB -->
+      <div id="tab-itinerary" class="tab-panel active">
+
+        <!-- Day 1 -->
+        <div class="day-card" id="day-1">
+          <div class="day-header" onclick="toggleDay(this)">
+            <div>
+              <div class="day-num">Day 1 · Saturday, Apr 12</div>
+              <div class="day-title-text">Arrival &amp; Shinjuku Immersion</div>
+              <div class="day-theme">🌸 Cherry Blossoms &amp; City Views</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="day-weather">🌤 18°C · Partly cloudy</div>
+              <span class="day-toggle">▾</span>
+            </div>
+          </div>
+          <div class="day-body" id="db-1">
+            <div class="activity-item">
+              <div class="activity-time">10:00</div>
+              <div>
+                <div class="activity-name">Shinjuku Gyoen National Garden</div>
+                <div class="activity-why">Perfect first morning — 1,000+ cherry trees, gentle walk that eases jet lag before the city gets busy</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(64,145,108,0.12);color:#40916c;border:1px solid rgba(64,145,108,0.25)">🌿 Nature</span>
+                  <span class="badge-sm">⏱ 2h</span><span class="badge-sm">¥500</span><span class="badge-sm">📍 Starting point</span>
+                </div>
+              </div>
+              <div class="activity-actions">
+                <button class="action-btn" title="Edit note">✎</button>
+                <button class="action-btn" title="Remove" onclick="removeActivity(this)">✕</button>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-time">12:30</div>
+              <div>
+                <div class="activity-name">Omoide Yokocho (Memory Lane)</div>
+                <div class="activity-why">50-year-old yakitori alley with open charcoal grills — quintessential old Tokyo, 0.8km from last stop</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(212,160,23,0.12);color:#d4a017;border:1px solid rgba(212,160,23,0.25)">🍜 Food</span>
+                  <span class="badge-sm">⏱ 1h</span><span class="badge-sm">¥1,200</span><span class="badge-sm">📍 0.8km</span>
+                </div>
+              </div>
+              <div class="activity-actions">
+                <button class="action-btn" title="Edit note">✎</button>
+                <button class="action-btn" title="Remove" onclick="removeActivity(this)">✕</button>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-time">14:00</div>
+              <div>
+                <div class="activity-name">Tokyo Metropolitan Govt Building</div>
+                <div class="activity-why">Free 360° panoramic views including Mt. Fuji — 3-min walk from Omoide, no backtracking</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(72,202,228,0.12);color:#0ea5e9;border:1px solid rgba(72,202,228,0.25)">👁 Views</span>
+                  <span class="badge-sm">⏱ 1.5h</span><span class="badge-sm badge-green" style="background:rgba(64,145,108,0.12);color:#40916c;border:1px solid rgba(64,145,108,0.3);font-weight:700">FREE</span><span class="badge-sm">📍 0.3km</span>
+                </div>
+              </div>
+              <div class="activity-actions">
+                <button class="action-btn" title="Edit note">✎</button>
+                <button class="action-btn" title="Remove" onclick="removeActivity(this)">✕</button>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-time">19:00</div>
+              <div>
+                <div class="activity-name">Izakaya Dinner, Kabukicho</div>
+                <div class="activity-why">Lively neighbourhood izakaya — diverse small plates, local sake, great first night introduction to Japanese dining culture</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(212,160,23,0.12);color:#d4a017;border:1px solid rgba(212,160,23,0.25)">🍜 Food</span>
+                  <span class="badge-sm">⏱ 2h</span><span class="badge-sm">¥3,500</span><span class="badge-sm">📍 1.1km</span>
+                </div>
+              </div>
+              <div class="activity-actions">
+                <button class="action-btn" title="Edit note">✎</button>
+                <button class="action-btn" title="Remove" onclick="removeActivity(this)">✕</button>
+              </div>
+            </div>
+            <div class="add-activity" onclick="alert('Add activity — coming in the live app!')">+ Add activity to Day 1</div>
+            <div class="premium-bar">
+              <div class="premium-bar-text">🔄 Regenerate just this day <span style="font-size:11px;color:#9a6700;margin-left:4px">— change the focus, adjust the pace, or replace everything</span></div>
+              <button class="btn btn-xs" style="background:rgba(212,160,23,0.15);color:#92400e;border:1px solid rgba(212,160,23,0.3);" onclick="premiumAlert()">✦ Premium</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Day 2 -->
+        <div class="day-card" id="day-2">
+          <div class="day-header" onclick="toggleDay(this)">
+            <div>
+              <div class="day-num">Day 2 · Sunday, Apr 13</div>
+              <div class="day-title-text">Ancient Tokyo &amp; Sky-High Views</div>
+              <div class="day-theme">⛩️ Temples, Shrines &amp; Skyline</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="day-weather">☀️ 20°C · Clear skies</div>
+              <span class="day-toggle">▾</span>
+            </div>
+          </div>
+          <div class="day-body" id="db-2">
+            <div class="activity-item">
+              <div class="activity-time">08:30</div>
+              <div>
+                <div class="activity-name">Senso-ji Temple, Asakusa</div>
+                <div class="activity-why">Tokyo's oldest temple (645 AD) — arrive before 9am to experience the incense and quiet before tour groups arrive</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.2)">🏛 Culture</span>
+                  <span class="badge-sm">⏱ 2h</span><span class="badge-sm badge-green" style="background:rgba(64,145,108,0.12);color:#40916c;border:1px solid rgba(64,145,108,0.3);font-weight:700">FREE</span><span class="badge-sm">📍 Starting point</span>
+                </div>
+              </div>
+              <div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-time">11:00</div>
+              <div>
+                <div class="activity-name">Nakamise Shopping Street</div>
+                <div class="activity-why">Traditional ningyo-yaki cakes and handmade crafts — directly adjacent to Senso-ji, zero extra travel time</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(199,123,85,0.12);color:#c77b55;border:1px solid rgba(199,123,85,0.25)">🛍 Shopping</span>
+                  <span class="badge-sm">⏱ 1h</span><span class="badge-sm">¥1,500</span><span class="badge-sm">📍 0km</span>
+                </div>
+              </div>
+              <div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-time">13:30</div>
+              <div>
+                <div class="activity-name">Tokyo Skytree</div>
+                <div class="activity-why">World's tallest tower at 634m — 5-min walk from Nakamise, afternoon light is perfect for photography from the deck</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(72,202,228,0.12);color:#0ea5e9;border:1px solid rgba(72,202,228,0.25)">🏗 Architecture</span>
+                  <span class="badge-sm">⏱ 2h</span><span class="badge-sm">¥2,100</span><span class="badge-sm">📍 0.5km</span>
+                </div>
+              </div>
+              <div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-time">19:30</div>
+              <div>
+                <div class="activity-name">Ramen at Fuunji, Shinjuku</div>
+                <div class="activity-why">Michelin-recognised tsukemen master — the 20-min queue moves fast and is worth every second</div>
+                <div class="activity-badges">
+                  <span class="badge-cat" style="background:rgba(212,160,23,0.12);color:#d4a017;border:1px solid rgba(212,160,23,0.25)">🍜 Food</span>
+                  <span class="badge-sm">⏱ 1h</span><span class="badge-sm">¥1,100</span><span class="badge-sm">📍 12km</span>
+                </div>
+              </div>
+              <div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div>
+            </div>
+            <div class="add-activity" onclick="alert('Add activity — coming in the live app!')">+ Add activity to Day 2</div>
+            <div class="premium-bar">
+              <div class="premium-bar-text">🔄 Regenerate just this day</div>
+              <button class="btn btn-xs" style="background:rgba(212,160,23,0.15);color:#92400e;border:1px solid rgba(212,160,23,0.3);" onclick="premiumAlert()">✦ Premium</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Day 3 -->
+        <div class="day-card" id="day-3">
+          <div class="day-header" onclick="toggleDay(this)">
+            <div>
+              <div class="day-num">Day 3 · Monday, Apr 14</div>
+              <div class="day-title-text">Pop Culture &amp; Immersive Art</div>
+              <div class="day-theme">🎌 Modernity Meets Tradition</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="day-weather">🌥 16°C · Overcast — indoor picks prioritised</div>
+              <span class="day-toggle">▾</span>
+            </div>
+          </div>
+          <div class="day-body" id="db-3">
+            <div class="activity-item"><div class="activity-time">09:30</div><div><div class="activity-name">Meiji Shrine</div><div class="activity-why">Forested city sanctuary — serene contrast after two urban days, perfect morning reset before Harajuku crowds</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.2)">🏛 Culture</span><span class="badge-sm">⏱ 1.5h</span><span class="badge-sm badge-green" style="background:rgba(64,145,108,0.12);color:#40916c;border:1px solid rgba(64,145,108,0.3);font-weight:700">FREE</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">11:30</div><div><div class="activity-name">Takeshita Street, Harajuku</div><div class="activity-why">Tokyo's most creative street-fashion corridor — fascinating cultural window even if you don't shop, 0.5km walk</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.2)">🏛 Culture</span><span class="badge-sm">⏱ 1.5h</span><span class="badge-sm">¥2,000</span><span class="badge-sm">📍 0.5km</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">14:00</div><div><div class="activity-name">teamLab Planets, Toyosu</div><div class="activity-why">Immersive digital art you walk into — the overcast forecast makes this the perfect day for it. Book ahead, sells out weeks early</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(236,72,153,0.1);color:#db2777;border:1px solid rgba(236,72,153,0.2)">🎨 Art</span><span class="badge-sm">⏱ 2.5h</span><span class="badge-sm">¥3,200</span><span class="badge-sm">📍 8km</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">19:00</div><div><div class="activity-name">Omakase Dinner, Shibuya</div><div class="activity-why">Budget splurge — 6-seat chef's counter, truly unforgettable. This is the night to spend a little more</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(212,160,23,0.12);color:#d4a017;border:1px solid rgba(212,160,23,0.25)">🍜 Food</span><span class="badge-sm">⏱ 2.5h</span><span class="badge-sm">¥12,000</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="add-activity" onclick="alert('Add activity — coming in the live app!')">+ Add activity to Day 3</div>
+            <div class="premium-bar"><div class="premium-bar-text">🔄 Regenerate just this day</div><button class="btn btn-xs" style="background:rgba(212,160,23,0.15);color:#92400e;border:1px solid rgba(212,160,23,0.3);" onclick="premiumAlert()">✦ Premium</button></div>
+          </div>
+        </div>
+
+        <!-- Day 4 -->
+        <div class="day-card" id="day-4">
+          <div class="day-header" onclick="toggleDay(this)">
+            <div><div class="day-num">Day 4 · Tuesday, Apr 15</div><div class="day-title-text">Markets, Luxury &amp; Akihabara</div><div class="day-theme">🍣 From Fish Market to Neon Streets</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div class="day-weather">🌤 19°C · Partly cloudy</div><span class="day-toggle">▾</span></div>
+          </div>
+          <div class="day-body" id="db-4">
+            <div class="activity-item"><div class="activity-time">07:00</div><div><div class="activity-name">Tsukiji Outer Market Breakfast</div><div class="activity-why">Freshest tuna sashimi breakfast on earth — go early, the prized fatty-tuna stalls are gone by 10am</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(212,160,23,0.12);color:#d4a017;border:1px solid rgba(212,160,23,0.25)">🍜 Food</span><span class="badge-sm">⏱ 1.5h</span><span class="badge-sm">¥2,000</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">10:00</div><div><div class="activity-name">Ginza Gallery District</div><div class="activity-why">World-class free galleries including Chanel Nexus Hall — the Itoya stationery store alone spans 12 floors of wonder</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(236,72,153,0.1);color:#db2777;border:1px solid rgba(236,72,153,0.2)">🎨 Art</span><span class="badge-sm">⏱ 2h</span><span class="badge-sm badge-green" style="background:rgba(64,145,108,0.12);color:#40916c;border:1px solid rgba(64,145,108,0.3);font-weight:700">FREE</span><span class="badge-sm">📍 1.5km</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">14:00</div><div><div class="activity-name">Akihabara Electric Town</div><div class="activity-why">Globally unique — retro gaming, electronics and anime culture packed into 6 city blocks. Nowhere like it on Earth</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.2)">🏛 Culture</span><span class="badge-sm">⏱ 3h</span><span class="badge-sm">¥3,000</span><span class="badge-sm">📍 4km</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="add-activity" onclick="alert('Add activity — coming in the live app!')">+ Add activity to Day 4</div>
+            <div class="premium-bar"><div class="premium-bar-text">🔄 Regenerate just this day</div><button class="btn btn-xs" style="background:rgba(212,160,23,0.15);color:#92400e;border:1px solid rgba(212,160,23,0.3);" onclick="premiumAlert()">✦ Premium</button></div>
+          </div>
+        </div>
+
+        <!-- Day 5 -->
+        <div class="day-card" id="day-5">
+          <div class="day-header" onclick="toggleDay(this)">
+            <div><div class="day-num">Day 5 · Wednesday, Apr 16</div><div class="day-title-text">Day Trip: Kamakura by Sea</div><div class="day-theme">🏔️ Coastal Temples &amp; Ancient Buddha</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div class="day-weather">☀️ 17°C · Clear — perfect for outdoor sites</div><span class="day-toggle">▾</span></div>
+          </div>
+          <div class="day-body" id="db-5">
+            <div class="activity-item"><div class="activity-time">07:30</div><div><div class="activity-name">Train to Kamakura (JR Yokosuka)</div><div class="activity-why">Just 1hr from Tokyo on the JR Pass — completely different world of coastal temples and dramatic ocean views</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(148,163,184,0.12);color:#64748b;border:1px solid rgba(148,163,184,0.25)">🚂 Transport</span><span class="badge-sm">⏱ 1h</span><span class="badge-sm">¥940</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">09:30</div><div><div class="activity-name">Kotoku-in Great Buddha</div><div class="activity-why">13-metre bronze Buddha cast in 1252, open-air and utterly photogenic — arrive before tour groups</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.2)">🏛 Culture</span><span class="badge-sm">⏱ 1h</span><span class="badge-sm">¥300</span><span class="badge-sm">📍 3km</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">11:30</div><div><div class="activity-name">Tsurugaoka Hachimangu Shrine</div><div class="activity-why">Kamakura's most sacred shrine with a stunning 1.8km tree-lined approach avenue — unmissable in cherry season</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.2)">🏛 Culture</span><span class="badge-sm">⏱ 1.5h</span><span class="badge-sm badge-green" style="background:rgba(64,145,108,0.12);color:#40916c;border:1px solid rgba(64,145,108,0.3);font-weight:700">FREE</span><span class="badge-sm">📍 2km</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="activity-item"><div class="activity-time">19:00</div><div><div class="activity-name">Farewell Dinner, Shinjuku</div><div class="activity-why">End where you began — a final Shinjuku dinner to close the loop on a perfect five days in Japan</div><div class="activity-badges"><span class="badge-cat" style="background:rgba(212,160,23,0.12);color:#d4a017;border:1px solid rgba(212,160,23,0.25)">🍜 Food</span><span class="badge-sm">⏱ 2h</span><span class="badge-sm">¥4,500</span></div></div><div class="activity-actions"><button class="action-btn">✎</button><button class="action-btn" onclick="removeActivity(this)">✕</button></div></div>
+            <div class="add-activity" onclick="alert('Add activity — coming in the live app!')">+ Add activity to Day 5</div>
+          </div>
+        </div>
+
+      </div><!-- /tab-itinerary -->
+
+      <!-- MAP TAB -->
+      <div id="tab-map" class="tab-panel">
+        <div class="day-filter-btns">
+          <button class="day-filter-btn active" style="background:#52b788;border-color:#52b788" onclick="filterDay('all',this)">All Days</button>
+          <button class="day-filter-btn" onclick="filterDay(1,this)">Day 1</button>
+          <button class="day-filter-btn" onclick="filterDay(2,this)">Day 2</button>
+          <button class="day-filter-btn" onclick="filterDay(3,this)">Day 3</button>
+          <button class="day-filter-btn" onclick="filterDay(4,this)">Day 4</button>
+          <button class="day-filter-btn" onclick="filterDay(5,this)">Day 5</button>
+        </div>
+        <div id="map"></div>
+      </div>
+
+      <!-- BUDGET TAB -->
+      <div id="tab-budget" class="tab-panel">
+        <div class="budget-summary">
+          <div class="budget-stat"><div class="budget-stat-label">Total Budget</div><div class="budget-stat-value">¥200,000</div><div class="budget-stat-sub">Your set limit</div></div>
+          <div class="budget-stat"><div class="budget-stat-label">AI Estimated Total</div><div class="budget-stat-value" style="color:var(--forest)">¥196,540</div><div class="budget-stat-sub">Based on all activities</div></div>
+          <div class="budget-stat"><div class="budget-stat-label">Budget Status</div><div class="status-chip under" style="margin-top:4px;font-size:14px">✓ ¥3,460 headroom</div></div>
+        </div>
+
+        <div class="budget-table">
+          <div class="budget-row header">
+            <div></div><div>Category</div><div style="text-align:right">Budgeted</div><div style="text-align:right">Estimated</div><div style="text-align:right">Status</div>
+          </div>
+          <div class="budget-row">
+            <div class="cat-icon">🏨</div>
+            <div><div class="cat-name">Accommodation</div><div class="cat-bar"><div class="cat-bar-fill" style="width:100%;background:#52b788"></div></div></div>
+            <div class="amount">¥80,000</div><div class="amount">¥80,000</div><div style="text-align:right"><span class="badge badge-gray">Pre-booked</span></div>
+          </div>
+          <div class="budget-row">
+            <div class="cat-icon">🍜</div>
+            <div><div class="cat-name">Food &amp; Dining</div><div class="cat-bar"><div class="cat-bar-fill" style="width:93%;background:#52b788"></div></div></div>
+            <div class="amount">¥45,000</div><div class="amount">¥41,800</div><div style="text-align:right"><span class="badge badge-green">93%</span></div>
+          </div>
+          <div class="budget-row">
+            <div class="cat-icon">🚂</div>
+            <div><div class="cat-name">Transport</div><div class="cat-bar"><div class="cat-bar-fill" style="width:99%;background:#d4a017"></div></div></div>
+            <div class="amount">¥18,000</div><div class="amount">¥17,940</div><div style="text-align:right"><span class="badge badge-amber">99%</span></div>
+          </div>
+          <div class="budget-row">
+            <div class="cat-icon">🎯</div>
+            <div><div class="cat-name">Activities</div><div class="cat-bar"><div class="cat-bar-fill" style="width:91%;background:#52b788"></div></div></div>
+            <div class="amount">¥28,000</div><div class="amount">¥25,500</div><div style="text-align:right"><span class="badge badge-green">91%</span></div>
+          </div>
+          <div class="budget-row">
+            <div class="cat-icon">🛍️</div>
+            <div><div class="cat-name">Shopping</div><div class="cat-bar"><div class="cat-bar-fill" style="width:100%;background:#dc2626"></div></div></div>
+            <div class="amount">¥20,000</div><div class="amount over">¥22,300</div><div style="text-align:right"><span class="badge badge-red">⚠ 111%</span></div>
+          </div>
+          <div class="budget-row">
+            <div class="cat-icon">📎</div>
+            <div><div class="cat-name">Other</div><div class="cat-bar"><div class="cat-bar-fill" style="width:94%;background:#52b788"></div></div></div>
+            <div class="amount">¥9,000</div><div class="amount">¥9,000</div><div style="text-align:right"><span class="badge badge-gray">–</span></div>
+          </div>
+          <div class="budget-footer">
+            <div style="font-size:14px;color:var(--text-mid)">Total · per person: <strong>¥98,270</strong></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:14px;color:var(--text-dark)">¥200,000 → ¥196,540</span>
+              <span class="status-chip under">✓ Within budget</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px; font-size:13px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+          ℹ️ Estimates auto-populated from activity costs. Shopping is over your estimate — consider adjusting.
+        </div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:16px" onclick="alert('Add custom expenses in the live app!')">+ Add Custom Expense</button>
+      </div>
+
+      <!-- PACKING TAB (premium teaser) -->
+      <div id="tab-packing" class="tab-panel" style="position:relative; min-height:320px;">
+        <div style="filter:blur(3px); pointer-events:none; opacity:0.4;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+            <div class="card"><div class="section-title" style="font-size:14px">👗 Clothing</div><div style="font-size:13px;color:var(--text-muted);line-height:2">Lightweight layers (3×)<br>Rain jacket<br>Comfortable walking shoes<br>Smart casual for dinners</div></div>
+            <div class="card"><div class="section-title" style="font-size:14px">📄 Documents</div><div style="font-size:13px;color:var(--text-muted);line-height:2">Passport<br>JR Pass (activated)<br>Travel insurance<br>Hotel confirmations</div></div>
+            <div class="card"><div class="section-title" style="font-size:14px">💻 Tech</div><div style="font-size:13px;color:var(--text-muted);line-height:2">Phone + charger<br>Universal adaptor (Type A)<br>Portable battery pack<br>Camera (optional)</div></div>
+          </div>
+        </div>
+        <div class="premium-overlay">
+          <div class="lock-icon">🎒</div>
+          <h4>AI Packing List — Premium</h4>
+          <p>Get a personalised packing list tailored to Tokyo in April, your activity types, and the weather forecast.</p>
+          <button class="btn btn-primary" onclick="premiumAlert()">✦ Unlock with Premium</button>
+        </div>
+      </div>
+
+    </div>
+    </div><!-- /itin-content -->
+  </main>
+</div>
+
+<!-- AI Concierge floating button -->
+<button class="concierge-float" onclick="premiumAlert()">
+  💬 AI Concierge
+  <span class="lock">✦ PRO</span>
+</button>
+
+<!-- Share Modal -->
+<div class="modal-overlay hidden" id="share-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔗 Share your Tokyo trip</h3>
+      <button class="modal-close" onclick="document.getElementById('share-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Share Link</label>
+        <div style="display:flex;gap:8px;">
+          <input class="form-input" type="text" value="mytravel.app/share/tokyo-apr26-a8f3k" readonly id="share-url">
+          <button class="btn btn-outline-forest" onclick="copyLink()">Copy</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-cream);border-radius:var(--r-sm);">
+          <div><div style="font-size:14px;font-weight:600">Allow friends to comment</div><div style="font-size:12px;color:var(--text-muted)">Friends can leave notes on your itinerary</div></div>
+          <label style="cursor:pointer"><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--forest)"></label>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-cream);border-radius:var(--r-sm);">
+          <div><div style="font-size:14px;font-weight:600">Public visibility</div><div style="font-size:12px;color:var(--text-muted)">Anyone with the link can view</div></div>
+          <label style="cursor:pointer"><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--forest)"></label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('share-modal').classList.add('hidden')">Cancel</button>
+      <button class="btn btn-primary" onclick="window.location.href='share.html'">Open Share Page →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast hidden" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const user = JSON.parse(sessionStorage.getItem('mtUser') || '{"initials":"AJ"}');
+document.getElementById('user-avatar').textContent = user.initials;
+
+// ---- Generation animation ----
+const steps = ['gs-1','gs-2','gs-3','gs-4','gs-5','gs-6','gs-7'];
+const pcts  = [10, 25, 40, 58, 72, 88, 100];
+let si = 0;
+function runStep() {
+  if (si > 0) { const prev = document.getElementById(steps[si-1]); prev.classList.remove('active'); prev.classList.add('done'); prev.querySelector('.gen-step-icon').textContent = '✓'; }
+  if (si < steps.length) {
+    document.getElementById(steps[si]).classList.add('active');
+    document.getElementById('gen-fill').style.width = pcts[si] + '%';
+    si++;
+    setTimeout(runStep, si < steps.length ? 700 : 900);
+  } else {
+    setTimeout(() => {
+      const overlay = document.getElementById('gen-overlay');
+      overlay.style.transition = 'opacity 0.8s ease';
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        document.getElementById('itin-content').style.opacity = '1';
+      }, 800);
+    }, 600);
+  }
+}
+setTimeout(runStep, 500);
+
+// ---- Tabs ----
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn:not(.locked)').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'map' && !window.mapInited) initMap();
+}
+
+// ---- Day toggles ----
+function toggleDay(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.day-toggle');
+  body.classList.toggle('collapsed');
+  toggle.textContent = body.classList.contains('collapsed') ? '▸' : '▾';
+}
+
+// ---- Remove activity ----
+function removeActivity(btn) {
+  if (confirm('Remove this activity?')) btn.closest('.activity-item').remove();
+}
+
+// ---- Save ----
+function saveTrip() {
+  const btn = document.getElementById('save-btn');
+  btn.innerHTML = '✓ Saved!';
+  btn.style.color = 'var(--forest)';
+  btn.style.borderColor = 'var(--forest)';
+  showToast('Trip saved successfully!', 'success');
+  setTimeout(() => { btn.innerHTML = '💾 Save'; btn.style.color=''; btn.style.borderColor=''; }, 2500);
+}
+
+// ---- Copy link ----
+function copyLink() {
+  navigator.clipboard.writeText(document.getElementById('share-url').value).catch(()=>{});
+  showToast('Link copied to clipboard!', 'success');
+}
+
+// ---- Toast ----
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type==='success' ? '✓ ' : '⚠ ') + msg;
+  t.className = 'toast ' + type;
+  setTimeout(() => t.className = 'toast hidden', 3000);
+}
+
+// ---- Premium alert ----
+function premiumAlert() {
+  showToast('✦ Premium feature — coming soon!', 'success');
+}
+
+// ---- Day filter (map) ----
+const dayColours = ['#52b788','#48cae4','#d4a017','#c77b55','#7c3aed'];
+let mapMarkers = [], leafletMap;
+
+function filterDay(day, btn) {
+  document.querySelectorAll('.day-filter-btn').forEach(b => { b.classList.remove('active'); b.style.background=''; b.style.borderColor=''; b.style.color=''; });
+  btn.classList.add('active');
+  if (day === 'all') { btn.style.background='#52b788'; btn.style.borderColor='#52b788'; btn.style.color='white'; }
+  else { const c = dayColours[day-1]; btn.style.background=c; btn.style.borderColor=c; btn.style.color='white'; }
+  mapMarkers.forEach(({marker, d}) => {
+    if (day === 'all' || d === day) { if (!leafletMap.hasLayer(marker)) marker.addTo(leafletMap); }
+    else { leafletMap.removeLayer(marker); }
+  });
+}
+
+function initMap() {
+  window.mapInited = true;
+  leafletMap = L.map('map').setView([35.6762, 139.6503], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap contributors', maxZoom:18 }).addTo(leafletMap);
+
+  const activities = [
+    { day:1, lat:35.6852, lng:139.7100, name:'Shinjuku Gyoen', time:'10:00', cost:'¥500' },
+    { day:1, lat:35.6924, lng:139.7002, name:'Omoide Yokocho', time:'12:30', cost:'¥1,200' },
+    { day:1, lat:35.6896, lng:139.6922, name:'TMG Building', time:'14:00', cost:'FREE' },
+    { day:2, lat:35.7148, lng:139.7967, name:'Senso-ji Temple', time:'08:30', cost:'FREE' },
+    { day:2, lat:35.7101, lng:139.8107, name:'Tokyo Skytree', time:'13:30', cost:'¥2,100' },
+    { day:3, lat:35.6763, lng:139.6993, name:'Meiji Shrine', time:'09:30', cost:'FREE' },
+    { day:3, lat:35.6472, lng:139.7860, name:'teamLab Planets', time:'14:00', cost:'¥3,200' },
+    { day:4, lat:35.6655, lng:139.7706, name:'Tsukiji Market', time:'07:00', cost:'¥2,000' },
+    { day:4, lat:35.7022, lng:139.7741, name:'Akihabara', time:'14:00', cost:'¥3,000' },
+    { day:5, lat:35.3192, lng:139.5467, name:'Kamakura Buddha', time:'09:30', cost:'¥300' },
+  ];
+
+  activities.forEach(a => {
+    const col = dayColours[a.day - 1];
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="width:28px;height:28px;border-radius:50%;background:${col};border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:11px">${a.day}</div>`,
+      iconSize:[28,28], iconAnchor:[14,14]
+    });
+    const marker = L.marker([a.lat, a.lng], {icon})
+      .bindPopup(`<div style="font-family:Inter,sans-serif;min-width:150px"><strong style="font-size:13px">${a.name}</strong><br><span style="font-size:12px;color:#4a7055">${a.time} · ${a.cost}</span><br><span style="font-size:11px;color:#7a9e80">Day ${a.day}</span></div>`)
+      .addTo(leafletMap);
+    mapMarkers.push({marker, d: a.day});
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# Claude Code settings (local only)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if added later)
+node_modules/
+.env
+.env.local
+.env*.local
+
+# Python (if added later)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
+npm-debug.log*

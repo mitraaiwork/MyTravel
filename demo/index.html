@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyTravel — AI-Powered Travel Planning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      /* Vibrant nature palette */
+      --bg-0:      #f8fafb;
+      --bg-1:      #ffffff;
+      --bg-2:      #f0f9f4;
+      --bg-3:      #e6f4ea;
+      --border:    rgba(0,0,0,0.08);
+      --border-2:  rgba(0,0,0,0.05);
+      --text:      #0d1f12;
+      --text-2:    #2d5a3d;
+      --text-3:    #6b9a76;
+      --forest:    #1a7a4a;
+      --leaf:      #34c77b;
+      --sky:       #0ea5e9;
+      --moss:      #059669;
+      --wheat:     #f59e0b;
+      --terra:     #f97316;
+      --sand:      #fde68a;
+      --white:     #ffffff;
+      --radius:    14px;
+      --radius-lg: 22px;
+
+      /* App-frame (demo interior) */
+      --frame-bg:  #0f1e14;
+      --frame-1:   #162419;
+      --frame-2:   #1e3022;
+      --frame-3:   #263829;
+      --frame-text:#d4e8d4;
+      --frame-2t:  #7dc99a;
+      --frame-3t:  #4a8a5a;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-0);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ===== NAV ===== */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 24px rgba(0,0,0,0.05);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 20px; font-weight: 800; text-decoration: none; color: var(--text);
+    }
+    .nav-logo .logo-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, #0d6e3c, #34c77b, #0ea5e9);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      box-shadow: 0 2px 10px rgba(52,199,123,0.4);
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+    .nav-links a { color: var(--text-3); text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+    .btn-ghost {
+      color: var(--text-2); background: none; border: 1.5px solid rgba(0,0,0,0.1);
+      cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit;
+      padding: 8px 18px; border-radius: 10px; transition: all .2s; text-decoration: none; display: inline-flex;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(0,0,0,0.2); background: rgba(0,0,0,0.03); }
+    .btn-primary {
+      background: linear-gradient(135deg, #0d6e3c, #1a7a4a, #34c77b);
+      color: #fff; border: none; cursor: pointer; font-size: 14px; font-weight: 600;
+      font-family: inherit; padding: 9px 22px; border-radius: 10px; transition: all .2s;
+      box-shadow: 0 4px 16px rgba(26,122,74,0.35); text-decoration: none; display: inline-flex;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(26,122,74,0.45); filter: brightness(1.05); }
+
+    /* ===== HERO ===== */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 130px 24px 80px;
+      position: relative; overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 30%, rgba(52,199,123,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 70% at 80% 20%, rgba(14,165,233,0.20) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 50% at 50% 100%, rgba(245,158,11,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 90% 70%, rgba(124,58,237,0.12) 0%, transparent 50%),
+        linear-gradient(170deg, #f0fdf4 0%, #f0f9ff 50%, #fefce8 100%);
+    }
+    .hero-orb { display: none; } /* replaced by CSS gradient */
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, rgba(26,122,74,0.10), rgba(14,165,233,0.08));
+      border: 1px solid rgba(26,122,74,0.25);
+      border-radius: 100px; padding: 7px 18px 7px 12px;
+      font-size: 13px; font-weight: 600; color: var(--forest);
+      margin-bottom: 28px; position: relative;
+      box-shadow: 0 2px 12px rgba(26,122,74,0.10);
+    }
+    .hero-badge .dot {
+      width: 7px; height: 7px;
+      background: linear-gradient(135deg, var(--leaf), var(--sky));
+      border-radius: 50%; animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(52,199,123,0.5); }
+      50% { opacity: 0.6; transform: scale(0.85); box-shadow: 0 0 0 6px rgba(52,199,123,0); }
+    }
+
+    .hero h1 {
+      font-size: clamp(42px, 6.5vw, 80px); font-weight: 900; line-height: 1.06;
+      letter-spacing: -2.5px; margin-bottom: 24px; position: relative; color: var(--text);
+    }
+    .gradient-text {
+      background: linear-gradient(125deg, #1a7a4a 0%, #34c77b 30%, #0ea5e9 60%, #f59e0b 85%, #f97316 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      background-size: 200%; animation: gradientShift 6s ease infinite;
+    }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .hero p {
+      font-size: clamp(16px, 2vw, 19px); color: #4b7a5e; max-width: 560px;
+      margin: 0 auto 40px; line-height: 1.8; position: relative;
+    }
+    .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 64px; position: relative; }
+    .btn-large {
+      padding: 15px 30px; font-size: 16px; font-weight: 700;
+      border-radius: 14px; border: none; cursor: pointer; font-family: inherit;
+      transition: all .25s; display: inline-flex; align-items: center; gap: 8px;
+      text-decoration: none;
+    }
+    .btn-cta-primary {
+      background: linear-gradient(135deg, #0d6e3c, #1a7a4a, #34c77b);
+      color: #fff; box-shadow: 0 8px 32px rgba(26,122,74,0.38), 0 2px 8px rgba(26,122,74,0.2);
+    }
+    .btn-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(26,122,74,0.5); filter: brightness(1.06); }
+    .btn-cta-secondary {
+      background: rgba(255,255,255,0.9); color: var(--text);
+      border: 1.5px solid rgba(0,0,0,0.10); box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      backdrop-filter: blur(8px);
+    }
+    .btn-cta-secondary:hover { background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.12); transform: translateY(-2px); }
+
+    .hero-stats { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; position: relative; }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 30px; font-weight: 900;
+      background: linear-gradient(135deg, #0d6e3c, #0ea5e9);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .stat-label { font-size: 13px; color: var(--text-3); margin-top: 3px; font-weight: 500; }
+
+    /* ===== SECTION COMMON ===== */
+    .section-tag {
+      display: inline-block;
+      background: linear-gradient(135deg, rgba(26,122,74,0.10), rgba(14,165,233,0.08));
+      border: 1px solid rgba(26,122,74,0.2);
+      color: var(--forest); font-size: 12px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; padding: 5px 16px; border-radius: 100px; margin-bottom: 16px;
+    }
+    .section-heading {
+      font-size: clamp(28px, 4vw, 50px); font-weight: 900; letter-spacing: -1.5px;
+      margin-bottom: 16px; line-height: 1.12; color: var(--text);
+    }
+    .section-sub { font-size: 18px; color: var(--text-2); max-width: 560px; line-height: 1.7; }
+    .section-header { text-align: center; margin-bottom: 64px; }
+
+    /* ===== DEMO SECTION ===== */
+    .demo-section {
+      padding: 100px 24px;
+      background:
+        radial-gradient(ellipse 60% 40% at 10% 50%, rgba(52,199,123,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 90% 50%, rgba(14,165,233,0.10) 0%, transparent 60%),
+        linear-gradient(180deg, #f8fafb 0%, #f0fdf4 50%, #f8fafb 100%);
+    }
+
+    .demo-wrapper {
+      max-width: 1060px; margin: 0 auto;
+      background: var(--frame-bg);
+      border: 1px solid rgba(52,199,123,0.25);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(52,199,123,0.1),
+        0 40px 100px rgba(13,30,20,0.35),
+        0 0 80px rgba(52,199,123,0.08),
+        0 0 0 6px rgba(52,199,123,0.04);
+    }
+
+    /* Browser chrome */
+    .app-chrome {
+      display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+      background: var(--frame-2); border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .chrome-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .chrome-dot:nth-child(1) { background: #ff5f57; }
+    .chrome-dot:nth-child(2) { background: #ffbe2e; }
+    .chrome-dot:nth-child(3) { background: #28c840; }
+    .chrome-url {
+      flex: 1; background: rgba(255,255,255,0.06); border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; color: var(--frame-3t);
+      display: flex; align-items: center; gap: 6px; max-width: 300px; margin: 0 auto;
+    }
+
+    /* App layout */
+    .app-layout { display: flex; height: 500px; }
+
+    /* Sidebar */
+    .app-sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--frame-2);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .sidebar-label {
+      font-size: 11px; font-weight: 600; color: var(--frame-3t); letter-spacing: 1px;
+      text-transform: uppercase; padding: 4px 8px 12px;
+    }
+    .trip-info-card {
+      background: linear-gradient(135deg, rgba(45,106,79,0.25), rgba(72,202,228,0.1));
+      border: 1px solid rgba(82,183,136,0.25);
+      border-radius: 10px; padding: 14px; margin-bottom: 8px;
+    }
+    .trip-dest { font-size: 15px; font-weight: 700; color: var(--frame-text); display: flex; align-items: center; gap: 6px; }
+    .trip-meta { font-size: 12px; color: var(--frame-2t); margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .trip-meta-row { display: flex; align-items: center; gap: 6px; }
+    .style-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+    .style-tag {
+      font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 100px;
+      background: rgba(82,183,136,0.2); color: #95d5b2; border: 1px solid rgba(82,183,136,0.3);
+    }
+    .sidebar-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+    .sidebar-stat { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: 8px; font-size: 13px; }
+    .sidebar-stat:hover { background: rgba(255,255,255,0.04); }
+    .sidebar-stat-key { color: var(--frame-3t); }
+    .sidebar-stat-val { color: var(--frame-text); font-weight: 600; }
+
+    .sidebar-day-nav { margin-top: 12px; display: flex; flex-direction: column; gap: 3px; }
+    .day-nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 8px; font-size: 12px;
+      color: var(--frame-3t); cursor: default; transition: all .2s;
+    }
+    .day-nav-item.active { background: rgba(45,106,79,0.2); color: #95d5b2; }
+    .day-nav-item.done { color: var(--frame-2t); }
+    .day-nav-item .day-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--frame-3t); flex-shrink: 0;
+    }
+    .day-nav-item.active .day-dot { background: #52b788; box-shadow: 0 0 8px #52b788; }
+    .day-nav-item.done .day-dot { background: #74c69d; }
+
+    /* Main content */
+    .app-main {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; background: var(--frame-bg);
+      scroll-behavior: smooth;
+    }
+    .app-main::-webkit-scrollbar { width: 5px; }
+    .app-main::-webkit-scrollbar-track { background: transparent; }
+    .app-main::-webkit-scrollbar-thumb { background: var(--frame-3); border-radius: 3px; }
+
+    /* Generation status bar */
+    .gen-status {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(45,106,79,0.15); border: 1px solid rgba(82,183,136,0.25);
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+      font-size: 13px; color: #95d5b2;
+    }
+    .gen-status .spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(82,183,136,0.3); border-top-color: #52b788;
+      animation: spin .8s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .gen-status .gen-progress-bar {
+      flex: 1; height: 3px; background: rgba(82,183,136,0.2); border-radius: 2px; margin: 0 4px;
+    }
+    .gen-status .gen-progress-fill {
+      height: 100%; background: linear-gradient(90deg, #52b788, #48cae4); border-radius: 2px; transition: width 1.5s ease;
+    }
+    .gen-status .gen-pct { font-weight: 600; font-size: 12px; white-space: nowrap; }
+
+    /* Loading state */
+    .state-loading {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; gap: 16px; padding: 40px; text-align: center; color: var(--frame-2t);
+    }
+    .state-loading .ai-orb {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(45,106,79,0.3), rgba(72,202,228,0.25));
+      border: 1px solid rgba(82,183,136,0.4);
+      display: flex; align-items: center; justify-content: center; font-size: 28px;
+      animation: orb-pulse 2s ease-in-out infinite;
+    }
+    @keyframes orb-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(82,183,136,0.4); }
+      50%      { box-shadow: 0 0 0 16px rgba(82,183,136,0); }
+    }
+    .thinking-dots span {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #52b788;
+      margin: 0 2px; animation: dot-bounce .8s ease-in-out infinite;
+    }
+    .thinking-dots span:nth-child(2) { animation-delay: .15s; }
+    .thinking-dots span:nth-child(3) { animation-delay: .3s; }
+    @keyframes dot-bounce {
+      0%,60%,100% { transform: translateY(0); }
+      30%          { transform: translateY(-6px); }
+    }
+
+    /* Day cards */
+    .day-card {
+      border: 1px solid rgba(82,183,136,0.15);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 14px;
+      animation: card-in .35s ease-out;
+    }
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .day-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 12px 16px; background: var(--frame-2);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .day-label { font-size: 11px; font-weight: 600; color: var(--frame-3t); text-transform: uppercase; letter-spacing: 1px; }
+    .day-title { font-size: 14px; font-weight: 700; color: var(--frame-text); margin-top: 1px; }
+    .day-theme { font-size: 12px; color: var(--frame-2t); margin-top: 2px; }
+    .weather-badge {
+      display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--frame-3t);
+      background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px 8px; flex-shrink: 0;
+    }
+
+    /* Activity items */
+    .activity-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      animation: item-in .3s ease-out; transition: background .15s;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item:hover { background: rgba(255,255,255,0.02); }
+    @keyframes item-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .activity-time {
+      font-size: 11px; font-weight: 700; color: var(--frame-3t);
+      min-width: 40px; padding-top: 2px; letter-spacing: 0.3px;
+    }
+    .activity-body { flex: 1; min-width: 0; }
+    .activity-name { font-size: 13px; font-weight: 600; color: var(--frame-text); line-height: 1.3; }
+    .activity-cursor {
+      display: inline-block; width: 2px; height: 13px; background: #52b788;
+      vertical-align: middle; animation: blink .8s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .activity-why {
+      font-size: 12px; color: var(--frame-2t); margin-top: 4px; line-height: 1.5;
+      opacity: 0; transition: opacity .4s ease;
+      display: flex; align-items: flex-start; gap: 5px;
+    }
+    .activity-why.visible { opacity: 1; }
+    .activity-why-icon { color: #52b788; flex-shrink: 0; margin-top: 1px; }
+    .activity-badges {
+      display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap;
+      opacity: 0; transition: opacity .3s ease;
+    }
+    .activity-badges.visible { opacity: 1; }
+    .badge {
+      font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 100px; white-space: nowrap;
+    }
+    .badge-cat  { background: rgba(82,183,136,0.15);  color: #95d5b2; border: 1px solid rgba(82,183,136,0.3); }
+    .badge-time { background: rgba(72,202,228,0.12);  color: #90e0ef; border: 1px solid rgba(72,202,228,0.25); }
+    .badge-cost { background: rgba(212,160,23,0.12);  color: #e9c46a; border: 1px solid rgba(212,160,23,0.25); }
+    .badge-dist { background: rgba(199,123,85,0.12);  color: #f4a261; border: 1px solid rgba(199,123,85,0.25); }
+    .badge-free { background: rgba(82,183,136,0.2);   color: #74c69d; border: 1px solid rgba(82,183,136,0.4); font-weight: 700; }
+
+    /* Complete state */
+    .gen-complete {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(45,106,79,0.15); border: 1px solid rgba(82,183,136,0.3);
+      border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+      font-size: 13px; color: #95d5b2; font-weight: 500; animation: card-in .4s ease-out;
+    }
+
+    /* Demo controls */
+    .demo-controls {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; margin-top: 24px; flex-wrap: wrap;
+    }
+    .progress-bar-wrap {
+      flex: 1; max-width: 400px; height: 4px;
+      background: var(--sand); border-radius: 2px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; background: linear-gradient(90deg, #2d6a4f, #48cae4);
+      border-radius: 2px; width: 0%; transition: width .5s linear;
+    }
+    .btn-replay {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--white); border: 1px solid var(--border);
+      color: var(--text-2); border-radius: 8px; padding: 8px 18px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      font-family: inherit; transition: all .2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .btn-replay:hover { background: var(--bg-2); color: var(--text); }
+    .demo-timer { font-size: 12px; color: var(--text-3); min-width: 32px; text-align: right; }
+
+    /* ===== FEATURES ===== */
+    .features-section {
+      padding: 110px 24px;
+      background:
+        radial-gradient(ellipse 50% 60% at 0% 100%, rgba(52,199,123,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 50% at 100% 0%, rgba(14,165,233,0.08) 0%, transparent 55%),
+        #ffffff;
+    }
+    .features-grid {
+      max-width: 1060px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px;
+    }
+    .feature-card {
+      background: var(--white); border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 20px; padding: 0;
+      transition: all .3s; position: relative; overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .feature-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px rgba(0,0,0,0.12); border-color: transparent; }
+    .feature-card-top {
+      height: 90px; display: flex; align-items: center; padding: 24px 28px;
+      position: relative; overflow: hidden;
+    }
+    .feature-card-top::after {
+      content: ''; position: absolute; right: -20px; bottom: -20px;
+      width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,0.15);
+    }
+    .feature-icon { font-size: 32px; position: relative; z-index: 1; }
+    .feature-card-body { padding: 0 28px 28px; }
+    .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text); margin-top: 20px; }
+    .feature-card p { font-size: 14px; color: var(--text-2); line-height: 1.78; }
+    .feature-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; padding: 4px 12px; border-radius: 100px; margin-top: 16px;
+    }
+    .pill-free    { background: rgba(5,150,105,0.09);  color: #059669; border: 1px solid rgba(5,150,105,0.22); }
+    .pill-premium { background: rgba(245,158,11,0.10); color: #d97706; border: 1px solid rgba(245,158,11,0.25); }
+
+    /* Feature card color themes */
+    .fc-green  .feature-card-top { background: linear-gradient(135deg, #065f46, #059669, #34d399); }
+    .fc-sky    .feature-card-top { background: linear-gradient(135deg, #0c4a6e, #0284c7, #38bdf8); }
+    .fc-amber  .feature-card-top { background: linear-gradient(135deg, #78350f, #d97706, #fbbf24); }
+    .fc-violet .feature-card-top { background: linear-gradient(135deg, #4c1d95, #7c3aed, #a78bfa); }
+    .fc-teal   .feature-card-top { background: linear-gradient(135deg, #134e4a, #0d9488, #2dd4bf); }
+    .fc-rose   .feature-card-top { background: linear-gradient(135deg, #881337, #e11d48, #fb7185); }
+
+    /* ===== HOW IT WORKS ===== */
+    .how-section {
+      padding: 110px 24px;
+      background: linear-gradient(160deg, #f0fdf4 0%, #f8fafb 50%, #eff6ff 100%);
+    }
+    .steps {
+      max-width: 900px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 40px; position: relative;
+    }
+    .steps::before {
+      content: ''; position: absolute; top: 38px;
+      left: calc(16.67% + 20px); right: calc(16.67% + 20px);
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(26,122,74,0.3), rgba(14,165,233,0.3), transparent);
+    }
+    .step { text-align: center; }
+    .step-num {
+      width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 22px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 900;
+      background: linear-gradient(135deg, #1a7a4a, #34c77b);
+      color: white; position: relative; z-index: 1;
+      box-shadow: 0 8px 28px rgba(26,122,74,0.35);
+    }
+    .step:nth-child(2) .step-num { background: linear-gradient(135deg, #0284c7, #38bdf8); box-shadow: 0 8px 28px rgba(2,132,199,0.35); }
+    .step:nth-child(3) .step-num { background: linear-gradient(135deg, #d97706, #fbbf24); box-shadow: 0 8px 28px rgba(217,119,6,0.35); }
+    .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    .step p { font-size: 14px; color: var(--text-2); line-height: 1.8; }
+
+    /* ===== QUOTES ===== */
+    .quotes-section {
+      padding: 90px 0; overflow: hidden;
+      background: linear-gradient(160deg, #0a1628 0%, #0d1f16 50%, #0c1520 100%);
+      position: relative;
+    }
+    .quotes-section .section-heading { color: white; }
+    .quotes-section .section-tag { color: #34c77b; border-color: rgba(52,199,123,0.3); background: rgba(52,199,123,0.08); }
+    .quotes-section .section-header { padding: 0 24px; }
+    .quotes-fade { position: relative; overflow: hidden; }
+    .quotes-fade::before, .quotes-fade::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2; pointer-events: none;
+    }
+    .quotes-fade::before { left: 0; background: linear-gradient(90deg, #0a1628, transparent); }
+    .quotes-fade::after  { right: 0; background: linear-gradient(-90deg, #0a1628, transparent); }
+    .quotes-track {
+      display: flex; gap: 20px; animation: scroll-left 45s linear infinite; width: max-content;
+    }
+    .quotes-track:hover { animation-play-state: paused; }
+    @keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .quote-card {
+      width: 320px; flex-shrink: 0;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px; padding: 22px;
+      backdrop-filter: blur(12px);
+    }
+    .quote-text { font-size: 14px; color: rgba(255,255,255,0.78); line-height: 1.78; margin-bottom: 18px; }
+    .quote-author { display: flex; align-items: center; gap: 10px; }
+    .quote-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+    .quote-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9); }
+    .quote-role { font-size: 12px; color: rgba(255,255,255,0.45); }
+    .stars { color: #fbbf24; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px; }
+
+    /* ===== PRICING ===== */
+    .pricing-section {
+      padding: 110px 24px;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(52,199,123,0.10) 0%, transparent 60%),
+        #f8fafb;
+    }
+    .pricing-grid { max-width: 820px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .pricing-card {
+      background: var(--white); border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 22px; padding: 38px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .pricing-card.featured {
+      background: linear-gradient(160deg, #0d1f16 0%, #1a3a28 50%, #0f2a1e 100%);
+      border-color: rgba(52,199,123,0.3);
+      box-shadow: 0 24px 64px rgba(13,31,22,0.4), 0 0 0 1px rgba(52,199,123,0.2);
+    }
+    .pricing-card.featured .tier-name { color: white; }
+    .pricing-card.featured .price { color: white; }
+    .pricing-card.featured .price-note { color: rgba(52,199,123,0.8); }
+    .pricing-card.featured .pricing-feature { color: rgba(255,255,255,0.80); }
+    .pricing-card.featured .pricing-divider { background: rgba(255,255,255,0.1); }
+    .pricing-card.featured .pricing-feature .check { color: #34c77b; }
+    .pricing-badge {
+      display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; padding: 5px 14px; border-radius: 100px; margin-bottom: 22px;
+    }
+    .pricing-card .tier-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: var(--text); }
+    .pricing-card .price { font-size: 46px; font-weight: 900; letter-spacing: -1.5px; margin: 14px 0 6px; display: flex; align-items: flex-start; gap: 3px; color: var(--text); }
+    .price sup { font-size: 22px; font-weight: 700; margin-top: 10px; }
+    .price sub { font-size: 14px; color: var(--text-3); font-weight: 400; align-self: flex-end; margin-bottom: 8px; }
+    .price-note { font-size: 13px; color: var(--text-3); margin-bottom: 28px; }
+    .pricing-divider { height: 1px; background: rgba(0,0,0,0.07); margin-bottom: 24px; }
+    .pricing-feature { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; margin-bottom: 13px; color: var(--text-2); line-height: 1.5; }
+    .pricing-feature .check { color: var(--moss); flex-shrink: 0; margin-top: 2px; font-size: 15px; }
+    .pricing-feature .cross { color: #cbd5e1; flex-shrink: 0; margin-top: 2px; }
+    .pricing-cta {
+      width: 100%; margin-top: 28px; padding: 14px; font-size: 15px; font-weight: 700;
+      border-radius: 12px; border: none; cursor: pointer; font-family: inherit; transition: all .25s;
+      display: block; text-decoration: none; text-align: center;
+    }
+    .pricing-cta-outline {
+      background: transparent; border: 1.5px solid rgba(0,0,0,0.12); color: var(--text);
+    }
+    .pricing-cta-outline:hover { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.2); }
+    .pricing-cta-fill {
+      background: linear-gradient(135deg, #34c77b, #059669);
+      color: white; box-shadow: 0 8px 24px rgba(52,199,123,0.4);
+    }
+    .pricing-cta-fill:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(52,199,123,0.55); filter: brightness(1.06); }
+
+    /* ===== CTA ===== */
+    .cta-section {
+      padding: 130px 24px; text-align: center; position: relative; overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 30% 50%, rgba(52,199,123,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 60% at 80% 40%, rgba(14,165,233,0.15) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 50% at 50% 100%, rgba(245,158,11,0.12) 0%, transparent 50%),
+        linear-gradient(160deg, #071412 0%, #0a1f16 50%, #070e1a 100%);
+    }
+    .cta-section::before {
+      content: '🌍'; position: absolute; right: 12%; top: 50%; transform: translateY(-50%);
+      font-size: 180px; opacity: 0.06; pointer-events: none;
+    }
+    .cta-section .dot { background: #34c77b; }
+    .cta-section h2 { font-size: clamp(32px,5vw,62px); font-weight: 900; letter-spacing: -2px; margin-bottom: 20px; color: white; }
+    .cta-section p { font-size: 18px; color: rgba(255,255,255,0.65); max-width: 500px; margin: 0 auto 44px; }
+    .cta-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(52,199,123,0.12); border: 1px solid rgba(52,199,123,0.25);
+      border-radius: 100px; padding: 7px 18px 7px 12px;
+      font-size: 13px; font-weight: 600; color: #34c77b; margin-bottom: 28px;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      padding: 56px 56px 36px;
+      background: linear-gradient(160deg, #07140d 0%, #0a1a14 60%, #070e18 100%);
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    footer .nav-logo { color: white; }
+    .footer-top { display: flex; justify-content: space-between; gap: 40px; flex-wrap: wrap; margin-bottom: 48px; }
+    .footer-brand { max-width: 270px; }
+    .footer-brand p { font-size: 14px; color: rgba(255,255,255,0.42); line-height: 1.75; margin-top: 14px; }
+    .footer-links-group h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.3); margin-bottom: 16px; }
+    .footer-links { display: flex; flex-direction: column; gap: 10px; list-style: none; }
+    .footer-links a { font-size: 14px; color: rgba(255,255,255,0.52); text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: #34c77b; }
+    .footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .footer-bottom p { font-size: 13px; color: rgba(255,255,255,0.3); }
+    .built-with { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.3); }
+
+    /* ===== SCROLL FADE IN ===== */
+    .fade-in { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      .app-layout { height: auto; flex-direction: column; }
+      .app-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      .sidebar-day-nav { display: none; }
+      .app-main { min-height: 400px; }
+      .steps { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      footer { padding: 40px 20px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav">
+  <a class="nav-logo" href="#">
+    <div class="logo-icon">✈</div>
+    MyTravel
+  </a>
+  <ul class="nav-links">
+    <li><a href="#demo">Live Demo</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="login.html" class="btn-ghost">Sign in</a>
+    <a href="register.html" class="btn-primary">Start Free</a>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+
+  <div class="hero-badge">
+    <div class="dot"></div>
+    Powered by MyTravel-AI
+  </div>
+
+  <h1>
+    Your dream trip,<br>
+    <span class="gradient-text">planned in seconds.</span>
+  </h1>
+  <p>
+    Tell us where you want to go. MyTravel-AI builds a complete, day-by-day itinerary
+    tailored to your style, budget, and travel pace — streamed live as it generates.
+  </p>
+  <div class="hero-ctas">
+    <button class="btn-large btn-cta-primary" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">
+      <span>▶</span> Watch Live Demo
+    </button>
+    <a href="register.html" class="btn-large btn-cta-secondary">
+      Plan My Trip — Free
+    </a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">12,400+</div>
+      <div class="stat-label">Trips planned</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">98%</div>
+      <div class="stat-label">User satisfaction</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">180+</div>
+      <div class="stat-label">Destinations</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">&lt; 30s</div>
+      <div class="stat-label">To full itinerary</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DEMO SECTION ===== -->
+<section class="demo-section" id="demo">
+  <div class="section-header fade-in">
+    <div class="section-tag">Live Demo</div>
+    <h2 class="section-heading">Watch MyTravel-AI plan a Tokyo trip<br>right now, in real time.</h2>
+    <p class="section-sub">MyTravel-AI analyses your travel style, budget, weather, and geography — then builds your itinerary day by day, right in front of you.</p>
+  </div>
+
+  <div class="demo-wrapper fade-in">
+    <div class="app-chrome">
+      <div class="chrome-dot"></div>
+      <div class="chrome-dot"></div>
+      <div class="chrome-dot"></div>
+      <div class="chrome-url">
+        <span>🔒</span>
+        mytravel.app/trips/tokyo-apr-2026
+      </div>
+    </div>
+
+    <div class="app-layout">
+      <div class="app-sidebar">
+        <div class="sidebar-label">Trip Details</div>
+        <div class="trip-info-card">
+          <div class="trip-dest">🗼 Tokyo, Japan</div>
+          <div class="trip-meta">
+            <div class="trip-meta-row">📅 Apr 12 – 17, 2026 · 5 days</div>
+            <div class="trip-meta-row">👥 2 adults · Couple</div>
+            <div class="trip-meta-row">💰 ¥200,000 budget</div>
+            <div class="trip-meta-row">🌤 18°C · Partly Cloudy</div>
+          </div>
+          <div class="style-tags">
+            <span class="style-tag">Culture</span>
+            <span class="style-tag">Food</span>
+            <span class="style-tag">Architecture</span>
+          </div>
+        </div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-stat"><span class="sidebar-stat-key">Pace</span><span class="sidebar-stat-val">Moderate</span></div>
+        <div class="sidebar-stat"><span class="sidebar-stat-key">Mobility</span><span class="sidebar-stat-val">Full</span></div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-label" style="padding-bottom:8px">Itinerary</div>
+        <div class="sidebar-day-nav" id="day-nav">
+          <div class="day-nav-item" id="nav-day-1"><div class="day-dot"></div> Day 1 · Shinjuku</div>
+          <div class="day-nav-item" id="nav-day-2"><div class="day-dot"></div> Day 2 · Asakusa</div>
+          <div class="day-nav-item" id="nav-day-3"><div class="day-dot"></div> Day 3 · Harajuku</div>
+          <div class="day-nav-item" id="nav-day-4"><div class="day-dot"></div> Day 4 · Ginza</div>
+          <div class="day-nav-item" id="nav-day-5"><div class="day-dot"></div> Day 5 · Kamakura</div>
+        </div>
+      </div>
+
+      <div class="app-main" id="itinerary-stream"></div>
+    </div>
+  </div>
+
+  <div class="demo-controls">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="demo-progress"></div>
+    </div>
+    <div class="demo-timer" id="demo-timer">0s</div>
+    <button class="btn-replay" id="replay-btn">↺ Replay</button>
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section class="features-section" id="features">
+  <div class="section-header fade-in">
+    <div class="section-tag">Capabilities</div>
+    <h2 class="section-heading">Everything you need.<br>Nothing you don't.</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card fc-green fade-in">
+      <div class="feature-card-top"><div class="feature-icon">🗺️</div></div>
+      <div class="feature-card-body">
+        <h3>Day-by-Day Itinerary</h3>
+        <p>MyTravel-AI generates a complete, geographically optimised itinerary — activities sequenced to minimise backtracking. Every item includes estimated duration, cost, and a "why chosen" note.</p>
+        <span class="feature-pill pill-free">Free · 3/mo</span>
+      </div>
+    </div>
+    <div class="feature-card fc-sky fade-in">
+      <div class="feature-card-top"><div class="feature-icon">⚡</div></div>
+      <div class="feature-card-body">
+        <h3>Live Streaming Generation</h3>
+        <p>No waiting for a spinner to finish. The itinerary streams day by day in real time — you see each activity appear as MyTravel-AI writes it, in under 30 seconds.</p>
+        <span class="feature-pill pill-free">Free · 3/mo</span>
+      </div>
+    </div>
+    <div class="feature-card fc-amber fade-in">
+      <div class="feature-card-top"><div class="feature-icon">🔄</div></div>
+      <div class="feature-card-body">
+        <h3>Single-Day Regeneration</h3>
+        <p>"Make Day 3 more food-focused." "Day 2 is too packed." Regenerate any single day while preserving everything else. Your edits on other days stay untouched.</p>
+        <span class="feature-pill pill-premium">Premium</span>
+      </div>
+    </div>
+    <div class="feature-card fc-violet fade-in">
+      <div class="feature-card-top"><div class="feature-icon">💬</div></div>
+      <div class="feature-card-body">
+        <h3>AI Concierge Chat</h3>
+        <p>Chat with MyTravel-AI about your trip — it knows your full itinerary. Ask it to find vegetarian restaurants near your hotel, swap dinner on Day 4, or suggest rainy-day alternatives.</p>
+        <span class="feature-pill pill-premium">Premium</span>
+      </div>
+    </div>
+    <div class="feature-card fc-teal fade-in">
+      <div class="feature-card-top"><div class="feature-icon">🎒</div></div>
+      <div class="feature-card-body">
+        <h3>Smart Packing Lists</h3>
+        <p>MyTravel-AI generates a categorised packing list tailored to your destination, weather forecast, activity types, and trip duration — not a generic template you'll ignore.</p>
+        <span class="feature-pill pill-premium">Premium</span>
+      </div>
+    </div>
+    <div class="feature-card fc-rose fade-in">
+      <div class="feature-card-top"><div class="feature-icon">👥</div></div>
+      <div class="feature-card-body">
+        <h3>Group Travel & Voting</h3>
+        <p>Invite travel companions to collaborate. Each person can vote on activities — thumbs up, down, or neutral. The group agrees on the final plan before you go.</p>
+        <span class="feature-pill pill-free">Free</span>
+      </div>
+    </div>
+    <div class="feature-card fc-teal fade-in" style="grid-column: span 1">
+      <div class="feature-card-top"><div class="feature-icon">⚖️</div></div>
+      <div class="feature-card-body">
+        <h3>Destination Matchmaker</h3>
+        <p>Can't choose between Tokyo, Bali, and Paris? Enter up to 3 destinations and your travel preferences — MyTravel-AI scores each across weather, budget, activities, crowds, and more, then tells you which to pick and why.</p>
+        <span class="feature-pill pill-free">Free</span>
+      </div>
+    </div>
+    <div class="feature-card fc-amber fade-in" style="grid-column: span 1">
+      <div class="feature-card-top"><div class="feature-icon">🏡</div></div>
+      <div class="feature-card-body">
+        <h3>Cottages & Cabins</h3>
+        <p>Planning a cottage getaway? Browse hundreds of lakefront cottages, forest cabins, mountain chalets, and unique stays. Filter by amenities, bedrooms, and price — then add the property directly to your trip itinerary.</p>
+        <span class="feature-pill pill-free">Free</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how-section" id="how">
+  <div class="section-header fade-in">
+    <div class="section-tag">How It Works</div>
+    <h2 class="section-heading">Trip planned in 3 steps.</h2>
+  </div>
+  <div class="steps fade-in">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Tell us about your trip</h3>
+      <p>Enter your destination, dates, travel style, budget, and how many people are travelling. Takes 60 seconds.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Watch MyTravel-AI build it live</h3>
+      <p>MyTravel-AI fetches live weather, optimises routes, and streams your itinerary day by day. Complete in under 30 seconds.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Edit, export & go</h3>
+      <p>Drag to reorder, regenerate any day, export to PDF or calendar, and share a public link with your travel partners.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== QUOTES ===== -->
+<section class="quotes-section">
+  <div class="quotes-fade">
+    <div class="quotes-track" id="quotes-track"></div>
+  </div>
+</section>
+
+<!-- ===== PRICING ===== -->
+<section class="pricing-section" id="pricing">
+  <div class="section-header fade-in">
+    <div class="section-tag">Pricing</div>
+    <h2 class="section-heading">Start free. Go premium when you're ready.</h2>
+    <p class="section-sub">No credit card required to get started.</p>
+  </div>
+  <div class="pricing-grid fade-in">
+    <div class="pricing-card">
+      <span class="pricing-badge" style="background:rgba(120,160,130,0.1);color:#7a9e80;border:1px solid rgba(120,160,130,0.2)">Free</span>
+      <div class="tier-name">Traveller</div>
+      <div style="color:var(--text-2);font-size:14px;margin-bottom:16px">Everything you need to get started.</div>
+      <div class="price"><sup>$</sup>0<sub>/mo</sub></div>
+      <div class="price-note">Forever free · No credit card</div>
+      <div class="pricing-divider"></div>
+      <div class="pricing-feature"><span class="check">✓</span> 3 AI itinerary generations / month</div>
+      <div class="pricing-feature"><span class="check">✓</span> Full day-by-day itinerary with maps</div>
+      <div class="pricing-feature"><span class="check">✓</span> Group collaboration &amp; voting</div>
+      <div class="pricing-feature"><span class="check">✓</span> Alternative activity suggestions</div>
+      <div class="pricing-feature"><span class="cross">–</span> <span style="color:var(--text-3)">Day regeneration</span></div>
+      <div class="pricing-feature"><span class="cross">–</span> <span style="color:var(--text-3)">AI Concierge Chat</span></div>
+      <div class="pricing-feature"><span class="cross">–</span> <span style="color:var(--text-3)">AI Packing Lists</span></div>
+      <div class="pricing-feature"><span class="cross">–</span> <span style="color:var(--text-3)">Offline access</span></div>
+      <a href="register.html" class="pricing-cta pricing-cta-outline">Get Started Free</a>
+    </div>
+    <div class="pricing-card featured">
+      <span class="pricing-badge" style="background:rgba(212,160,23,0.1);color:#d4a017;border:1px solid rgba(212,160,23,0.25)">⭐ Most Popular</span>
+      <div class="tier-name">Premium</div>
+      <div style="color:var(--text-2);font-size:14px;margin-bottom:16px">For serious travellers who want everything.</div>
+      <div class="price"><sup>$</sup>9<span style="font-size:28px;font-weight:900">.99</span><sub>/mo</sub></div>
+      <div class="price-note" style="color:var(--moss)">or $79/year — save 34%</div>
+      <div class="pricing-divider"></div>
+      <div class="pricing-feature"><span class="check">✓</span> <strong>Unlimited</strong> AI itinerary generations</div>
+      <div class="pricing-feature"><span class="check">✓</span> Single-day regeneration</div>
+      <div class="pricing-feature"><span class="check">✓</span> AI Concierge Chat (unlimited)</div>
+      <div class="pricing-feature"><span class="check">✓</span> AI Packing List generation</div>
+      <div class="pricing-feature"><span class="check">✓</span> Offline access (PWA + mobile)</div>
+      <div class="pricing-feature"><span class="check">✓</span> PDF &amp; calendar export</div>
+      <div class="pricing-feature"><span class="check">✓</span> No sponsored placements</div>
+      <div class="pricing-feature"><span class="check">✓</span> Priority support</div>
+      <a href="register.html" class="pricing-cta pricing-cta-fill">Start Premium Free Trial</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="cta-section">
+  <div class="cta-badge">
+    <div class="dot" style="width:7px;height:7px;border-radius:50%;background:#34c77b;box-shadow:0 0 6px #34c77b;flex-shrink:0"></div>
+    No credit card required
+  </div>
+  <h2>Ready to plan your<br><span class="gradient-text">next adventure?</span></h2>
+  <p>Join 12,400+ travellers who plan smarter trips with MyTravel-AI.</p>
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <a href="register.html" class="btn-large btn-cta-primary">Plan My Trip — It's Free</a>
+    <button class="btn-large btn-cta-secondary" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Watch Demo Again</button>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a class="nav-logo" href="#">
+        <div class="logo-icon">✈</div>
+        MyTravel
+      </a>
+      <p>AI-powered travel planning for curious, spontaneous, and budget-conscious travellers.</p>
+    </div>
+    <div class="footer-links-group">
+      <h4>Product</h4>
+      <ul class="footer-links">
+        <li><a href="#">Features</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Curated Tours</a></li>
+        <li><a href="#">Mobile App</a></li>
+      </ul>
+    </div>
+    <div class="footer-links-group">
+      <h4>Company</h4>
+      <ul class="footer-links">
+        <li><a href="#">About</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-links-group">
+      <h4>Legal</h4>
+      <ul class="footer-links">
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Cookie Policy</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 MyTravel. All rights reserved.</p>
+    <div class="built-with">Crafted with ❤ for travellers everywhere</div>
+  </div>
+</footer>
+
+<script>
+// ===================================================
+//  DEMO DATA
+// ===================================================
+const DAYS = [
+  {
+    num: 1, date: "Sat, Apr 12",
+    title: "Arrival & Shinjuku Immersion",
+    theme: "🌸 Cherry Blossoms & City Views",
+    weather: "🌤 18°C · Partly cloudy",
+    activities: [
+      { time:"10:00", cat:"Nature",     name:"Shinjuku Gyoen National Garden",   dur:"2h",   cost:"¥500",   dist:"Starting point", why:"Perfect first morning — 1,000+ cherry trees across 58 acres, gentle walk that eases jet lag" },
+      { time:"12:30", cat:"Food",       name:"Omoide Yokocho (Memory Lane)",     dur:"1h",   cost:"¥1,200", dist:"0.8km",           why:"50-year-old yakitori alley with tiny stalls and open charcoal grills — iconic old Tokyo energy" },
+      { time:"14:00", cat:"Views",      name:"Tokyo Metropolitan Govt Building", dur:"1.5h", cost:"Free",   dist:"0.3km",           why:"Free 360° panoramic views including Mt. Fuji silhouette — 3-min walk from last stop" },
+      { time:"19:00", cat:"Food",       name:"Izakaya Dinner, Kabukicho",        dur:"2h",   cost:"¥3,500", dist:"1.1km",           why:"Lively neighbourhood izakaya — diverse small plates, local sake, great introduction to Japanese dining" },
+    ]
+  },
+  {
+    num: 2, date: "Sun, Apr 13",
+    title: "Ancient Tokyo & Sky-High Views",
+    theme: "⛩️ Temples, Shrines & Skyline",
+    weather: "☀️ 20°C · Clear skies",
+    activities: [
+      { time:"08:30", cat:"Culture",      name:"Senso-ji Temple, Asakusa",   dur:"2h",   cost:"Free",   dist:"Starting point", why:"Tokyo's oldest temple (645 AD) — arrive early to experience it before tour groups arrive" },
+      { time:"11:00", cat:"Shopping",     name:"Nakamise Shopping Street",   dur:"1h",   cost:"¥1,500", dist:"0km",             why:"Traditional cakes and crafts directly adjacent to Senso-ji — zero extra travel time" },
+      { time:"13:30", cat:"Architecture", name:"Tokyo Skytree",              dur:"2h",   cost:"¥2,100", dist:"0.5km",           why:"World's tallest tower at 634m — 5-min walk from Nakamise, afternoon light is perfect for photos" },
+      { time:"19:30", cat:"Food",         name:"Ramen at Fuunji, Shinjuku",  dur:"1h",   cost:"¥1,100", dist:"12km",            why:"Michelin-recognised tsukemen — the 20-min queue moves fast and is worth every minute" },
+    ]
+  },
+  {
+    num: 3, date: "Mon, Apr 14",
+    title: "Pop Culture & Immersive Art",
+    theme: "🎌 Modernity Meets Tradition",
+    weather: "🌥 16°C · Overcast — indoor options prioritised",
+    activities: [
+      { time:"09:30", cat:"Culture", name:"Meiji Shrine",               dur:"1.5h", cost:"Free",   dist:"Starting point", why:"Forested city sanctuary — serene contrast after two action-packed days, ideal morning reset" },
+      { time:"11:30", cat:"Culture", name:"Takeshita Street, Harajuku", dur:"1.5h", cost:"¥2,000", dist:"0.5km",           why:"Tokyo's most creative street-fashion corridor — fascinating cultural window even if you don't shop" },
+      { time:"14:00", cat:"Art",     name:"teamLab Planets, Toyosu",   dur:"2.5h", cost:"¥3,200", dist:"8km",             why:"Immersive digital art you can walk into — overcast day makes this ideal; book ahead, sells out weeks early" },
+    ]
+  },
+  {
+    num: 4, date: "Tue, Apr 15",
+    title: "Markets, Luxury & Akihabara",
+    theme: "🍣 From Fish Market to Neon Streets",
+    weather: "🌤 19°C · Partly cloudy",
+    activities: [
+      { time:"07:00", cat:"Food",    name:"Tsukiji Outer Market Breakfast", dur:"1.5h", cost:"¥2,000", dist:"Starting point", why:"Freshest tuna sashimi breakfast on earth — go early, prized fatty-tuna stalls sell out before 10am" },
+      { time:"10:00", cat:"Art",     name:"Ginza Gallery District",         dur:"2h",   cost:"Free",   dist:"1.5km",          why:"World-class free galleries including Chanel Nexus Hall — the Itoya stationery store spans 12 floors" },
+      { time:"14:00", cat:"Culture", name:"Akihabara Electric Town",        dur:"3h",   cost:"¥3,000", dist:"4km",            why:"Globally unique — retro gaming, electronics, and anime culture packed into 6 city blocks" },
+    ]
+  },
+  {
+    num: 5, date: "Wed, Apr 16",
+    title: "Day Trip: Kamakura by Sea",
+    theme: "🏔️ Coastal Temples & Ancient Buddha",
+    weather: "☀️ 17°C · Clear — perfect for outdoor sites",
+    activities: [
+      { time:"07:30", cat:"Transport", name:"Train to Kamakura (JR Yokosuka)", dur:"1h",   cost:"¥940",   dist:"Starting point", why:"Just 1hr from Tokyo on the JR Pass — completely different world of coastal temples and ocean views" },
+      { time:"09:30", cat:"Culture",   name:"Kotoku-in Great Buddha",          dur:"1h",   cost:"¥300",   dist:"3km",            why:"13-metre bronze Buddha cast in 1252 — photogenic and open-air, best before tour groups arrive" },
+      { time:"11:30", cat:"Culture",   name:"Tsurugaoka Hachimangu Shrine",    dur:"1.5h", cost:"Free",   dist:"2km",            why:"Kamakura's most sacred shrine with a stunning 1.8km tree-lined approach avenue" },
+      { time:"19:00", cat:"Food",      name:"Farewell Dinner, Shinjuku",       dur:"2h",   cost:"¥4,500", dist:"Tokyo",          why:"End where you began — a final Shinjuku dinner to close the loop on a perfect five days in Japan" },
+    ]
+  }
+];
+
+const CAT_COLOURS = {
+  Nature:      { bg:'rgba(64,145,108,0.15)',  color:'#74c69d', border:'rgba(64,145,108,0.3)'  },
+  Food:        { bg:'rgba(212,160,23,0.15)',  color:'#e9c46a', border:'rgba(212,160,23,0.3)'  },
+  Views:       { bg:'rgba(72,202,228,0.15)',  color:'#90e0ef', border:'rgba(72,202,228,0.3)'  },
+  Culture:     { bg:'rgba(82,183,136,0.15)',  color:'#95d5b2', border:'rgba(82,183,136,0.3)'  },
+  Shopping:    { bg:'rgba(199,123,85,0.15)',  color:'#f4a261', border:'rgba(199,123,85,0.3)'  },
+  Architecture:{ bg:'rgba(116,179,206,0.15)', color:'#90c8dc', border:'rgba(116,179,206,0.3)' },
+  Art:         { bg:'rgba(167,139,250,0.12)', color:'#c4b5fd', border:'rgba(167,139,250,0.25)'},
+  Transport:   { bg:'rgba(148,163,184,0.12)', color:'#94a3b8', border:'rgba(148,163,184,0.2)' },
+};
+
+// ===================================================
+//  DEMO ENGINE
+// ===================================================
+const stream   = document.getElementById('itinerary-stream');
+const progressBar = document.getElementById('demo-progress');
+const timerEl  = document.getElementById('demo-timer');
+const replayBtn = document.getElementById('replay-btn');
+
+let timers = [];
+let timerInterval = null;
+let elapsed = 0;
+const TOTAL = 30;
+
+function clearAll() {
+  timers.forEach(t => clearTimeout(t));
+  timers = [];
+  clearInterval(timerInterval);
+  timerInterval = null;
+  elapsed = 0;
+}
+
+function schedule(fn, ms) { timers.push(setTimeout(fn, ms)); }
+
+function updateNav(dayNum, state) {
+  const el = document.getElementById('nav-day-' + dayNum);
+  if (!el) return;
+  el.className = 'day-nav-item ' + state;
+}
+
+function appendActivity(listEl, act, delay) {
+  schedule(() => {
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    const cc = CAT_COLOURS[act.cat] || CAT_COLOURS.Culture;
+    const isFree = act.cost === 'Free';
+    item.innerHTML = `
+      <div class="activity-time">${act.time}</div>
+      <div class="activity-body">
+        <div class="activity-name">
+          <span class="act-title"></span><span class="activity-cursor"></span>
+        </div>
+        <div class="activity-why">
+          <span class="activity-why-icon">✦</span>
+          <span>${act.why}</span>
+        </div>
+        <div class="activity-badges">
+          <span class="badge" style="background:${cc.bg};color:${cc.color};border:1px solid ${cc.border}">${act.cat}</span>
+          <span class="badge badge-time">⏱ ${act.dur}</span>
+          ${isFree ? `<span class="badge badge-free">FREE</span>` : `<span class="badge badge-cost">💴 ${act.cost}</span>`}
+          <span class="badge badge-dist">📍 ${act.dist}</span>
+        </div>
+      </div>`;
+    listEl.appendChild(item);
+    listEl.parentElement.scrollTop = listEl.parentElement.scrollHeight;
+
+    const titleEl = item.querySelector('.act-title');
+    const cursor  = item.querySelector('.activity-cursor');
+    const why     = item.querySelector('.activity-why');
+    const badges  = item.querySelector('.activity-badges');
+
+    let i = 0;
+    const chars = act.name.split('');
+    function typeChar() {
+      if (i < chars.length) {
+        titleEl.textContent += chars[i++];
+        timers.push(setTimeout(typeChar, 25));
+      } else {
+        cursor.remove();
+        schedule(() => why.classList.add('visible'), 200);
+        schedule(() => badges.classList.add('visible'), 500);
+      }
+    }
+    typeChar();
+  }, delay);
+}
+
+function runDemo() {
+  stream.innerHTML = '';
+  clearAll();
+  for (let d = 1; d <= 5; d++) updateNav(d, '');
+  progressBar.style.width = '0%';
+  timerEl.textContent = '0s';
+
+  elapsed = 0;
+  timerInterval = setInterval(() => {
+    elapsed++;
+    timerEl.textContent = elapsed + 's';
+    progressBar.style.width = (elapsed / TOTAL * 100) + '%';
+    if (elapsed >= TOTAL) clearInterval(timerInterval);
+  }, 1000);
+
+  // Loading state
+  stream.innerHTML = `
+    <div class="state-loading">
+      <div class="ai-orb">🌿</div>
+      <div style="font-weight:600;color:#d4e8d4;font-size:15px">MyTravel-AI is planning your trip…</div>
+      <div style="font-size:13px">Fetching Tokyo weather · Checking budget · Optimising routes</div>
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>`;
+
+  let t = 2500;
+
+  schedule(() => {
+    stream.innerHTML = `
+      <div class="gen-status" id="gen-status">
+        <div class="spinner"></div>
+        <span id="gen-label">Generating Day 1 of 5…</span>
+        <div class="gen-progress-bar"><div class="gen-progress-fill" id="gen-fill" style="width:0%"></div></div>
+        <span class="gen-pct" id="gen-pct">0%</span>
+      </div>
+      <div id="days-container"></div>`;
+  }, t);
+
+  const ACT_DUR = 1550;
+  const DAY_HDR = 450;
+  let cursor = 3000;
+
+  DAYS.forEach((day, di) => {
+    const dayStart = cursor;
+    schedule(() => {
+      if (di > 0) updateNav(di, 'done');
+      updateNav(di + 1, 'active');
+
+      const pct = Math.round(di / 5 * 100);
+      const fillEl = document.getElementById('gen-fill');
+      const pctEl  = document.getElementById('gen-pct');
+      const lblEl  = document.getElementById('gen-label');
+      if (fillEl) fillEl.style.width = pct + '%';
+      if (pctEl)  pctEl.textContent = pct + '%';
+      if (lblEl)  lblEl.textContent = `Generating Day ${di + 1} of 5…`;
+
+      const container = document.getElementById('days-container');
+      if (!container) return;
+      const card = document.createElement('div');
+      card.className = 'day-card';
+      card.innerHTML = `
+        <div class="day-header">
+          <div>
+            <div class="day-label">Day ${day.num} · ${day.date}</div>
+            <div class="day-title">${day.title}</div>
+            <div class="day-theme">${day.theme}</div>
+          </div>
+          <div class="weather-badge">${day.weather}</div>
+        </div>
+        <div class="activities-list" id="acts-${day.num}"></div>`;
+      container.appendChild(card);
+      container.parentElement.scrollTop = container.parentElement.scrollHeight;
+    }, dayStart);
+
+    cursor += DAY_HDR;
+    day.activities.forEach(act => {
+      const actDelay = cursor;
+      schedule(() => {
+        const listEl = document.getElementById('acts-' + day.num);
+        if (!listEl) return;
+        const item = document.createElement('div');
+        item.className = 'activity-item';
+        const cc = CAT_COLOURS[act.cat] || CAT_COLOURS.Culture;
+        const isFree = act.cost === 'Free';
+        item.innerHTML = `
+          <div class="activity-time">${act.time}</div>
+          <div class="activity-body">
+            <div class="activity-name"><span class="act-title"></span><span class="activity-cursor"></span></div>
+            <div class="activity-why"><span class="activity-why-icon">✦</span><span>${act.why}</span></div>
+            <div class="activity-badges">
+              <span class="badge" style="background:${cc.bg};color:${cc.color};border:1px solid ${cc.border}">${act.cat}</span>
+              <span class="badge badge-time">⏱ ${act.dur}</span>
+              ${isFree ? `<span class="badge badge-free">FREE</span>` : `<span class="badge badge-cost">💴 ${act.cost}</span>`}
+              <span class="badge badge-dist">📍 ${act.dist}</span>
+            </div>
+          </div>`;
+        listEl.appendChild(item);
+        const mainEl = document.getElementById('itinerary-stream');
+        if (mainEl) mainEl.scrollTop = mainEl.scrollHeight;
+
+        const titleEl = item.querySelector('.act-title');
+        const cursor2 = item.querySelector('.activity-cursor');
+        const why     = item.querySelector('.activity-why');
+        const badges  = item.querySelector('.activity-badges');
+        let i = 0;
+        function typeChar() {
+          if (i < act.name.length) {
+            titleEl.textContent += act.name[i++];
+            timers.push(setTimeout(typeChar, 25));
+          } else {
+            if (cursor2) cursor2.remove();
+            timers.push(setTimeout(() => why && why.classList.add('visible'), 200));
+            timers.push(setTimeout(() => badges && badges.classList.add('visible'), 500));
+          }
+        }
+        typeChar();
+      }, actDelay);
+      cursor += ACT_DUR;
+    });
+  });
+
+  // Complete
+  schedule(() => {
+    updateNav(5, 'done');
+    const fillEl = document.getElementById('gen-fill');
+    const pctEl  = document.getElementById('gen-pct');
+    if (fillEl) fillEl.style.width = '100%';
+    if (pctEl)  pctEl.textContent = '100%';
+    const statusEl = document.getElementById('gen-status');
+    if (statusEl) {
+      statusEl.outerHTML = `
+        <div class="gen-complete">
+          <span style="font-size:18px">✓</span>
+          <span><strong>Your 5-day Tokyo itinerary is ready.</strong> 17 activities · Est. ¥62,390 total · Geographically optimised.</span>
+        </div>`;
+    }
+    progressBar.style.width = '100%';
+  }, cursor);
+}
+
+replayBtn.addEventListener('click', runDemo);
+
+// ===================================================
+//  QUOTES
+// ===================================================
+const quotes = [
+  { text:"I used to spend a full weekend planning a 5-day trip. MyTravel built the same quality plan in literally 28 seconds. Tweaked two activities and it was perfect.", name:"Sarah M.", role:"Travel blogger · 42 countries", color:"#2d6a4f", init:"S" },
+  { text:"The 'why I chose this' note for every activity is genius. It's not just a list — I actually understand the logic. Makes me trust it completely.", name:"James K.", role:"Solo traveller · Used 14 times", color:"#48cae4", init:"J" },
+  { text:"Planned our honeymoon to Kyoto with it. The geographic sequencing meant we never doubled back once. Our friends couldn't believe we didn't use a travel agent.", name:"Priya & Dev N.", role:"Couple · Kyoto trip", color:"#40916c", init:"P" },
+  { text:"The AI concierge is what sold me on Premium. Asked it to find a vegetarian restaurant near our Day 2 hotel and it gave me three ranked options with walking times.", name:"Lucas F.", role:"Premium subscriber · 8 trips", color:"#c77b55", init:"L" },
+  { text:"Group trip planning used to be a nightmare. Now we all vote on activities and MyTravel-AI handles the disagreements automatically. Six friends, zero arguments.", name:"Yuki T.", role:"Group travel organiser", color:"#52b788", init:"Y" },
+  { text:"The weather integration is underrated. It scheduled our outdoor hike on the clear day and put the indoor museum on the rainy day without me asking. Just smart.", name:"Alex R.", role:"Adventure traveller", color:"#d4a017", init:"A" },
+];
+const track = document.getElementById('quotes-track');
+[...quotes, ...quotes].forEach(q => {
+  const card = document.createElement('div');
+  card.className = 'quote-card';
+  card.innerHTML = `
+    <div class="stars">★★★★★</div>
+    <div class="quote-text">"${q.text}"</div>
+    <div class="quote-author">
+      <div class="quote-avatar" style="background:${q.color}">${q.init}</div>
+      <div><div class="quote-name">${q.name}</div><div class="quote-role">${q.role}</div></div>
+    </div>`;
+  track.appendChild(card);
+});
+
+// ===================================================
+//  INTERSECTION OBSERVERS
+// ===================================================
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => io.observe(el));
+
+let demoStarted = false;
+const demoObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting && !demoStarted) {
+      demoStarted = true;
+      setTimeout(runDemo, 400);
+      demoObs.unobserve(document.getElementById('demo'));
+    }
+  });
+}, { threshold: 0.3 });
+demoObs.observe(document.getElementById('demo'));
+</script>
+</body>
+</html>

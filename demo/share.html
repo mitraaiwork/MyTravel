@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tokyo, Japan · 5 Days — Shared by Alex J. | MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Share-page shell (no sidebar) ── */
+    body { background: var(--bg-cream); }
+
+    .share-header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 60px; gap: 16px;
+    }
+    .share-header-logo { display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--forest); font-weight:800; font-size:17px; }
+    .share-header-logo .logo-mark { background:var(--forest); color:white; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+    .share-header-right { display:flex; align-items:center; gap:10px; }
+
+    .share-hero {
+      background: linear-gradient(135deg, var(--forest-dark) 0%, var(--forest) 60%, #40916c 100%);
+      padding: 40px 24px 36px; text-align: center; position: relative; overflow: hidden;
+    }
+    .share-hero::before { content:'🗼'; position:absolute; right:8%; top:50%; transform:translateY(-50%); font-size:110px; opacity:0.1; pointer-events:none; }
+    .share-hero::after  { content:'⛩'; position:absolute; left:6%; top:50%; transform:translateY(-50%); font-size:80px; opacity:0.1; pointer-events:none; }
+    .share-hero-inner { max-width: 680px; margin: 0 auto; position: relative; z-index: 1; }
+    .shared-by { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.15); border-radius:var(--r-full); padding:5px 14px; font-size:13px; color:rgba(255,255,255,0.85); margin-bottom:16px; }
+    .shared-by .avatar { width:22px; height:22px; font-size:10px; }
+    .share-hero h1 { font-size:30px; font-weight:800; color:white; margin-bottom:8px; }
+    .share-hero-meta { display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; margin-top:14px; }
+    .share-meta-pill { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.15); border-radius:var(--r-full); padding:5px 12px; font-size:13px; color:rgba(255,255,255,0.9); }
+
+    /* ── Main layout ── */
+    .share-body { max-width: 900px; margin: 0 auto; padding: 28px 20px 120px; display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    @media (max-width: 760px) { .share-body { grid-template-columns: 1fr; } }
+
+    /* ── Itinerary cards (read-only) ── */
+    .day-card {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-lg); overflow: hidden; margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .day-header {
+      display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+      cursor: pointer; user-select: none;
+    }
+    .day-num { width: 34px; height: 34px; border-radius: var(--r-sm); background: var(--forest); color: white; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+    .day-title { flex:1; }
+    .day-title strong { font-size:15px; color:var(--text-dark); display:block; }
+    .day-title span { font-size:12px; color:var(--text-muted); }
+    .day-toggle { color:var(--text-muted); font-size:18px; transition:transform 0.2s; }
+    .day-card.open .day-toggle { transform:rotate(180deg); }
+    .day-body { display:none; border-top:1px solid var(--border-light); }
+    .day-card.open .day-body { display:block; }
+
+    .activity-row {
+      display:flex; gap:12px; padding:12px 18px; border-bottom:1px solid var(--border-light);
+    }
+    .activity-row:last-child { border-bottom:none; }
+    .activity-time { width:52px; font-size:12px; color:var(--text-muted); font-weight:600; flex-shrink:0; padding-top:2px; }
+    .activity-info { flex:1; }
+    .activity-name { font-size:14px; font-weight:600; color:var(--text-dark); margin-bottom:3px; }
+    .activity-why { font-size:12px; color:var(--text-mid); font-style:italic; margin-bottom:6px; line-height:1.5; }
+    .activity-tags { display:flex; gap:6px; flex-wrap:wrap; }
+    .tag { font-size:11px; padding:2px 8px; border-radius:var(--r-full); }
+    .tag-cat   { background:rgba(45,106,79,0.1); color:var(--forest); }
+    .tag-time  { background:var(--bg-light); color:var(--text-mid); }
+    .tag-cost  { background:rgba(212,160,23,0.1); color:#a07e12; }
+
+    .day-collapsed-preview {
+      padding: 10px 18px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    .preview-dot { width:6px; height:6px; border-radius:50%; background:var(--leaf); }
+    .preview-label { font-size:12px; color:var(--text-muted); }
+
+    /* ── Comments sidebar ── */
+    .comments-panel {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm);
+      height: fit-content; position: sticky; top: 80px;
+    }
+    .comments-panel h3 { font-size:15px; font-weight:700; color:var(--text-dark); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+    .comment-list { display:flex; flex-direction:column; gap:14px; margin-bottom:20px; }
+
+    .comment-item { display:flex; gap:10px; }
+    .comment-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:white; flex-shrink:0; }
+    .comment-body { flex:1; }
+    .comment-meta { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+    .comment-name { font-size:13px; font-weight:600; color:var(--text-dark); }
+    .comment-time { font-size:11px; color:var(--text-muted); }
+    .comment-text { font-size:13px; color:var(--text-mid); line-height:1.5; margin-bottom:5px; }
+    .comment-actions { display:flex; align-items:center; gap:10px; }
+    .comment-like { font-size:12px; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:4px; border:none; background:none; padding:0; transition:color 0.15s; }
+    .comment-like:hover, .comment-like.liked { color:var(--forest); }
+
+    .comment-form { border-top: 1px solid var(--border-light); padding-top:16px; }
+    .comment-form-row { display:flex; gap:8px; }
+    .comment-form textarea {
+      flex:1; resize:none; border:1px solid var(--border-light); border-radius:var(--r-sm);
+      padding:10px 12px; font-size:13px; color:var(--text-dark); font-family:inherit;
+      background:var(--bg-light); outline:none; line-height:1.4; height:70px;
+    }
+    .comment-form textarea:focus { border-color:var(--forest); background:white; box-shadow:0 0 0 3px rgba(45,106,79,0.1); }
+    .comment-form-actions { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+    .comment-form-hint { font-size:11px; color:var(--text-muted); }
+
+    /* ── Trip stats (above comments) ── */
+    .share-stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .share-stat { background:var(--bg-light); border-radius:var(--r-sm); padding:10px 12px; text-align:center; }
+    .share-stat-num { font-size:20px; font-weight:800; color:var(--text-dark); line-height:1; }
+    .share-stat-lbl { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+    /* ── Sticky CTA ── */
+    .sticky-cta {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: linear-gradient(135deg, var(--forest-dark), var(--forest));
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    }
+    .sticky-cta-text { color:white; }
+    .sticky-cta-text strong { display:block; font-size:15px; font-weight:700; }
+    .sticky-cta-text span { font-size:13px; color:rgba(255,255,255,0.75); }
+    .sticky-cta-btns { display:flex; gap:10px; flex-shrink:0; }
+    .sticky-cta .btn-white { background:white; color:var(--forest); font-weight:700; }
+    .sticky-cta .btn-white:hover { background:var(--bg-mint); }
+    .sticky-cta .btn-outline-white { background:transparent; color:white; border:1px solid rgba(255,255,255,0.4); font-weight:600; }
+    .sticky-cta .btn-outline-white:hover { background:rgba(255,255,255,0.1); }
+
+    /* ── Read-only notice ── */
+    .readonly-notice {
+      display: flex; align-items: center; gap: 8px; background: rgba(72,202,228,0.08);
+      border: 1px solid rgba(72,202,228,0.25); border-radius: var(--r-sm);
+      padding: 10px 14px; font-size: 13px; color: var(--text-mid); margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body class="page-enter">
+
+  <!-- Share Header -->
+  <header class="share-header">
+    <a href="dashboard.html" class="share-header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="share-header-right">
+      <a href="login.html" class="btn btn-secondary btn-sm">Sign In</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Get Started Free</a>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <div class="share-hero">
+    <div class="share-hero-inner">
+      <div class="shared-by">
+        <div class="avatar avatar-sm avatar-forest">AJ</div>
+        Shared by Alex Johnson
+      </div>
+      <h1>🇯🇵 Tokyo, Japan</h1>
+      <p style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:0">5-Day AI-Crafted Itinerary</p>
+      <div class="share-hero-meta">
+        <div class="share-meta-pill">📅 Apr 12–17, 2026</div>
+        <div class="share-meta-pill">👥 2 Travellers</div>
+        <div class="share-meta-pill">💴 ¥196,500 est.</div>
+        <div class="share-meta-pill">⚡ Culture &amp; Food</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="share-body">
+
+    <!-- Left: Itinerary -->
+    <div>
+      <div class="readonly-notice">
+        <span>👁</span>
+        <span>You're viewing a shared itinerary in read-only mode. <a href="register.html" style="color:var(--forest);font-weight:600">Create a free account</a> to plan your own trip.</span>
+      </div>
+
+      <!-- Day 1 — open by default -->
+      <div class="day-card open" id="day1">
+        <div class="day-header" onclick="toggleDay('day1')">
+          <div class="day-num">D1</div>
+          <div class="day-title">
+            <strong>Arrival &amp; Shinjuku Exploration</strong>
+            <span>Apr 12 · Sun · ☀ 17°C · 4 activities</span>
+          </div>
+          <span class="day-toggle">⌃</span>
+        </div>
+        <div class="day-body">
+          <div class="activity-row">
+            <div class="activity-time">10:00</div>
+            <div class="activity-info">
+              <div class="activity-name">Check-in at Hotel Gracery Shinjuku</div>
+              <div class="activity-why">Iconic hotel with Godzilla head on the terrace — a fun Tokyo landmark to start your trip.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🏨 Accommodation</span>
+                <span class="tag tag-time">⏱ 1h</span>
+                <span class="tag tag-cost">💴 ¥18,000/night</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-time">12:30</div>
+            <div class="activity-info">
+              <div class="activity-name">Lunch at Ichiran Ramen (Shinjuku)</div>
+              <div class="activity-why">Solo-booth ramen experience — the authentic Tokyo way to have your first meal, fully customisable broth.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🍜 Food</span>
+                <span class="tag tag-time">⏱ 1h</span>
+                <span class="tag tag-cost">💴 ~¥1,200</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-time">14:30</div>
+            <div class="activity-info">
+              <div class="activity-name">Explore Shinjuku Golden Gai</div>
+              <div class="activity-why">A labyrinth of tiny bars each seating 5–8 people — unlike anywhere else in the world, best visited in the afternoon before it gets packed.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🍶 Culture</span>
+                <span class="tag tag-time">⏱ 2h</span>
+                <span class="tag tag-cost">💴 Free to explore</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-time">19:00</div>
+            <div class="activity-info">
+              <div class="activity-name">Dinner at Omoide Yokocho (Memory Lane)</div>
+              <div class="activity-why">Steam-filled alley of yakitori grills — the smoky atmosphere and casual stools capture old Tokyo magic perfectly.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🍢 Food</span>
+                <span class="tag tag-time">⏱ 1.5h</span>
+                <span class="tag tag-cost">💴 ~¥2,500</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 2 — open by default -->
+      <div class="day-card open" id="day2">
+        <div class="day-header" onclick="toggleDay('day2')">
+          <div class="day-num">D2</div>
+          <div class="day-title">
+            <strong>Temples, Shrines &amp; Harajuku</strong>
+            <span>Apr 13 · Mon · ⛅ 15°C · 5 activities</span>
+          </div>
+          <span class="day-toggle">⌃</span>
+        </div>
+        <div class="day-body">
+          <div class="activity-row">
+            <div class="activity-time">07:30</div>
+            <div class="activity-info">
+              <div class="activity-name">Meiji Shrine morning walk</div>
+              <div class="activity-why">Serene forested path with almost no crowds at dawn — a grounding start before the city wakes up.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">⛩ Shrine</span>
+                <span class="tag tag-time">⏱ 1.5h</span>
+                <span class="tag tag-cost">💴 Free</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-time">09:30</div>
+            <div class="activity-info">
+              <div class="activity-name">Harajuku Takeshita Street</div>
+              <div class="activity-why">The epicentre of Tokyo's wild street fashion — best visited early before the crowds and for the freshest crepe stands.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🛍 Shopping</span>
+                <span class="tag tag-time">⏱ 1.5h</span>
+                <span class="tag tag-cost">💴 ~¥3,000</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-time">12:00</div>
+            <div class="activity-info">
+              <div class="activity-name">Lunch at Omotesando Hills food hall</div>
+              <div class="activity-why">Elegant spiral-atrium mall with a curated food hall — great for tasting multiple Japanese regional cuisines at once.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🍱 Food</span>
+                <span class="tag tag-time">⏱ 1h</span>
+                <span class="tag tag-cost">💴 ~¥1,800</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-time">14:00</div>
+            <div class="activity-info">
+              <div class="activity-name">Sensō-ji Temple, Asakusa</div>
+              <div class="activity-why">Tokyo's oldest temple with the Nakamise shopping street leading up to it — perfect for souvenirs and street snacks.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🏯 Temple</span>
+                <span class="tag tag-time">⏱ 2h</span>
+                <span class="tag tag-cost">💴 Free</span>
+              </div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-time">18:30</div>
+            <div class="activity-info">
+              <div class="activity-name">Tokyo Skytree Sunset Views</div>
+              <div class="activity-why">The best golden-hour panorama in the city — time it with sunset for dramatic city-glow photos.</div>
+              <div class="activity-tags">
+                <span class="tag tag-cat">🗼 Landmark</span>
+                <span class="tag tag-time">⏱ 1.5h</span>
+                <span class="tag tag-cost">💴 ¥2,100</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 3 — collapsed with preview -->
+      <div class="day-card" id="day3">
+        <div class="day-header" onclick="toggleDay('day3')">
+          <div class="day-num" style="background:var(--sky)">D3</div>
+          <div class="day-title">
+            <strong>Akihabara Tech &amp; Shibuya Crossing</strong>
+            <span>Apr 14 · Tue · ☀ 18°C · 4 activities</span>
+          </div>
+          <span class="day-toggle">⌃</span>
+        </div>
+        <div class="day-body">
+          <div class="day-collapsed-preview" style="display:flex">
+            <div class="preview-dot" style="background:var(--sky)"></div>
+            <span class="preview-label">Akihabara Electronics District · 10:00</span>
+          </div>
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--sky)"></div>
+            <span class="preview-label">TeamLab Borderless Digital Art Museum · 13:00</span>
+          </div>
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--sky)"></div>
+            <span class="preview-label">Shibuya Crossing at Rush Hour · 17:30</span>
+          </div>
+          <div class="day-collapsed-preview" style="border-top:1px solid var(--border-light); padding-top:12px; margin-top:2px">
+            <div class="preview-dot" style="background:var(--sky)"></div>
+            <span class="preview-label">Dinner at Uobei Sushi Conveyor Belt · 19:30</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 4 — collapsed -->
+      <div class="day-card" id="day4">
+        <div class="day-header" onclick="toggleDay('day4')">
+          <div class="day-num" style="background:var(--wheat)">D4</div>
+          <div class="day-title">
+            <strong>Day Trip to Nikko</strong>
+            <span>Apr 15 · Wed · ⛅ 13°C · 3 activities</span>
+          </div>
+          <span class="day-toggle">⌃</span>
+        </div>
+        <div class="day-body">
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--wheat)"></div>
+            <span class="preview-label">Tōshō-gū Shrine complex · 10:30</span>
+          </div>
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--wheat)"></div>
+            <span class="preview-label">Kegon Waterfall hike · 13:00</span>
+          </div>
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--wheat)"></div>
+            <span class="preview-label">Return &amp; Shinjuku Izakaya dinner · 19:30</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 5 — collapsed -->
+      <div class="day-card" id="day5">
+        <div class="day-header" onclick="toggleDay('day5')">
+          <div class="day-num" style="background:var(--terra)">D5</div>
+          <div class="day-title">
+            <strong>Tsukiji Market &amp; Departure</strong>
+            <span>Apr 17 · Thu · ☀ 16°C · 3 activities</span>
+          </div>
+          <span class="day-toggle">⌃</span>
+        </div>
+        <div class="day-body">
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--terra)"></div>
+            <span class="preview-label">Tsukiji Outer Market breakfast · 07:00</span>
+          </div>
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--terra)"></div>
+            <span class="preview-label">Hamarikyu Gardens stroll · 09:30</span>
+          </div>
+          <div class="day-collapsed-preview">
+            <div class="preview-dot" style="background:var(--terra)"></div>
+            <span class="preview-label">Transfer to Narita Airport · 13:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Budget summary strip -->
+      <div class="card" style="margin-top:8px; padding:18px 20px;">
+        <div style="font-weight:700; font-size:14px; color:var(--text-dark); margin-bottom:14px;">💴 Budget Overview</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;">
+          <div style="background:var(--bg-light); border-radius:var(--r-sm); padding:10px 12px; text-align:center;">
+            <div style="font-size:17px; font-weight:800; color:var(--forest)">¥196,500</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px">Total Estimated</div>
+          </div>
+          <div style="background:var(--bg-light); border-radius:var(--r-sm); padding:10px 12px; text-align:center;">
+            <div style="font-size:17px; font-weight:800; color:var(--text-dark)">¥90,000</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px">Accommodation</div>
+          </div>
+          <div style="background:var(--bg-light); border-radius:var(--r-sm); padding:10px 12px; text-align:center;">
+            <div style="font-size:17px; font-weight:800; color:var(--text-dark)">¥32,800</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px">Food &amp; Drinks</div>
+          </div>
+          <div style="background:var(--bg-light); border-radius:var(--r-sm); padding:10px 12px; text-align:center;">
+            <div style="font-size:17px; font-weight:800; color:var(--text-dark)">¥48,200</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px">Shopping</div>
+          </div>
+        </div>
+        <div style="margin-top:14px; font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+          <span>🔒</span>
+          <span>Full budget breakdown with category tracking is available in the app.</span>
+          <a href="register.html" style="color:var(--forest); font-weight:600; white-space:nowrap">View free →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Comments + stats -->
+    <div>
+      <div class="comments-panel">
+
+        <div class="share-stats">
+          <div class="share-stat">
+            <div class="share-stat-num">17</div>
+            <div class="share-stat-lbl">Activities</div>
+          </div>
+          <div class="share-stat">
+            <div class="share-stat-num">5</div>
+            <div class="share-stat-lbl">Days</div>
+          </div>
+          <div class="share-stat">
+            <div class="share-stat-num">12</div>
+            <div class="share-stat-lbl">Views</div>
+          </div>
+          <div class="share-stat">
+            <div class="share-stat-num" id="comment-count">3</div>
+            <div class="share-stat-lbl">Comments</div>
+          </div>
+        </div>
+
+        <h3>💬 <span id="comment-heading">3 Comments</span></h3>
+
+        <div class="comment-list" id="comment-list">
+
+          <!-- Comment 1 -->
+          <div class="comment-item">
+            <div class="comment-avatar" style="background:#7c3aed">RK</div>
+            <div class="comment-body">
+              <div class="comment-meta">
+                <span class="comment-name">Raj Kumar</span>
+                <span class="comment-time">· 2 days ago</span>
+              </div>
+              <div class="comment-text">This looks incredible! The Nikko day trip is such a great idea — I always skip it but this makes me want to go. How long is the train ride?</div>
+              <div class="comment-actions">
+                <button class="comment-like" onclick="toggleLike(this, 4)">
+                  <span>👍</span> <span class="like-count">4</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comment 2 -->
+          <div class="comment-item">
+            <div class="comment-avatar" style="background:#db2777">PS</div>
+            <div class="comment-body">
+              <div class="comment-meta">
+                <span class="comment-name">Priya Sharma</span>
+                <span class="comment-time">· 1 day ago</span>
+              </div>
+              <div class="comment-text">Alex! Can we swap Day 3 to visit the Ghibli Museum instead of Akihabara? I already booked it for April 14th 😄 Lmk if that works for the group.</div>
+              <div class="comment-actions">
+                <button class="comment-like" onclick="toggleLike(this, 7)">
+                  <span>👍</span> <span class="like-count">7</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comment 3 -->
+          <div class="comment-item">
+            <div class="comment-avatar" style="background:#0891b2">DC</div>
+            <div class="comment-body">
+              <div class="comment-meta">
+                <span class="comment-name">David Chen</span>
+                <span class="comment-time">· 18 hours ago</span>
+              </div>
+              <div class="comment-text">The Golden Gai recommendation is 🔥. Pro tip: Albatross bar on the 2nd floor has an amazing view and serves cocktails for ¥800. Must go!</div>
+              <div class="comment-actions">
+                <button class="comment-like" onclick="toggleLike(this, 11)">
+                  <span>👍</span> <span class="like-count">11</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Add comment form -->
+        <div class="comment-form">
+          <div style="font-size:13px; font-weight:600; color:var(--text-dark); margin-bottom:8px;">Add a comment</div>
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <input id="commenter-name" class="form-input" type="text" placeholder="Your name" style="flex:1; font-size:13px; padding:8px 10px; height:auto;">
+          </div>
+          <textarea id="comment-input" class="comment-form textarea" placeholder="Share your thoughts, tips, or questions about this itinerary…" style="width:100%; resize:none; border:1px solid var(--border-light); border-radius:var(--r-sm); padding:10px 12px; font-size:13px; color:var(--text-dark); font-family:inherit; background:var(--bg-light); outline:none; line-height:1.4; height:70px; box-sizing:border-box;"></textarea>
+          <div class="comment-form-actions" style="margin-top:8px;">
+            <span class="comment-form-hint">No account needed to comment.</span>
+            <button class="btn btn-primary btn-sm" onclick="postComment()">Post</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Share card -->
+      <div class="card" style="margin-top:16px; padding:16px 18px;">
+        <div style="font-size:13px; font-weight:700; color:var(--text-dark); margin-bottom:10px;">🔗 Share this trip</div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <input class="form-input" type="text" value="mytravel.app/share/tokyo-5d-alex" readonly style="font-size:12px; color:var(--text-mid); background:var(--bg-light); padding:7px 10px; height:auto; flex:1;">
+          <button class="btn btn-secondary btn-sm" onclick="copyLink(this)">Copy</button>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:center;">
+          <button class="btn btn-secondary btn-sm" style="flex:1" onclick="alert('WhatsApp share coming soon!')">💬 WhatsApp</button>
+          <button class="btn btn-secondary btn-sm" style="flex:1" onclick="alert('Email share coming soon!')">✉ Email</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.share-body -->
+
+  <!-- Sticky CTA -->
+  <div class="sticky-cta">
+    <div class="sticky-cta-text">
+      <strong>✦ Love this itinerary? Build your own in 30 seconds.</strong>
+      <span>Free to get started — no credit card required.</span>
+    </div>
+    <div class="sticky-cta-btns">
+      <a href="login.html" class="btn btn-outline-white btn-sm">Sign In</a>
+      <a href="register.html" class="btn btn-white btn-sm">Start Planning Free →</a>
+    </div>
+  </div>
+
+<script>
+function toggleDay(id) {
+  const card = document.getElementById(id);
+  card.classList.toggle('open');
+}
+
+function toggleLike(btn, initial) {
+  const count = btn.querySelector('.like-count');
+  if (btn.classList.contains('liked')) {
+    btn.classList.remove('liked');
+    count.textContent = parseInt(count.textContent) - 1;
+  } else {
+    btn.classList.add('liked');
+    count.textContent = parseInt(count.textContent) + 1;
+  }
+}
+
+function postComment() {
+  const nameInput = document.getElementById('commenter-name');
+  const textInput = document.getElementById('comment-input');
+  const name = nameInput.value.trim();
+  const text = textInput.value.trim();
+
+  if (!name) { nameInput.focus(); nameInput.style.borderColor = 'var(--red)'; return; }
+  if (!text) { textInput.focus(); textInput.style.borderColor = 'var(--red)'; return; }
+
+  nameInput.style.borderColor = '';
+  textInput.style.borderColor = '';
+
+  // Generate initials and a colour
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) || '?';
+  const colours = ['#2d6a4f','#0891b2','#7c3aed','#db2777','#d97706','#059669'];
+  const colour = colours[Math.floor(Math.random() * colours.length)];
+
+  const item = document.createElement('div');
+  item.className = 'comment-item';
+  item.style.animation = 'fadeIn 0.3s ease';
+  item.innerHTML = `
+    <div class="comment-avatar" style="background:${colour}">${initials}</div>
+    <div class="comment-body">
+      <div class="comment-meta">
+        <span class="comment-name">${escHtml(name)}</span>
+        <span class="comment-time">· just now</span>
+      </div>
+      <div class="comment-text">${escHtml(text)}</div>
+      <div class="comment-actions">
+        <button class="comment-like" onclick="toggleLike(this,0)">
+          <span>👍</span> <span class="like-count">0</span>
+        </button>
+      </div>
+    </div>`;
+
+  document.getElementById('comment-list').appendChild(item);
+  nameInput.value = '';
+  textInput.value = '';
+
+  // Update counts
+  const newCount = document.querySelectorAll('.comment-item').length;
+  document.getElementById('comment-count').textContent = newCount;
+  document.getElementById('comment-heading').textContent = `${newCount} Comment${newCount !== 1 ? 's' : ''}`;
+
+  item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function copyLink(btn) {
+  navigator.clipboard.writeText('https://mytravel.app/share/tokyo-5d-alex').catch(() => {});
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.classList.add('btn-primary');
+  setTimeout(() => { btn.textContent = orig; btn.classList.remove('btn-primary'); }, 2000);
+}
+</script>
+</body>
+</html>

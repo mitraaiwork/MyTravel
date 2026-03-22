@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Packing List — Tokyo Trip | MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Page layout ── */
+    .packing-inner { max-width: 900px; }
+
+    /* ── Trip context bar ── */
+    .trip-context-bar {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); padding: 16px 20px; margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .trip-context-thumb {
+      width: 52px; height: 52px; border-radius: var(--r-md);
+      background: linear-gradient(135deg, #b7e4c7, #52b788);
+      display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0;
+    }
+    .trip-context-info { flex: 1; min-width: 0; }
+    .trip-context-info strong { font-size: 16px; font-weight: 700; color: var(--text-dark); display: block; }
+    .trip-context-info span  { font-size: 13px; color: var(--text-muted); }
+    .trip-context-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── AI generation badge ── */
+    .ai-gen-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, rgba(13,148,136,0.08), rgba(20,184,166,0.05));
+      border: 1px solid rgba(13,148,136,0.22);
+      border-radius: var(--r-full); padding: 6px 14px;
+      font-size: 12px; color: var(--teal); font-weight: 600; margin-bottom: 20px;
+    }
+    .ai-gen-badge::before { content: '✨'; font-size: 14px; }
+
+    /* ── Progress strip ── */
+    .progress-strip {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); padding: 18px 22px; margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .progress-nums { font-size: 26px; font-weight: 800; color: var(--text-dark); line-height: 1; }
+    .progress-nums span { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .progress-categories { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+    .prog-cat { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .prog-cat-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* ── Weather notice ── */
+    .weather-notice {
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, rgba(72,202,228,0.08), rgba(14,165,233,0.05));
+      border: 1px solid rgba(72,202,228,0.25);
+      border-radius: var(--r-md); padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: var(--text-mid);
+    }
+    .weather-notice span:first-child { font-size: 20px; }
+
+    /* ── Category cards ── */
+    .category-card {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); overflow: hidden; margin-bottom: 16px;
+      box-shadow: var(--shadow-sm); transition: var(--trans);
+    }
+    .category-card:hover { box-shadow: var(--shadow-md); }
+    .cat-header {
+      display: flex; align-items: center; gap: 14px; padding: 16px 20px;
+      cursor: pointer; user-select: none; border-bottom: 1px solid var(--border-light);
+      transition: var(--trans);
+    }
+    .cat-header:hover { background: var(--bg-light); }
+    .cat-icon {
+      width: 40px; height: 40px; border-radius: var(--r-md);
+      display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .cat-title { flex: 1; }
+    .cat-title strong { font-size: 15px; font-weight: 700; color: var(--text-dark); display: block; }
+    .cat-title span   { font-size: 12px; color: var(--text-muted); }
+    .cat-progress { display: flex; align-items: center; gap: 10px; }
+    .cat-prog-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+    .cat-prog-bar { width: 64px; }
+    .cat-toggle { color: var(--text-muted); font-size: 18px; transition: transform 0.2s; margin-left: 8px; }
+    .category-card.open .cat-toggle { transform: rotate(180deg); }
+    .cat-body { display: none; }
+    .category-card.open .cat-body { display: block; }
+
+    /* ── Pack items ── */
+    .pack-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 20px; border-bottom: 1px solid var(--border-light);
+      transition: var(--trans); cursor: pointer;
+    }
+    .pack-item:last-child { border-bottom: none; }
+    .pack-item:hover { background: var(--bg-light); }
+    .pack-item input[type="checkbox"] { width: 18px; height: 18px; border-radius: 5px; accent-color: var(--forest); cursor: pointer; flex-shrink: 0; }
+    .pack-item-content { flex: 1; min-width: 0; }
+    .pack-item-label { font-size: 14px; color: var(--text-dark); display: flex; align-items: center; gap: 8px; }
+    .pack-item-sub   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .pack-item.checked .pack-item-label { text-decoration: line-through; color: var(--text-faint); }
+    .pack-item.checked .pack-item-sub   { color: var(--text-faint); }
+    .item-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-left: auto; }
+    .item-tag { font-size: 10px; padding: 2px 7px; border-radius: var(--r-full); font-weight: 600; white-space: nowrap; }
+    .tag-essential  { background: rgba(220,38,38,0.08);  color: var(--red);     border: 1px solid rgba(220,38,38,0.2); }
+    .tag-weather    { background: rgba(72,202,228,0.10); color: var(--ocean);   border: 1px solid rgba(72,202,228,0.25); }
+    .tag-tokyo      { background: rgba(45,106,79,0.10);  color: var(--forest);  border: 1px solid rgba(45,106,79,0.2); }
+    .tag-activity   { background: rgba(244,162,97,0.12); color: #92400e;        border: 1px solid rgba(244,162,97,0.28); }
+    .tag-optional   { background: var(--bg-light);       color: var(--text-muted); border: 1px solid var(--border-light); }
+
+    /* ── Add item row ── */
+    .add-item-row {
+      display: flex; gap: 8px; padding: 12px 20px;
+      border-top: 1px solid var(--border-light); background: var(--bg-light);
+    }
+    .add-item-row input {
+      flex: 1; border: 1.5px solid var(--border-mid); border-radius: var(--r-sm);
+      padding: 8px 12px; font-size: 13px; background: white; outline: none; font-family: inherit;
+      transition: var(--trans); color: var(--text-dark);
+    }
+    .add-item-row input:focus { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(82,183,136,0.12); }
+    .add-item-row input::placeholder { color: var(--text-faint); }
+
+    /* ── Action bar ── */
+    .action-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); padding: 16px 20px; margin-top: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .action-bar-title { font-weight: 700; color: var(--text-dark); font-size: 14px; flex: 1; }
+
+    /* ── Sidebar override for collapsed categories ── */
+    .category-card.collapsed .cat-body { display: none; }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search destinations, saved trips…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" title="Notifications">🔔</button>
+      <div class="avatar avatar-md avatar-forest" id="user-avatar" title="Account">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <a href="packing.html" class="nav-item premium-nav active">
+      <span class="nav-icon">🎒</span> Packing Lists
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest" id="sidebar-avatar">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Alex Johnson</div>
+          <div class="sidebar-user-email" id="sidebar-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="#" class="nav-item text-sm"><span class="nav-icon">⚙</span> Settings</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    <div class="app-main-inner packing-inner">
+
+      <!-- Page title -->
+      <div class="section-header" style="margin-bottom:20px">
+        <div>
+          <h2 style="font-size:22px; font-weight:800; color:var(--text-dark); letter-spacing:-0.3px">🎒 Packing List</h2>
+          <p style="font-size:14px; color:var(--text-muted); margin-top:2px">AI-generated for your Tokyo trip</p>
+        </div>
+        <div style="display:flex; gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ Reset All</button>
+          <button class="btn btn-teal btn-sm" onclick="alert('PDF export coming in Premium!')">↓ Export PDF</button>
+        </div>
+      </div>
+
+      <!-- Trip context -->
+      <div class="trip-context-bar">
+        <div class="trip-context-thumb">🗼</div>
+        <div class="trip-context-info">
+          <strong>🇯🇵 Tokyo, Japan · 5 Days</strong>
+          <span>Apr 12–17, 2026 · 2 travellers · Culture & Food</span>
+        </div>
+        <div class="trip-context-meta">
+          <span class="badge badge-green">Itinerary ready</span>
+          <span class="badge badge-blue">☀ 15–18°C</span>
+          <span class="badge badge-terra">Light Rain possible</span>
+          <a href="itinerary.html" class="btn btn-secondary btn-sm">View Itinerary</a>
+        </div>
+      </div>
+
+      <!-- AI badge -->
+      <div class="ai-gen-badge">Generated by MyTravel-AI · Based on your activities, weather forecast, and 2-person trip profile</div>
+
+      <!-- Progress strip -->
+      <div class="progress-strip">
+        <div class="progress-header">
+          <div>
+            <div class="progress-nums" id="progress-display">0 <span>/ <span id="total-count">32</span> items packed</span></div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px">Check items as you pack them</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px; font-weight:600; color:var(--text-dark)" id="pct-display">0% done</div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="checkAll()">Check All</button>
+          </div>
+        </div>
+        <div class="progress-bar" style="height:12px">
+          <div class="progress-fill" id="main-progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-categories">
+          <div class="prog-cat"><div class="prog-cat-dot" style="background:var(--forest)"></div> Clothing <span id="cat-prog-0">0/8</span></div>
+          <div class="prog-cat"><div class="prog-cat-dot" style="background:var(--sky)"></div> Documents <span id="cat-prog-1">0/5</span></div>
+          <div class="prog-cat"><div class="prog-cat-dot" style="background:var(--violet)"></div> Electronics <span id="cat-prog-2">0/6</span></div>
+          <div class="prog-cat"><div class="prog-cat-dot" style="background:var(--coral)"></div> Health <span id="cat-prog-3">0/5</span></div>
+          <div class="prog-cat"><div class="prog-cat-dot" style="background:var(--amber)"></div> Activities <span id="cat-prog-4">0/8</span></div>
+        </div>
+      </div>
+
+      <!-- Weather notice -->
+      <div class="weather-notice">
+        <span>🌤</span>
+        <span><strong>Weather forecast for Apr 12–17:</strong> 15–18°C, partly cloudy, light rain on Apr 14. Items marked <span class="item-tag tag-weather" style="display:inline-flex">🌧 Weather</span> are tailored to this forecast.</span>
+      </div>
+
+      <!-- CLOTHING -->
+      <div class="category-card open" id="cat-0">
+        <div class="cat-header" onclick="toggleCat('cat-0')">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)">👕</div>
+          <div class="cat-title">
+            <strong>Clothing</strong>
+            <span>Layering for 15–18°C · Mix of smart-casual and comfortable</span>
+          </div>
+          <div class="cat-progress">
+            <span class="cat-prog-label" id="cat-0-label">0 / 8</span>
+            <div class="cat-prog-bar progress-bar" style="height:6px"><div class="progress-fill" id="cat-0-fill" style="width:0%"></div></div>
+          </div>
+          <span class="cat-toggle">⌃</span>
+        </div>
+        <div class="cat-body">
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Light mid-layer jacket or fleece <div class="item-tags"><span class="item-tag tag-weather">🌧 Weather</span><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">Evenings get cool; essential for temple walks</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">5× casual T-shirts / tops</div><div class="pack-item-sub">Lightweight, breathable — Japan tends to be warm indoors</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">2× smart-casual outfits <div class="item-tags"><span class="item-tag tag-tokyo">Tokyo</span></div></div><div class="pack-item-sub">For nicer restaurants and Omotesando</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Comfortable walking shoes <div class="item-tags"><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">You'll walk 15,000+ steps/day. Break them in first.</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Slip-on shoes or sandals <div class="item-tags"><span class="item-tag tag-tokyo">Tokyo</span></div></div><div class="pack-item-sub">Essential for temples — you'll remove shoes often</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Compact rain jacket / packable poncho <div class="item-tags"><span class="item-tag tag-weather">🌧 Weather</span></div></div><div class="pack-item-sub">Light rain expected on Apr 14 (Akihabara / TeamLab day)</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">5× socks + 3× underwear</div><div class="pack-item-sub">Pack an extra day's worth — laundromats are easy in Tokyo</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Light scarf or neck warmer <div class="item-tags"><span class="item-tag tag-optional">Optional</span></div></div><div class="pack-item-sub">For cold mornings at Meiji Shrine and Nikko</div></div>
+          </div>
+          <div class="add-item-row">
+            <input type="text" placeholder="+ Add clothing item…" onkeydown="addItem(event, 'cat-0')">
+            <button class="btn btn-primary btn-sm" onclick="addItemBtn('cat-0')">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCUMENTS -->
+      <div class="category-card open" id="cat-1">
+        <div class="cat-header" onclick="toggleCat('cat-1')">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">📄</div>
+          <div class="cat-title">
+            <strong>Documents &amp; Money</strong>
+            <span>Essential travel docs — keep originals and digital copies</span>
+          </div>
+          <div class="cat-progress">
+            <span class="cat-prog-label" id="cat-1-label">0 / 5</span>
+            <div class="cat-prog-bar progress-bar" style="height:6px"><div class="progress-fill progress-fill-sky" id="cat-1-fill" style="width:0%"></div></div>
+          </div>
+          <span class="cat-toggle">⌃</span>
+        </div>
+        <div class="cat-body">
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Passport (valid 6+ months) <div class="item-tags"><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">Check expiry now — Japanese immigration requires 6 months validity</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Printed / digital itinerary copy <div class="item-tags"><span class="item-tag tag-tokyo">Tokyo</span></div></div><div class="pack-item-sub">Immigration may ask about your trip plan</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Travel insurance policy <div class="item-tags"><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">Include emergency contacts and policy number</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Credit / debit cards (notify bank) <div class="item-tags"><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">Inform your bank before travel; 7-Eleven ATMs widely accept international cards</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">¥30,000–40,000 cash per person <div class="item-tags"><span class="item-tag tag-tokyo">Tokyo</span></div></div><div class="pack-item-sub">Japan is still very cash-forward; exchange at airport on arrival</div></div>
+          </div>
+          <div class="add-item-row">
+            <input type="text" placeholder="+ Add document item…" onkeydown="addItem(event, 'cat-1')">
+            <button class="btn btn-sky btn-sm" onclick="addItemBtn('cat-1')">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ELECTRONICS -->
+      <div class="category-card open" id="cat-2">
+        <div class="cat-header" onclick="toggleCat('cat-2')">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe)">📱</div>
+          <div class="cat-title">
+            <strong>Electronics &amp; Tech</strong>
+            <span>Power and connectivity essentials</span>
+          </div>
+          <div class="cat-progress">
+            <span class="cat-prog-label" id="cat-2-label">0 / 6</span>
+            <div class="cat-prog-bar progress-bar" style="height:6px"><div class="progress-fill progress-fill-violet" id="cat-2-fill" style="width:0%"></div></div>
+          </div>
+          <span class="cat-toggle">⌃</span>
+        </div>
+        <div class="cat-body">
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Phone + charger <div class="item-tags"><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">Japan uses Type A plugs (same as US) — no adapter needed in most cases</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Japan SIM / Pocket WiFi / eSIM <div class="item-tags"><span class="item-tag tag-essential">Required</span><span class="item-tag tag-tokyo">Tokyo</span></div></div><div class="pack-item-sub">Pre-order eSIM (Airalo ~$10) or pick up SIM at Narita arrivals</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Portable battery pack (10,000+ mAh) <div class="item-tags"><span class="item-tag tag-activity">Activity</span></div></div><div class="pack-item-sub">Long days outside — heavy camera use drains quickly</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Camera / spare SD cards <div class="item-tags"><span class="item-tag tag-optional">Optional</span></div></div><div class="pack-item-sub">Tokyo Skytree, Senso-ji, Nikko — you'll want great shots</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Universal power adapter (if needed)</div><div class="pack-item-sub">Only needed if your charger is not Type A compatible</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Earphones / earbuds <div class="item-tags"><span class="item-tag tag-optional">Optional</span></div></div><div class="pack-item-sub">For the train rides and Narita Express</div></div>
+          </div>
+          <div class="add-item-row">
+            <input type="text" placeholder="+ Add electronics item…" onkeydown="addItem(event, 'cat-2')">
+            <button class="btn btn-violet btn-sm" onclick="addItemBtn('cat-2')">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HEALTH -->
+      <div class="category-card open" id="cat-3">
+        <div class="cat-header" onclick="toggleCat('cat-3')">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#ffe4e6,#fecaca)">💊</div>
+          <div class="cat-title">
+            <strong>Health &amp; Wellness</strong>
+            <span>Medical essentials — some items hard to find in Japan</span>
+          </div>
+          <div class="cat-progress">
+            <span class="cat-prog-label" id="cat-3-label">0 / 5</span>
+            <div class="cat-prog-bar progress-bar" style="height:6px"><div class="progress-fill" id="cat-3-fill" style="width:0%; background:var(--grad-coral)"></div></div>
+          </div>
+          <span class="cat-toggle">⌃</span>
+        </div>
+        <div class="cat-body">
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Prescription medications <div class="item-tags"><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">Bring more than needed + doctor's letter for customs if carrying controlled meds</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Blister plasters / moleskin <div class="item-tags"><span class="item-tag tag-activity">Activity</span></div></div><div class="pack-item-sub">15,000+ steps/day is common in Tokyo — prepare your feet</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Antihistamines <div class="item-tags"><span class="item-tag tag-weather">🌧 Weather</span></div></div><div class="pack-item-sub">Spring pollen season in April — cedar pollen is particularly high in Japan</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Small first-aid kit (plasters, ibuprofen)</div><div class="pack-item-sub">Japanese pharmacies are great but language barrier is real</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Hand sanitiser &amp; tissues <div class="item-tags"><span class="item-tag tag-tokyo">Tokyo</span></div></div><div class="pack-item-sub">Some public restrooms don't have paper towels</div></div>
+          </div>
+          <div class="add-item-row">
+            <input type="text" placeholder="+ Add health item…" onkeydown="addItem(event, 'cat-3')">
+            <button class="btn btn-sm" style="background:var(--grad-coral); color:white; box-shadow:var(--shadow-color-forest)" onclick="addItemBtn('cat-3')">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVITIES & EXTRAS -->
+      <div class="category-card open" id="cat-4">
+        <div class="cat-header" onclick="toggleCat('cat-4')">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#fef9c3,#fde68a)">⚡</div>
+          <div class="cat-title">
+            <strong>Activities &amp; Extras</strong>
+            <span>Tokyo-specific items for your planned activities</span>
+          </div>
+          <div class="cat-progress">
+            <span class="cat-prog-label" id="cat-4-label">0 / 8</span>
+            <div class="cat-prog-bar progress-bar" style="height:6px"><div class="progress-fill progress-fill-amber" id="cat-4-fill" style="width:0%"></div></div>
+          </div>
+          <span class="cat-toggle">⌃</span>
+        </div>
+        <div class="cat-body">
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Small daypack / foldable tote bag <div class="item-tags"><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">For shopping, temple amulets, and daily essentials</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Compact umbrella <div class="item-tags"><span class="item-tag tag-weather">🌧 Weather</span></div></div><div class="pack-item-sub">Rain on Apr 14 (Akihabara day) — convenience stores sell them for ¥500 too</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Pre-booked TeamLab Planets ticket <div class="item-tags"><span class="item-tag tag-activity">Activity</span><span class="item-tag tag-essential">Required</span></div></div><div class="pack-item-sub">Sells out weeks ahead — confirm your Day 3 booking</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Suica / IC card (prepaid) <div class="item-tags"><span class="item-tag tag-tokyo">Tokyo</span></div></div><div class="pack-item-sub">Works on all trains, buses, and many vending machines. Get at airport JR.</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Small gift from home <div class="item-tags"><span class="item-tag tag-optional">Optional</span></div></div><div class="pack-item-sub">Japanese culture appreciates omiyage (local gifts) — great conversation starter with hosts</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Sunscreen SPF 30+ <div class="item-tags"><span class="item-tag tag-activity">Activity</span></div></div><div class="pack-item-sub">Spring sun is deceptive — full days outdoors at Nikko and Hamarikyu</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Nikko day-trip train pass research <div class="item-tags"><span class="item-tag tag-activity">Activity</span></div></div><div class="pack-item-sub">Consider "Nikko World Heritage Pass" — covers round trip + local buses</div></div>
+          </div>
+          <div class="pack-item" onclick="toggleItem(this)">
+            <input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">Reusable water bottle <div class="item-tags"><span class="item-tag tag-optional">Optional</span></div></div><div class="pack-item-sub">Tokyo tap water is excellent. Save money and waste.</div></div>
+          </div>
+          <div class="add-item-row">
+            <input type="text" placeholder="+ Add activity item…" onkeydown="addItem(event, 'cat-4')">
+            <button class="btn btn-amber btn-sm" onclick="addItemBtn('cat-4')">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <div class="action-bar-title" id="packed-summary">0 of 32 items packed · 0% complete</div>
+        <button class="btn btn-secondary btn-sm" onclick="checkAll()">☑ Check All</button>
+        <button class="btn btn-secondary btn-sm" onclick="uncheckAll()">☐ Uncheck All</button>
+        <button class="btn btn-teal btn-sm" onclick="alert('Sharing packing list — Premium feature coming soon!')">🔗 Share List</button>
+        <button class="btn btn-teal btn-sm" onclick="alert('Export to PDF — Premium feature coming soon!')">↓ Export PDF</button>
+      </div>
+
+      <!-- AI tip -->
+      <div style="background:linear-gradient(135deg,rgba(13,148,136,0.06),rgba(20,184,166,0.04)); border:1px solid rgba(13,148,136,0.18); border-radius:var(--r-lg); padding:16px 20px; margin-top:16px; display:flex; gap:12px; align-items:flex-start;">
+        <span style="font-size:22px; flex-shrink:0">✨</span>
+        <div>
+          <div style="font-size:14px; font-weight:600; color:var(--teal); margin-bottom:4px">MyTravel-AI Tip for Tokyo</div>
+          <div style="font-size:13px; color:var(--text-mid); line-height:1.6">Tokyo has an incredible culture of buying what you forgot — convenience stores (7-Eleven, FamilyMart) stock everything from umbrellas to charging cables. <strong>Don't overpack.</strong> Leave room for souvenirs — Narita Airport has a 23kg checked baggage limit on most carriers, and you'll likely shop in Harajuku and Akihabara.</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const user = JSON.parse(sessionStorage.getItem('mtUser') || '{"name":"Alex Johnson","email":"alex@example.com","initials":"AJ"}');
+document.getElementById('user-avatar').textContent = user.initials;
+document.getElementById('sidebar-avatar').textContent = user.initials;
+document.getElementById('sidebar-name').textContent = user.name;
+document.getElementById('sidebar-email').textContent = user.email;
+
+// Category item counts
+const catCounts = [8, 5, 6, 5, 8];
+let totalItems = catCounts.reduce((a,b) => a+b, 0);
+document.getElementById('total-count').textContent = totalItems;
+
+function getCheckedInCat(catId) {
+  return document.querySelectorAll(`#${catId} .pack-item input:checked`).length;
+}
+function getTotalInCat(catId) {
+  return document.querySelectorAll(`#${catId} .pack-item input`).length;
+}
+function getTotalChecked() {
+  return document.querySelectorAll('.pack-item input:checked').length;
+}
+function getTotalCount() {
+  return document.querySelectorAll('.pack-item input').length;
+}
+
+function updateProgress() {
+  const checked = getTotalChecked();
+  const total = getTotalCount();
+  const pct = total === 0 ? 0 : Math.round((checked / total) * 100);
+
+  document.getElementById('main-progress-fill').style.width = pct + '%';
+  document.getElementById('progress-display').innerHTML = `${checked} <span>/ <span id="total-count">${total}</span> items packed</span>`;
+  document.getElementById('pct-display').textContent = pct + '% done';
+  document.getElementById('packed-summary').textContent = `${checked} of ${total} items packed · ${pct}% complete`;
+
+  for (let i = 0; i < 5; i++) {
+    const catId = 'cat-' + i;
+    const c = getCheckedInCat(catId);
+    const t = getTotalInCat(catId);
+    const p = t === 0 ? 0 : Math.round((c / t) * 100);
+    const lbl = document.getElementById(`cat-${i}-label`);
+    const fill = document.getElementById(`cat-${i}-fill`);
+    const catProg = document.getElementById(`cat-prog-${i}`);
+    if (lbl) lbl.textContent = `${c} / ${t}`;
+    if (fill) fill.style.width = p + '%';
+    if (catProg) catProg.textContent = `${c}/${t}`;
+  }
+}
+
+function toggleItem(row) {
+  const cb = row.querySelector('input[type="checkbox"]');
+  cb.checked = !cb.checked;
+  row.classList.toggle('checked', cb.checked);
+  updateProgress();
+}
+
+function toggleCat(id) {
+  const card = document.getElementById(id);
+  card.classList.toggle('open');
+}
+
+function addItem(e, catId) {
+  if (e.key === 'Enter') { e.preventDefault(); addItemToCat(catId, e.target); }
+}
+function addItemBtn(catId) {
+  const input = document.querySelector(`#${catId} .add-item-row input`);
+  addItemToCat(catId, input);
+}
+function addItemToCat(catId, input) {
+  const text = input.value.trim();
+  if (!text) return;
+  const body = document.querySelector(`#${catId} .cat-body`);
+  const addRow = body.querySelector('.add-item-row');
+  const item = document.createElement('div');
+  item.className = 'pack-item';
+  item.onclick = function() { toggleItem(this); };
+  item.innerHTML = `<input type="checkbox"><div class="pack-item-content"><div class="pack-item-label">${escHtml(text)} <div class="item-tags"><span class="item-tag tag-optional">Custom</span></div></div></div>`;
+  body.insertBefore(item, addRow);
+  input.value = '';
+  updateProgress();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function checkAll() {
+  document.querySelectorAll('.pack-item').forEach(row => {
+    row.querySelector('input').checked = true;
+    row.classList.add('checked');
+  });
+  updateProgress();
+}
+function uncheckAll() {
+  document.querySelectorAll('.pack-item').forEach(row => {
+    row.querySelector('input').checked = false;
+    row.classList.remove('checked');
+  });
+  updateProgress();
+}
+function resetAll() {
+  if (!confirm('Reset all checked items?')) return;
+  uncheckAll();
+}
+
+updateProgress();
+</script>
+</body>
+</html>

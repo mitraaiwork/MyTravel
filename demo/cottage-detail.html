@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muskoka Lakefront Retreat — MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Photo gallery ── */
+    .photo-gallery {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-rows: 200px 200px;
+      gap: 6px;
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .gallery-main {
+      grid-row: span 2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 96px; position: relative;
+      background: linear-gradient(135deg,#fed7aa,#fb923c,#ea580c);
+    }
+    .gallery-thumb {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; position: relative;
+    }
+    .gallery-thumb:nth-child(2) { background: linear-gradient(135deg,#bbf7d0,#4ade80,#16a34a); }
+    .gallery-thumb:nth-child(3) { background: linear-gradient(135deg,#bfdbfe,#60a5fa,#2563eb); }
+    .gallery-thumb:nth-child(4) { background: linear-gradient(135deg,#fce7f3,#f9a8d4,#db2777); }
+    .gallery-thumb:nth-child(5) { background: linear-gradient(135deg,#cffafe,#67e8f9,#0891b2); position:relative; }
+    .gallery-more {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .gallery-photo-btn {
+      position: absolute; bottom: 14px; right: 14px;
+      background: white; border: none; border-radius: var(--r-sm);
+      padding: 8px 14px; font-size: 13px; font-weight: 700;
+      cursor: pointer; color: var(--text-dark); box-shadow: var(--shadow-md);
+      transition: var(--trans);
+    }
+    .gallery-photo-btn:hover { background: var(--bg-mint); }
+
+    /* ── Detail layout ── */
+    .detail-layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* ── Left: property info ── */
+    .prop-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+    .prop-title { font-size: 24px; font-weight: 800; color: var(--text-dark); letter-spacing: -0.3px; }
+    .prop-subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .prop-rating-row { display: flex; align-items: center; gap: 6px; }
+    .stars-lg { color: #f59e0b; font-size: 16px; }
+    .rating-num { font-size: 15px; font-weight: 700; color: var(--text-dark); }
+    .rating-count { font-size: 13px; color: var(--text-muted); }
+    .sep { color: var(--border-strong); }
+
+    .action-btns { display: flex; gap: 8px; }
+    .action-btn {
+      border: 1px solid var(--border-mid); border-radius: var(--r-full);
+      padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+      background: white; color: var(--text-dark); display: flex; align-items: center;
+      gap: 6px; transition: var(--trans);
+    }
+    .action-btn:hover { background: var(--bg-mint); border-color: var(--forest-light); color: var(--forest); }
+    .action-btn.saved { background: var(--bg-mint); border-color: var(--forest); color: var(--forest); }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex; gap: 0;
+      border: 1px solid var(--border-light); border-radius: var(--r-xl);
+      margin-bottom: 24px; overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-item {
+      flex: 1; padding: 14px 16px; text-align: center;
+      border-right: 1px solid var(--border-light);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-item-icon { font-size: 20px; margin-bottom: 4px; }
+    .stat-item-val { font-size: 15px; font-weight: 800; color: var(--text-dark); }
+    .stat-item-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Section cards ── */
+    .info-card {
+      background: white; border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); padding: 22px 24px; margin-bottom: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .info-card h3 { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .info-card p { font-size: 14px; color: var(--text-mid); line-height: 1.65; }
+    .read-more { font-size: 13px; color: var(--forest); font-weight: 600; cursor: pointer; margin-top: 8px; display: inline-block; }
+    .read-more:hover { text-decoration: underline; }
+
+    /* ── Amenities grid ── */
+    .amenities-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .amenity-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: var(--r-md);
+      border: 1px solid var(--border-light); font-size: 13px;
+      color: var(--text-dark); font-weight: 500;
+    }
+    .amenity-item .icon { font-size: 18px; flex-shrink: 0; }
+    .amenity-item.crossed { color: var(--text-faint); text-decoration: line-through; }
+    .show-all-btn {
+      border: 1px solid var(--border-mid); border-radius: var(--r-lg);
+      padding: 10px 20px; font-size: 13px; font-weight: 700;
+      cursor: pointer; background: white; color: var(--text-dark);
+      margin-top: 12px; transition: var(--trans);
+    }
+    .show-all-btn:hover { background: var(--bg-mint); border-color: var(--forest); color: var(--forest); }
+
+    /* ── House rules ── */
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .rule-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-dark); }
+
+    /* ── Host card ── */
+    .host-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .host-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--grad-terra); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: white; flex-shrink: 0; }
+    .host-name { font-size: 15px; font-weight: 700; color: var(--text-dark); }
+    .host-since { font-size: 12px; color: var(--text-muted); }
+    .host-badges { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .host-badge { background: var(--bg-mint); color: var(--forest); border-radius: var(--r-full); padding: 4px 10px; font-size: 11px; font-weight: 600; }
+    .host-stats { display: flex; gap: 18px; margin-bottom: 12px; }
+    .host-stat { font-size: 12px; color: var(--text-muted); }
+    .host-stat strong { color: var(--text-dark); font-weight: 700; font-size: 13px; display: block; }
+
+    /* ── Reviews ── */
+    .overall-rating {
+      display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
+      padding: 18px 20px; background: var(--bg-mint); border-radius: var(--r-lg);
+    }
+    .big-rating { font-size: 48px; font-weight: 900; color: var(--text-dark); line-height: 1; }
+    .rating-breakdown { flex: 1; }
+    .rating-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 12px; color: var(--text-muted); }
+    .rating-bar { flex: 1; height: 6px; background: var(--border-light); border-radius: 99px; overflow: hidden; }
+    .rating-bar-fill { height: 100%; background: var(--forest); border-radius: 99px; }
+    .reviews-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .review-card {
+      border: 1px solid var(--border-light); border-radius: var(--r-lg);
+      padding: 16px; background: white;
+    }
+    .review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .review-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--grad-sky); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .review-name { font-size: 13px; font-weight: 700; color: var(--text-dark); }
+    .review-date { font-size: 11px; color: var(--text-faint); }
+    .review-stars { color: #f59e0b; font-size: 12px; margin-bottom: 6px; }
+    .review-text { font-size: 13px; color: var(--text-mid); line-height: 1.55; }
+
+    /* ── Map placeholder ── */
+    .map-placeholder {
+      background: linear-gradient(135deg, #d1fae5, #6ee7b7, #34d399);
+      border-radius: var(--r-xl); height: 200px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; position: relative; margin-top: 8px;
+      cursor: pointer;
+    }
+    .map-placeholder::after {
+      content: 'Open in Maps →';
+      position: absolute; bottom: 14px; right: 14px;
+      background: white; border-radius: var(--r-sm); padding: 7px 14px;
+      font-size: 12px; font-weight: 700; color: var(--text-dark);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ── Booking widget ── */
+    .booking-widget {
+      background: white; border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); padding: 22px;
+      box-shadow: var(--shadow-lg); position: sticky; top: 80px;
+    }
+    .booking-price { font-size: 22px; font-weight: 800; color: var(--text-dark); margin-bottom: 2px; }
+    .booking-price span { font-size: 14px; font-weight: 400; color: var(--text-muted); }
+    .booking-rating { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; display: flex; align-items: center; gap: 5px; }
+    .booking-dates {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--border-mid); border-radius: var(--r-md);
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .booking-date-field {
+      padding: 10px 14px; border-right: 1px solid var(--border-mid);
+    }
+    .booking-date-field:last-child { border-right: none; }
+    .booking-date-field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 2px; }
+    .booking-date-field input {
+      border: none; outline: none; font-family: inherit;
+      font-size: 13px; font-weight: 600; color: var(--text-dark); width: 100%; cursor: pointer;
+    }
+    .booking-guests-field {
+      border: 1px solid var(--border-mid); border-radius: var(--r-md);
+      padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .booking-guests-field label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); display: block; margin-bottom: 2px; }
+    .booking-guests-field select { border: none; outline: none; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-dark); cursor: pointer; }
+
+    .booking-summary { border-top: 1px solid var(--border-light); padding-top: 14px; margin-top: 14px; }
+    .booking-line { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-mid); margin-bottom: 8px; }
+    .booking-line.total { font-weight: 800; font-size: 14px; color: var(--text-dark); border-top: 1px solid var(--border-light); padding-top: 10px; margin-top: 4px; }
+    .booking-btn-row { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .btn-add-trip {
+      background: transparent; border: 2px solid var(--forest);
+      border-radius: var(--r-lg); padding: 12px; font-size: 14px;
+      font-weight: 700; color: var(--forest); cursor: pointer; transition: var(--trans);
+      text-align: center;
+    }
+    .btn-add-trip:hover { background: var(--bg-mint); }
+    .booking-note { font-size: 11px; color: var(--text-faint); text-align: center; margin-top: 8px; }
+
+    /* ── Availability calendar note ── */
+    .avail-note {
+      background: var(--bg-sky); border-radius: var(--r-md);
+      padding: 10px 14px; font-size: 12px; color: var(--text-mid);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Similar properties ── */
+    .similar-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .similar-card {
+      border: 1px solid var(--border-light); border-radius: var(--r-xl);
+      overflow: hidden; cursor: pointer; transition: var(--trans); text-decoration: none;
+    }
+    .similar-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .similar-photo { height: 100px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+    .similar-body { padding: 10px 12px; }
+    .similar-name { font-size: 12px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px; }
+    .similar-price { font-size: 12px; color: var(--text-muted); }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search cottages, cabins, locations…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" title="Notifications">🔔</button>
+      <div class="avatar avatar-md avatar-forest" id="user-avatar">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item active"><span class="nav-icon">🏡</span> Cottages & Cabins</a>
+    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <a href="packing.html" class="nav-item premium-nav">
+      <span class="nav-icon">🎒</span> Packing Lists
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest" id="sidebar-avatar">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Alex Johnson</div>
+          <div class="sidebar-user-email" id="sidebar-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="#" class="nav-item text-sm"><span class="nav-icon">⚙</span> Settings</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    <div class="app-main-inner">
+
+      <!-- Breadcrumb -->
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin-bottom:18px">
+        <a href="cottages.html" style="color:var(--forest);font-weight:600;text-decoration:none">← Cottages & Cabins</a>
+        <span>/</span>
+        <span>Lake Rosseau, Muskoka</span>
+        <span>/</span>
+        <strong style="color:var(--text-dark)">Muskoka Lakefront Retreat</strong>
+      </div>
+
+      <!-- Photo Gallery -->
+      <div class="photo-gallery">
+        <div class="gallery-main">🏡
+          <button class="gallery-photo-btn" onclick="alert('Full gallery coming soon!')">📷 Show all 24 photos</button>
+        </div>
+        <div class="gallery-thumb">🌅</div>
+        <div class="gallery-thumb">🛶</div>
+        <div class="gallery-thumb">🔥</div>
+        <div class="gallery-thumb">🌊
+          <div class="gallery-more" onclick="alert('Full gallery coming soon!')">+19 photos</div>
+        </div>
+      </div>
+
+      <!-- Detail Layout -->
+      <div class="detail-layout">
+
+        <!-- Left Column -->
+        <div>
+          <!-- Title & actions -->
+          <div class="prop-title-row">
+            <div>
+              <h1 class="prop-title">Muskoka Lakefront Retreat</h1>
+              <div class="prop-subtitle">
+                <span>📍 Lake Rosseau, Muskoka, ON</span>
+                <span class="sep">·</span>
+                <div class="prop-rating-row">
+                  <span class="stars-lg">★</span>
+                  <span class="rating-num">4.97</span>
+                  <span class="rating-count">(142 reviews)</span>
+                </div>
+                <span class="sep">·</span>
+                <span style="background:var(--bg-mint);color:var(--forest);border-radius:var(--r-full);padding:2px 9px;font-size:11px;font-weight:700">✓ Superhost</span>
+              </div>
+            </div>
+            <div class="action-btns">
+              <button class="action-btn" onclick="this.classList.toggle('saved');this.textContent=this.classList.contains('saved')?'❤️ Saved':'🤍 Save'">🤍 Save</button>
+              <button class="action-btn" onclick="alert('Share link copied!')">↗ Share</button>
+            </div>
+          </div>
+
+          <!-- Key stats bar -->
+          <div class="stats-bar">
+            <div class="stat-item">
+              <div class="stat-item-icon">🛏</div>
+              <div class="stat-item-val">4</div>
+              <div class="stat-item-lbl">Bedrooms</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-item-icon">🚿</div>
+              <div class="stat-item-val">2</div>
+              <div class="stat-item-lbl">Bathrooms</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-item-icon">👥</div>
+              <div class="stat-item-val">8</div>
+              <div class="stat-item-lbl">Max Guests</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-item-icon">📐</div>
+              <div class="stat-item-val">2,400</div>
+              <div class="stat-item-lbl">Sq. Ft.</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-item-icon">🏖</div>
+              <div class="stat-item-val">180m</div>
+              <div class="stat-item-lbl">Of Waterfront</div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="info-card">
+            <h3>🏡 About This Property</h3>
+            <p>
+              Escape to this stunning 4-bedroom lakefront cottage nestled on the pristine shores of Lake Rosseau, one of Muskoka's most sought-after lakes. Wake up to breathtaking sunrises over the water, spend your days swimming off the private dock, or take the canoe out for a peaceful morning paddle.
+            </p>
+            <p style="margin-top:12px">
+              This beautifully appointed cottage features an open-concept main floor with soaring cathedral ceilings, a chef's kitchen, and a massive stone fireplace for cozy evenings. All four bedrooms have been designed with comfort in mind — the primary suite boasts lake views and a private ensuite. The wraparound deck is perfect for al-fresco dining or simply watching the sunset over the water.
+            </p>
+            <span class="read-more" onclick="this.textContent = this.textContent === 'Read more ↓' ? 'Show less ↑' : 'Read more ↓'">Read more ↓</span>
+          </div>
+
+          <!-- Amenities -->
+          <div class="info-card">
+            <h3>✨ Amenities</h3>
+            <div class="amenities-grid">
+              <div class="amenity-item"><span class="icon">🔥</span> Stone Fireplace</div>
+              <div class="amenity-item"><span class="icon">⛵</span> Private Dock</div>
+              <div class="amenity-item"><span class="icon">🛶</span> Canoe & Kayaks</div>
+              <div class="amenity-item"><span class="icon">📶</span> High-Speed WiFi</div>
+              <div class="amenity-item"><span class="icon">🍳</span> Full Kitchen</div>
+              <div class="amenity-item"><span class="icon">🫧</span> Dishwasher</div>
+              <div class="amenity-item"><span class="icon">🏊</span> Freshwater Swimming</div>
+              <div class="amenity-item"><span class="icon">🎣</span> Fishing Gear</div>
+              <div class="amenity-item"><span class="icon">🔆</span> Outdoor Fire Pit</div>
+              <div class="amenity-item"><span class="icon">🚗</span> Free Parking (4 cars)</div>
+              <div class="amenity-item"><span class="icon">🌿</span> BBQ Grill</div>
+              <div class="amenity-item"><span class="icon">🧺</span> Washer & Dryer</div>
+              <div class="amenity-item crossed"><span class="icon">♨️</span> Hot Tub</div>
+              <div class="amenity-item crossed"><span class="icon">⛷</span> Ski / Slopes</div>
+              <div class="amenity-item"><span class="icon">🐾</span> Pet Friendly</div>
+            </div>
+            <button class="show-all-btn" onclick="alert('Showing all 28 amenities…')">Show all 28 amenities</button>
+          </div>
+
+          <!-- House Rules -->
+          <div class="info-card">
+            <h3>📋 House Rules</h3>
+            <div class="rules-grid">
+              <div class="rule-item">✅ Check-in: 4:00 PM – 9:00 PM</div>
+              <div class="rule-item">✅ Checkout: Before 11:00 AM</div>
+              <div class="rule-item">✅ Max 8 guests (no exceptions)</div>
+              <div class="rule-item">✅ Pets welcome (max 2 dogs)</div>
+              <div class="rule-item">⛔ No smoking indoors</div>
+              <div class="rule-item">⛔ No parties or events</div>
+              <div class="rule-item">⛔ No jet skis (noise by-law)</div>
+              <div class="rule-item">✅ Quiet hours 10 PM – 8 AM</div>
+            </div>
+          </div>
+
+          <!-- Host -->
+          <div class="info-card">
+            <h3>🧑 Your Host</h3>
+            <div class="host-row">
+              <div class="host-avatar">MR</div>
+              <div>
+                <div class="host-name">Margaret & Robert T.</div>
+                <div class="host-since">Hosting since 2018 · Superhost</div>
+              </div>
+            </div>
+            <div class="host-badges">
+              <span class="host-badge">✓ Identity Verified</span>
+              <span class="host-badge">⭐ Superhost</span>
+              <span class="host-badge">📬 Responds within 1 hour</span>
+            </div>
+            <div class="host-stats">
+              <div class="host-stat"><strong>142</strong> Reviews</div>
+              <div class="host-stat"><strong>4.97</strong> Rating</div>
+              <div class="host-stat"><strong>6 yrs</strong> Hosting</div>
+            </div>
+            <p style="font-size:13px;color:var(--text-mid);line-height:1.6">
+              "We've been proud owners of this cottage for 22 years and love sharing it with guests. We'll make sure you have everything you need for an unforgettable Muskoka experience. Don't hesitate to reach out with any questions!"
+            </p>
+            <div style="margin-top:12px">
+              <button class="btn btn-secondary btn-sm" onclick="alert('Message host feature coming soon!')">💬 Message Host</button>
+            </div>
+          </div>
+
+          <!-- Reviews -->
+          <div class="info-card">
+            <h3>⭐ Guest Reviews</h3>
+            <div class="overall-rating">
+              <div>
+                <div class="big-rating">4.97</div>
+                <div style="color:#f59e0b;font-size:18px;margin:4px 0">★★★★★</div>
+                <div style="font-size:12px;color:var(--text-muted)">142 reviews</div>
+              </div>
+              <div class="rating-breakdown">
+                <div class="rating-bar-row">
+                  <span style="width:80px">Cleanliness</span>
+                  <div class="rating-bar"><div class="rating-bar-fill" style="width:99%"></div></div>
+                  <span>5.0</span>
+                </div>
+                <div class="rating-bar-row">
+                  <span style="width:80px">Location</span>
+                  <div class="rating-bar"><div class="rating-bar-fill" style="width:99%"></div></div>
+                  <span>5.0</span>
+                </div>
+                <div class="rating-bar-row">
+                  <span style="width:80px">Value</span>
+                  <div class="rating-bar"><div class="rating-bar-fill" style="width:94%"></div></div>
+                  <span>4.8</span>
+                </div>
+                <div class="rating-bar-row">
+                  <span style="width:80px">Check-in</span>
+                  <div class="rating-bar"><div class="rating-bar-fill" style="width:98%"></div></div>
+                  <span>4.9</span>
+                </div>
+                <div class="rating-bar-row">
+                  <span style="width:80px">Host</span>
+                  <div class="rating-bar"><div class="rating-bar-fill" style="width:99%"></div></div>
+                  <span>5.0</span>
+                </div>
+              </div>
+            </div>
+            <div class="reviews-grid">
+              <div class="review-card">
+                <div class="review-header">
+                  <div class="review-avatar" style="background:var(--grad-forest)">SK</div>
+                  <div>
+                    <div class="review-name">Sarah K.</div>
+                    <div class="review-date">August 2025</div>
+                  </div>
+                </div>
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">"Absolutely stunning property. The dock and canoes made for perfect mornings on the lake. The cottage is even better than the photos suggest. Will definitely be back next summer!"</div>
+              </div>
+              <div class="review-card">
+                <div class="review-header">
+                  <div class="review-avatar" style="background:var(--grad-amber)">TM</div>
+                  <div>
+                    <div class="review-name">Tom & Mia</div>
+                    <div class="review-date">July 2025</div>
+                  </div>
+                </div>
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">"We brought three other couples and everyone was blown away. The open kitchen was perfect for cooking big meals together. The fire pit evenings were the highlight. Margaret responded instantly when we had questions."</div>
+              </div>
+              <div class="review-card">
+                <div class="review-header">
+                  <div class="review-avatar" style="background:var(--grad-violet)">DJ</div>
+                  <div>
+                    <div class="review-name">David J.</div>
+                    <div class="review-date">June 2025</div>
+                  </div>
+                </div>
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">"A true Muskoka gem. Brought our two dogs and they were welcomed. The lake swimming was incredible — crystal clear water. The stone fireplace made cool evenings absolutely magical."</div>
+              </div>
+              <div class="review-card">
+                <div class="review-header">
+                  <div class="review-avatar" style="background:var(--grad-teal)">LP</div>
+                  <div>
+                    <div class="review-name">Lauren P.</div>
+                    <div class="review-date">September 2025</div>
+                  </div>
+                </div>
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">"Fall colours were breathtaking. We went kayaking every morning and fished off the dock every evening. The cottage is immaculately maintained and felt like a luxury home away from home."</div>
+              </div>
+            </div>
+            <button class="show-all-btn" style="margin-top:14px" onclick="alert('Loading all 142 reviews…')">Show all 142 reviews</button>
+          </div>
+
+          <!-- Location -->
+          <div class="info-card">
+            <h3>📍 Location</h3>
+            <p style="font-size:13px;color:var(--text-mid);margin-bottom:12px">Lake Rosseau, Muskoka, ON · Exact location provided after booking</p>
+            <div class="map-placeholder" onclick="alert('Map view coming soon!')">🗺</div>
+            <div style="margin-top:14px;font-size:13px;color:var(--text-mid);line-height:1.6">
+              <strong style="color:var(--text-dark)">Getting there:</strong> 2 hours north of Toronto via Hwy 400 & 69. Nearest town (Port Carling) is 12 min drive — groceries, LCBO, and restaurants available. Bracebridge is 25 min for a wider selection.
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Booking Widget -->
+        <div>
+          <div class="booking-widget">
+            <div class="booking-price">$385 <span>/ night</span></div>
+            <div class="booking-rating">⭐ <strong>4.97</strong> · 142 reviews</div>
+
+            <div class="booking-dates">
+              <div class="booking-date-field">
+                <label>CHECK-IN</label>
+                <input type="date" id="bk-checkin" value="2026-07-04">
+              </div>
+              <div class="booking-date-field">
+                <label>CHECK-OUT</label>
+                <input type="date" id="bk-checkout" value="2026-07-11">
+              </div>
+            </div>
+
+            <div class="booking-guests-field">
+              <div>
+                <label>GUESTS</label>
+                <select id="bk-guests">
+                  <option>1 guest</option>
+                  <option>2 guests</option>
+                  <option selected>4 guests</option>
+                  <option>6 guests</option>
+                  <option>8 guests</option>
+                </select>
+              </div>
+              <span style="font-size:14px">👥</span>
+            </div>
+
+            <div class="avail-note">✅ <span>This property is <strong>available</strong> for your selected dates.</span></div>
+
+            <div class="booking-summary">
+              <div class="booking-line">
+                <span>$385 × 7 nights</span>
+                <span>$2,695</span>
+              </div>
+              <div class="booking-line">
+                <span>Cleaning fee</span>
+                <span>$150</span>
+              </div>
+              <div class="booking-line">
+                <span>Service fee</span>
+                <span>$284</span>
+              </div>
+              <div class="booking-line total">
+                <span>Total (CAD)</span>
+                <span id="bk-total">$3,129</span>
+              </div>
+            </div>
+
+            <div class="booking-btn-row">
+              <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px" onclick="bookNow()">Reserve — $3,129</button>
+              <button class="btn-add-trip" onclick="addToTrip()">✈ Add to a MyTravel Trip</button>
+            </div>
+            <div class="booking-note">You won't be charged yet · Free cancellation before June 20</div>
+          </div>
+
+          <!-- Why this place card -->
+          <div class="info-card" style="margin-top:16px">
+            <h3>💡 AI Tip</h3>
+            <p style="font-size:13px;color:var(--text-mid);line-height:1.6">
+              Based on your Bali trip profile, you prefer relaxation and nature settings. This Muskoka cottage scores <strong style="color:var(--forest)">94% match</strong> — lakefront cottages in Muskoka are Canada's most popular family getaway, especially in July.
+            </p>
+            <a href="concierge.html" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-flex;gap:6px">💬 Ask AI Concierge</a>
+          </div>
+        </div>
+
+      </div><!-- /detail-layout -->
+
+      <!-- Similar Properties -->
+      <div style="margin-top:32px">
+        <h3 style="font-size:16px;font-weight:700;color:var(--text-dark);margin-bottom:16px">🏡 Similar Properties You May Like</h3>
+        <div class="similar-grid">
+          <a href="cottage-detail.html?id=2" class="similar-card">
+            <div class="similar-photo" style="background:linear-gradient(135deg,#bbf7d0,#4ade80,#16a34a)">🌲</div>
+            <div class="similar-body">
+              <div class="similar-name">Algonquin Forest Hideaway</div>
+              <div class="similar-price">⭐ 4.92 · $210/night</div>
+            </div>
+          </a>
+          <a href="cottage-detail.html?id=5" class="similar-card">
+            <div class="similar-photo" style="background:linear-gradient(135deg,#cffafe,#67e8f9,#0891b2)">🌊</div>
+            <div class="similar-body">
+              <div class="similar-name">Georgian Bay Island Cottage</div>
+              <div class="similar-price">⭐ 4.88 · $340/night</div>
+            </div>
+          </a>
+          <a href="cottage-detail.html?id=7" class="similar-card">
+            <div class="similar-photo" style="background:linear-gradient(135deg,#ede9fe,#a78bfa,#7c3aed)">🏘</div>
+            <div class="similar-body">
+              <div class="similar-name">Kawartha Lakes Log Cabin</div>
+              <div class="similar-price">⭐ 4.72 · $160/night</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /app-main-inner -->
+  </main>
+</div><!-- /app-shell -->
+
+<script>
+  const user = JSON.parse(sessionStorage.getItem('mtUser') || '{"name":"Alex Johnson","email":"alex@example.com","initials":"AJ"}');
+  document.getElementById('user-avatar').textContent = user.initials;
+  document.getElementById('sidebar-avatar').textContent = user.initials;
+  document.getElementById('sidebar-name').textContent = user.name;
+  document.getElementById('sidebar-email').textContent = user.email;
+
+  function bookNow() {
+    const checkin  = document.getElementById('bk-checkin').value;
+    const checkout = document.getElementById('bk-checkout').value;
+    const guests   = document.getElementById('bk-guests').value;
+    alert(`Booking request sent!\n\nProperty: Muskoka Lakefront Retreat\nCheck-in: ${checkin}\nCheck-out: ${checkout}\nGuests: ${guests}\n\nIn production this would proceed to payment. Total: $3,129 CAD`);
+  }
+
+  function addToTrip() {
+    const trips = ['Bali, Indonesia (Aug 2026)', 'Paris, France (Jun 2026)', 'New trip…'];
+    const choice = prompt('Add to which trip?\n\n' + trips.map((t,i)=>`${i+1}. ${t}`).join('\n') + '\n\nEnter number:');
+    if (choice) {
+      alert(`✅ Muskoka Lakefront Retreat added to your trip!\n\nYou can view it in your itinerary and use the AI Concierge to plan activities around your stay.`);
+    }
+  }
+
+  // Recalculate total on date change
+  function recalcTotal() {
+    const ci = new Date(document.getElementById('bk-checkin').value);
+    const co = new Date(document.getElementById('bk-checkout').value);
+    if (!isNaN(ci) && !isNaN(co) && co > ci) {
+      const nights = Math.round((co - ci) / (1000*60*60*24));
+      const base = nights * 385;
+      const cleaning = 150;
+      const service = Math.round(base * 0.105);
+      const total = base + cleaning + service;
+      document.getElementById('bk-total').textContent = `$${total.toLocaleString()}`;
+    }
+  }
+  document.getElementById('bk-checkin').addEventListener('change', recalcTotal);
+  document.getElementById('bk-checkout').addEventListener('change', recalcTotal);
+</script>
+</body>
+</html>

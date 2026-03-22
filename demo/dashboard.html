@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Stats row ── */
+    .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+    .stat-card {
+      border-radius: var(--r-xl); padding: 20px 22px;
+      display: flex; align-items: center; gap: 16px;
+      box-shadow: var(--shadow-md); position: relative; overflow: hidden; color: white;
+    }
+    .stat-card::after {
+      content: ''; position: absolute; right: -18px; top: -18px;
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(255,255,255,0.1); pointer-events: none;
+    }
+    .stat-icon { width: 46px; height: 46px; border-radius: var(--r-md); background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-num  { font-size: 28px; font-weight: 800; line-height: 1; }
+    .stat-lbl  { font-size: 12px; opacity: 0.85; margin-top: 3px; font-weight: 500; }
+
+    /* ── Trip cards grid ── */
+    .trips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+    .trip-card {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); overflow: hidden;
+      box-shadow: var(--shadow-sm); cursor: pointer; transition: var(--trans);
+    }
+    .trip-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--border-mid); }
+    .trip-card-banner {
+      height: 120px; display: flex; align-items: center; justify-content: center;
+      font-size: 58px; position: relative; overflow: hidden;
+    }
+    .trip-card-banner::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.12) 100%);
+    }
+    .trip-card-body { padding: 16px 18px 18px; }
+    .trip-card-dest { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .trip-card-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+    .trip-card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .trip-card-progress { font-size: 12px; color: var(--text-muted); }
+
+    /* New trip card */
+    .trip-card-new {
+      background: var(--bg-white); border: 2px dashed var(--border-mid);
+      border-radius: var(--r-xl); min-height: 200px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; cursor: pointer; transition: var(--trans); text-align: center; padding: 24px;
+    }
+    .trip-card-new:hover { background: var(--bg-mint); border-color: var(--leaf); transform: translateY(-2px); }
+    .trip-card-new-icon { width: 52px; height: 52px; border-radius: 50%; background: var(--bg-mint); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .trip-card-new h4 { font-size: 15px; font-weight: 700; color: var(--text-dark); }
+    .trip-card-new p  { font-size: 13px; color: var(--text-muted); max-width: 180px; line-height: 1.4; }
+
+    /* ── Welcome banner ── */
+    .welcome-banner {
+      background: var(--grad-nature);
+      border-radius: var(--r-2xl); padding: 30px 32px; margin-bottom: 28px;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      position: relative; overflow: hidden; box-shadow: var(--shadow-lg);
+    }
+    .welcome-banner::before { content:'🌏'; position:absolute; right:130px; top:-16px; font-size:100px; opacity:0.1; pointer-events:none; transform:rotate(-12deg); }
+    .welcome-banner::after  { content:''; position:absolute; left:-40px; bottom:-40px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
+    .welcome-banner h2 { font-size:22px; font-weight:800; color:white; margin-bottom:6px; letter-spacing:-0.3px; }
+    .welcome-banner p  { font-size:14px; color:rgba(255,255,255,0.75); }
+    .welcome-banner .btn-white { flex-shrink:0; background:white; color:var(--forest); font-weight:700; box-shadow:0 4px 16px rgba(0,0,0,0.15); }
+    .welcome-banner .btn-white:hover { background:var(--bg-mint); transform:translateY(-2px); }
+
+    /* ── Premium features section ── */
+    .premium-features-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+    .premium-feat-card {
+      border-radius: var(--r-xl); overflow: hidden;
+      box-shadow: var(--shadow-sm); cursor: pointer;
+      transition: var(--trans); text-decoration: none;
+      border: 1px solid var(--border-light);
+    }
+    .premium-feat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .premium-feat-header { padding: 22px 22px 18px; position: relative; overflow: hidden; }
+    .premium-feat-header::after { content: ''; position: absolute; right: -20px; bottom: -20px; width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,0.12); pointer-events: none; }
+    .premium-feat-icon { font-size: 28px; margin-bottom: 10px; }
+    .premium-feat-title { font-size: 15px; font-weight: 700; color: white; margin-bottom: 3px; }
+    .premium-feat-desc { font-size: 13px; color: rgba(255,255,255,0.78); line-height: 1.4; }
+    .premium-feat-footer { padding: 12px 22px; background: var(--bg-white); display:flex; align-items:center; justify-content:space-between; }
+    .premium-feat-footer span { font-size: 12px; color: var(--text-muted); }
+
+    /* ── Upgrade banner ── */
+    .upgrade-banner {
+      background: linear-gradient(135deg, #fffbeb, #fef3c7, #fdf6d8);
+      border: 1px solid rgba(212,160,23,0.3); border-radius: var(--r-xl);
+      padding: 22px 26px; margin-top: 28px;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+      box-shadow: 0 4px 20px rgba(212,160,23,0.12);
+    }
+    .upgrade-features { display: flex; gap: 18px; flex-wrap: wrap; }
+    .upgrade-feat { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-mid); }
+    .upgrade-feat .locked-tag { font-size: 10px; background: rgba(212,160,23,0.18); color: #92400e; border-radius: var(--r-full); padding: 2px 7px; font-weight: 700; border: 1px solid rgba(212,160,23,0.3); }
+
+    /* ── Section header ── */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-header h3 { font-size: 16px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 8px; }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search destinations, saved trips…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" title="Notifications">🔔</button>
+      <div class="avatar avatar-md avatar-forest" id="user-avatar" title="Account">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages & Cabins</a>
+    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <a href="packing.html" class="nav-item premium-nav">
+      <span class="nav-icon">🎒</span> Packing Lists
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest" id="sidebar-avatar">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">Alex Johnson</div>
+          <div class="sidebar-user-email" id="sidebar-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="#" class="nav-item text-sm"><span class="nav-icon">⚙</span> Settings</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    <div class="app-main-inner">
+
+      <!-- Welcome banner -->
+      <div class="welcome-banner">
+        <div>
+          <h2 id="welcome-msg">Good to see you! Ready for your next adventure?</h2>
+          <p>You have 1 free itinerary generation remaining this month.</p>
+        </div>
+        <a href="new-trip.html" class="btn btn-white btn-lg">✦ Plan a New Trip</a>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card stat-card-forest">
+          <div class="stat-icon">✈</div>
+          <div><div class="stat-num">3</div><div class="stat-lbl">Trips planned</div></div>
+        </div>
+        <div class="stat-card stat-card-sky">
+          <div class="stat-icon">🔗</div>
+          <div><div class="stat-num">2</div><div class="stat-lbl">Trips shared</div></div>
+        </div>
+        <div class="stat-card stat-card-amber">
+          <div class="stat-icon">✦</div>
+          <div><div class="stat-num">1</div><div class="stat-lbl">Generation left this month</div></div>
+        </div>
+      </div>
+
+      <!-- Trips grid -->
+      <div class="section-header">
+        <h3>🗺 My Trips</h3>
+        <a href="new-trip.html" class="btn btn-primary btn-sm">+ New Trip</a>
+      </div>
+      <div class="trips-grid" style="margin-bottom:32px">
+
+        <!-- Tokyo — Completed -->
+        <div class="trip-card" onclick="window.location.href='trip-completed.html'">
+          <div class="trip-card-banner" style="background:linear-gradient(135deg,#b7e4c7,#74c69d,#52b788); position:relative;">
+            🗼
+            <span style="position:absolute;bottom:10px;right:10px;background:rgba(5,150,105,0.85);color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:var(--r-full);backdrop-filter:blur(4px);">✓ Completed</span>
+          </div>
+          <div class="trip-card-body">
+            <div class="trip-card-dest">
+              🇯🇵 Tokyo, Japan
+              <span class="badge badge-green badge-lg" style="margin-left:auto">✓ Done</span>
+            </div>
+            <div class="trip-card-meta">Apr 12–17, 2026 · 5 days · 4 travellers</div>
+            <div class="trip-card-footer">
+              <span class="trip-card-progress">17 activities · ¥205,760 spent</span>
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='trip-completed.html'">Summary →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paris -->
+        <div class="trip-card" onclick="">
+          <div class="trip-card-banner" style="background:linear-gradient(135deg,#ddd6fe,#c4b5fd,#a78bfa)">🗼</div>
+          <div class="trip-card-body">
+            <div class="trip-card-dest">
+              🇫🇷 Paris, France
+              <span class="badge badge-amber badge-lg" style="margin-left:auto">Draft</span>
+            </div>
+            <div class="trip-card-meta">Jun 3–8, 2026 · 5 days · 2 travellers</div>
+            <div class="trip-card-footer">
+              <span class="trip-card-progress">Itinerary not generated yet</span>
+              <button class="btn btn-secondary btn-sm">Generate</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bali -->
+        <div class="trip-card" onclick="">
+          <div class="trip-card-banner" style="background:linear-gradient(135deg,#fed7aa,#fdba74,#fb923c)">🌴</div>
+          <div class="trip-card-body">
+            <div class="trip-card-dest">
+              🇮🇩 Bali, Indonesia
+              <span class="badge badge-amber badge-lg" style="margin-left:auto">Draft</span>
+            </div>
+            <div class="trip-card-meta">Aug 10–17, 2026 · 7 days · 4 travellers</div>
+            <div class="trip-card-footer">
+              <span class="trip-card-progress">Itinerary not generated yet</span>
+              <button class="btn btn-secondary btn-sm">Generate</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add new trip card -->
+        <div class="trip-card-new" onclick="window.location.href='new-trip.html'">
+          <div class="trip-card-new-icon">✈</div>
+          <h4>Plan a New Trip</h4>
+          <p>Tell us where you want to go. Get a full itinerary in 30 seconds.</p>
+          <span class="btn btn-primary btn-sm" style="margin-top:4px">+ Start Planning</span>
+        </div>
+
+        <!-- Compare destinations card -->
+        <div class="trip-card-new" onclick="window.location.href='compare.html'" style="border-color:rgba(13,148,136,0.25);background:linear-gradient(160deg,#f0fdfa,#f5fffe)">
+          <div class="trip-card-new-icon" style="background:var(--grad-teal)">⚖️</div>
+          <h4 style="color:#0d9488">Destination Matchmaker</h4>
+          <p>Torn between Tokyo, Bali, or Paris? AI ranks them for your exact trip.</p>
+          <span class="btn btn-teal btn-sm" style="margin-top:4px">Compare Destinations</span>
+        </div>
+
+        <!-- Cottages & Cabins card -->
+        <div class="trip-card-new" onclick="window.location.href='cottages.html'" style="border-color:rgba(120,80,30,0.22);background:linear-gradient(160deg,#fef9f0,#fff8ee)">
+          <div class="trip-card-new-icon" style="background:linear-gradient(135deg,#b45309,#d97706,#f59e0b)">🏡</div>
+          <h4 style="color:#92400e">Cottages & Cabins</h4>
+          <p>Browse lakefront cottages, forest cabins, and mountain chalets for your perfect getaway.</p>
+          <span class="btn btn-sm" style="margin-top:4px;background:linear-gradient(135deg,#b45309,#d97706);color:white">Find a Cottage</span>
+        </div>
+
+      </div>
+
+      <!-- Premium features section -->
+      <div class="section-header">
+        <h3>✦ Premium Features <span class="badge badge-premium" style="font-size:11px">PRO</span></h3>
+        <button class="btn btn-premium btn-sm" onclick="alert('Premium signup coming soon!')">Upgrade — $9.99/mo</button>
+      </div>
+      <div class="premium-features-grid" style="margin-bottom:28px">
+
+        <a href="concierge.html" class="premium-feat-card">
+          <div class="premium-feat-header" style="background:var(--grad-violet)">
+            <div class="premium-feat-icon">💬</div>
+            <div class="premium-feat-title">AI Concierge Chat</div>
+            <div class="premium-feat-desc">Ask anything about your trip — restaurants, transport, local tips, and more.</div>
+          </div>
+          <div class="premium-feat-footer">
+            <span>Unlimited conversations</span>
+            <span class="badge badge-violet">✦ PRO</span>
+          </div>
+        </a>
+
+        <a href="packing.html" class="premium-feat-card">
+          <div class="premium-feat-header" style="background:var(--grad-teal)">
+            <div class="premium-feat-icon">🎒</div>
+            <div class="premium-feat-title">Smart Packing Lists</div>
+            <div class="premium-feat-desc">AI-generated packing lists based on your destination, weather, and activities.</div>
+          </div>
+          <div class="premium-feat-footer">
+            <span>Weather & activity aware</span>
+            <span class="badge badge-teal">✦ PRO</span>
+          </div>
+        </a>
+
+        <div class="premium-feat-card" style="cursor:default">
+          <div class="premium-feat-header" style="background:var(--grad-forest)">
+            <div class="premium-feat-icon">🔄</div>
+            <div class="premium-feat-title">Day Regeneration</div>
+            <div class="premium-feat-desc">Not loving a day? Regenerate just that day with new ideas while keeping the rest.</div>
+          </div>
+          <div class="premium-feat-footer">
+            <span>Available in Itinerary view</span>
+            <span class="badge badge-green">✦ PRO</span>
+          </div>
+        </div>
+
+        <div class="premium-feat-card" style="cursor:default">
+          <div class="premium-feat-header" style="background:var(--grad-amber)">
+            <div class="premium-feat-icon">∞</div>
+            <div class="premium-feat-title">Unlimited Generations</div>
+            <div class="premium-feat-desc">No monthly cap — plan as many trips as you want without limits.</div>
+          </div>
+          <div class="premium-feat-footer">
+            <span>Free: 3/month</span>
+            <span class="badge badge-amber">✦ PRO</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Upgrade banner -->
+      <div class="upgrade-banner">
+        <div>
+          <div style="font-weight:800; font-size:15px; color:var(--text-dark); margin-bottom:4px">✦ Unlock MyTravel Premium</div>
+          <div style="font-size:13px; color:var(--text-muted)">Get unlimited generations and all powerful travel tools for just $9.99/month</div>
+        </div>
+        <div class="upgrade-features">
+          <div class="upgrade-feat"><span>🔄</span> Day Regeneration <span class="locked-tag">PRO</span></div>
+          <div class="upgrade-feat"><span>💬</span> AI Concierge Chat <span class="locked-tag">PRO</span></div>
+          <div class="upgrade-feat"><span>🎒</span> Smart Packing Lists <span class="locked-tag">PRO</span></div>
+          <div class="upgrade-feat"><span>∞</span> Unlimited Generations <span class="locked-tag">PRO</span></div>
+        </div>
+        <button class="btn btn-premium btn-lg" onclick="alert('Premium signup coming soon!')">Start Free Trial →</button>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const user = JSON.parse(sessionStorage.getItem('mtUser') || '{"name":"Alex Johnson","email":"alex@example.com","initials":"AJ"}');
+document.getElementById('user-avatar').textContent = user.initials;
+document.getElementById('sidebar-avatar').textContent = user.initials;
+document.getElementById('sidebar-name').textContent = user.name;
+document.getElementById('sidebar-email').textContent = user.email;
+const hour = new Date().getHours();
+const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+document.getElementById('welcome-msg').textContent = `${greet}, ${user.name.split(' ')[0]}! Ready for your next adventure?`;
+</script>
+</body>
+</html>
