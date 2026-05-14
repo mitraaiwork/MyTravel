@@ -1,55 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { itineraryApi } from "@/lib/api";
-import type { LocalServiceCategory, LocalServiceItem } from "@/types";
-
-// Exported only for the print section in page.tsx
-export const LOCAL_SERVICE_CATEGORIES: LocalServiceCategory[] = [
-  {
-    id: "emergency", label: "Emergency", emoji: "🚨",
-    items: [
-      { name: "Emergency Services", note: "Police · Fire · Ambulance", phone: "911" },
-      { name: "City Police Station", address: "Downtown precinct", hours: "24 hrs" },
-      { name: "Fire & Rescue", address: "Central fire station", hours: "24 hrs" },
-    ],
-  },
-  {
-    id: "hospital", label: "Hospital & Urgent Care", emoji: "🏥",
-    items: [
-      { name: "City General Hospital", address: "Medical district", hours: "24 hrs" },
-      { name: "Urgent Care Clinic", address: "Near city centre", hours: "8 am–10 pm" },
-    ],
-  },
-  {
-    id: "pharmacy", label: "Pharmacy", emoji: "💊",
-    items: [
-      { name: "Central Pharmacy", address: "High Street", hours: "8 am–9 pm" },
-      { name: "24-Hour Pharmacy", address: "Near main square", hours: "24 hrs" },
-    ],
-  },
-  {
-    id: "grocery", label: "Grocery & Supermarket", emoji: "🛒",
-    items: [
-      { name: "City Supermarket", address: "Market Square" },
-      { name: "Convenience Store", address: "Near accommodation", hours: "7 am–11 pm" },
-    ],
-  },
-  {
-    id: "atm", label: "ATM & Currency Exchange", emoji: "🏧",
-    items: [
-      { name: "International ATM", address: "City Centre" },
-      { name: "Currency Exchange", address: "Airport & tourist areas", hours: "6 am–10 pm" },
-    ],
-  },
-  {
-    id: "embassy", label: "Embassy & Consulate", emoji: "🛟",
-    items: [
-      { name: "US Embassy", address: "Embassy District" },
-      { name: "UK Consulate", address: "Diplomatic Quarter" },
-    ],
-  },
-];
+import type { LocalServiceCategory, LocalServiceItem, LocalServicesResponse } from "@/types";
 
 const CATEGORY_STYLE: Record<string, { bg: string; border: string; accent: string }> = {
   emergency: { bg: "rgba(239,68,68,0.05)",   border: "rgba(239,68,68,0.18)",   accent: "#dc2626" },
@@ -232,42 +184,129 @@ function Skeleton() {
   );
 }
 
-export function LocalServicesTab({ destination, publicId }: { destination: string; publicId: string }) {
+interface CityServicesData {
+  city_name: string;
+  categories: LocalServiceCategory[];
+}
+
+function CitySection({
+  cityData,
+  isOpen,
+  onToggle,
+}: {
+  cityData: CityServicesData;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div style={{
+      border: "1px solid var(--border-light)",
+      borderRadius: 14,
+      overflow: "hidden",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+    }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "13px 16px",
+          background: isOpen
+            ? "linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(22,163,74,0.06) 100%)"
+            : "rgba(100,100,100,0.03)",
+          border: "none", cursor: "pointer",
+          borderBottom: isOpen ? "1px solid var(--border-light)" : "none",
+          textAlign: "left",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <span style={{ fontSize: 15 }}>📍</span>
+          <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-dark)" }}>
+            {cityData.city_name}
+          </span>
+        </div>
+        <span style={{
+          fontSize: 13, color: "var(--text-muted)",
+          transform: isOpen ? "rotate(180deg)" : "none",
+          transition: "transform 0.2s",
+          display: "inline-block",
+        }}>
+          ▾
+        </span>
+      </button>
+      {isOpen && (
+        <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {cityData.categories.map(cat => (
+            <CategoryCard key={cat.id} cat={cat} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function LocalServicesTab({
+  destination,
+  data,
+  loading,
+  error: loadError,
+}: {
+  destination: string;
+  data: LocalServicesResponse | null;
+  loading: boolean;
+  error: boolean;
+}) {
   const [categories, setCategories] = useState<LocalServiceCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cityServices, setCityServices] = useState<CityServicesData[]>([]);
+  const [isMultiCity, setIsMultiCity] = useState(false);
+  const [openCities, setOpenCities] = useState<Set<string>>(new Set());
   const [isReal, setIsReal] = useState(false);
   const [notApplicable, setNotApplicable] = useState(false);
   const [notApplicableMsg, setNotApplicableMsg] = useState("");
   const [referenceCity, setReferenceCity] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-    itineraryApi.getLocalServices(publicId)
-      .then((data) => {
-        if (cancelled) return;
-        if (data.not_applicable) {
-          setNotApplicable(true);
-          setNotApplicableMsg(data.message ?? "Local services are shown for specific cities or towns.");
-        } else if (data.categories?.length) {
-          setCategories(data.categories);
-          setIsReal(true);
-          if (data.reference_city) setReferenceCity(data.reference_city);
-        }
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [publicId]);
+    if (!data) return;
+    if (data.not_applicable) {
+      setNotApplicable(true);
+      setNotApplicableMsg(data.message ?? "Local services are shown for specific cities or towns.");
+    } else if (data.multi_city && data.cities?.length) {
+      setCityServices(data.cities);
+      setIsMultiCity(true);
+      setIsReal(true);
+      if (data.cities.length > 0) {
+        setOpenCities(new Set([data.cities[0].city_name]));
+      }
+    } else if (data.categories?.length) {
+      setCategories(data.categories);
+      setIsReal(true);
+      if (data.reference_city) setReferenceCity(data.reference_city);
+    }
+  }, [data]);
+
+  const toggleCity = (cityName: string) => {
+    setOpenCities(prev => {
+      const next = new Set(prev);
+      if (next.has(cityName)) {
+        next.delete(cityName);
+      } else {
+        next.add(cityName);
+      }
+      return next;
+    });
+  };
 
   const subtitle = loading
     ? `Loading services for ${destination}…`
     : notApplicable
       ? destination
-      : referenceCity
-        ? `MyTravel found services within 25 miles of ${referenceCity}`
-        : isReal
-          ? `MyTravel found services within 25 miles of ${destination}`
-          : `Contacts and services near ${destination}`;
+      : isMultiCity
+        ? `Services for ${cityServices.length} cities along your route — tap to expand`
+        : referenceCity
+          ? `MyTravel found services within 25 miles of ${referenceCity}`
+          : isReal
+            ? `MyTravel found services within 25 miles of ${destination}`
+            : `Contacts and services near ${destination}`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -323,8 +362,35 @@ export function LocalServicesTab({ destination, publicId }: { destination: strin
         </div>
       )}
 
-      {/* Category cards */}
-      {!loading && !notApplicable && categories.map(cat => (
+      {/* Error state */}
+      {!loading && loadError && (
+        <div style={{
+          padding: "36px 24px", textAlign: "center",
+          background: "rgba(239,68,68,0.03)",
+          border: "1px solid rgba(239,68,68,0.15)", borderRadius: 14,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-dark)", marginBottom: 8 }}>
+            Could not load local services
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
+            Make sure your API server is running and try refreshing the page.
+          </div>
+        </div>
+      )}
+
+      {/* Multi-city: collapsible sections per city */}
+      {!loading && !loadError && !notApplicable && isMultiCity && cityServices.map(cityData => (
+        <CitySection
+          key={cityData.city_name}
+          cityData={cityData}
+          isOpen={openCities.has(cityData.city_name)}
+          onToggle={() => toggleCity(cityData.city_name)}
+        />
+      ))}
+
+      {/* Single city: flat category cards */}
+      {!loading && !loadError && !notApplicable && !isMultiCity && categories.map(cat => (
         <CategoryCard key={cat.id} cat={cat} />
       ))}
     </div>

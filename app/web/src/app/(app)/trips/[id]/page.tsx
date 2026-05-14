@@ -25,10 +25,10 @@ import {
 import { tripsApi, itineraryApi } from "@/lib/api";
 import { useItineraryStream, type DayStream } from "@/hooks/useItineraryStream";
 import { formatDateRange, getCategoryIcon, getDayCount, getTripPhase } from "@/lib/utils";
-import type { Trip, Itinerary, Activity, PackingList } from "@/types";
+import type { Trip, Itinerary, Activity, PackingList, LocalServicesResponse, LocalServiceCategory } from "@/types";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { PackingListTab } from "@/components/itinerary/PackingListTab";
-import { LocalServicesTab, LOCAL_SERVICE_CATEGORIES } from "@/components/itinerary/LocalServicesTab";
+import { LocalServicesTab } from "@/components/itinerary/LocalServicesTab";
 import { FeedbackTab } from "@/components/trips/FeedbackTab";
 import dynamic from "next/dynamic";
 import DayCard from "@/components/itinerary/DayCard";
@@ -386,6 +386,9 @@ export default function TripPage() {
   const [packingList, setPackingList] = useState<PackingList | null>(null);
   const [packingLoading, setPackingLoading] = useState(false);
   const [packingError, setPackingError] = useState<string | null>(null);
+  const [localServices, setLocalServices] = useState<LocalServicesResponse | null>(null);
+  const [localServicesLoading, setLocalServicesLoading] = useState(false);
+  const [localServicesError, setLocalServicesError] = useState(false);
 
   const { dayStreams, isComplete, error: streamError, status, startStream, reset } =
     useItineraryStream(tripId);
@@ -411,6 +414,11 @@ export default function TripPage() {
             .then(setPackingList)
             .catch(() => setPackingError("Failed to load packing list."))
             .finally(() => setPackingLoading(false));
+          setLocalServicesLoading(true);
+          itineraryApi.getLocalServices(tripId)
+            .then(setLocalServices)
+            .catch(() => setLocalServicesError(true))
+            .finally(() => setLocalServicesLoading(false));
         }
       } catch {
         setLoadError("Failed to load trip. Please try again.");
@@ -439,6 +447,11 @@ export default function TripPage() {
         .then(setPackingList)
         .catch(() => setPackingError("Failed to load packing list."))
         .finally(() => setPackingLoading(false));
+      setLocalServicesLoading(true);
+      itineraryApi.getLocalServices(tripId)
+        .then(setLocalServices)
+        .catch(() => setLocalServicesError(true))
+        .finally(() => setLocalServicesLoading(false));
     }).catch(() => null);
   }, [isComplete, tripId]);
 
@@ -1276,7 +1289,12 @@ export default function TripPage() {
         {/* ── Tab: Services ── */}
         {activeTab === "services" && (
           <div className="print:hidden">
-            <LocalServicesTab destination={trip.destination} publicId={tripId} />
+            <LocalServicesTab
+              destination={trip.destination}
+              data={localServices}
+              loading={localServicesLoading}
+              error={localServicesError}
+            />
           </div>
         )}
 
@@ -1656,42 +1674,70 @@ export default function TripPage() {
           )}
 
           {/* ── Local Services & Emergency Support ── */}
-          <div style={{ marginTop: 28 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 14px" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#1a2e1a", textTransform: "uppercase", letterSpacing: "1px" }}>🏥 Local Services &amp; Emergency Support</span>
-              <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, rgba(239,68,68,0.35), transparent)" }} />
-            </div>
-            {LOCAL_SERVICE_CATEGORIES.map((cat) => {
-              const PRINT_STYLE: Record<string, { bg: string; border: string; accent: string }> = {
-                emergency: { bg: "rgba(239,68,68,0.06)",  border: "rgba(239,68,68,0.2)",  accent: "#dc2626" },
-                hospital:  { bg: "rgba(14,165,233,0.06)", border: "rgba(14,165,233,0.2)", accent: "#0369a1" },
-                pharmacy:  { bg: "rgba(16,185,129,0.06)", border: "rgba(16,185,129,0.2)", accent: "#065f46" },
-                grocery:   { bg: "rgba(45,106,79,0.06)",  border: "rgba(45,106,79,0.2)",  accent: "#1b4332" },
-                atm:       { bg: "rgba(212,160,23,0.06)", border: "rgba(212,160,23,0.2)", accent: "#92400e" },
-                embassy:   { bg: "rgba(139,92,246,0.06)", border: "rgba(139,92,246,0.2)", accent: "#5b21b6" },
-              };
-              const s = PRINT_STYLE[cat.id] ?? { bg: "rgba(100,100,100,0.06)", border: "rgba(100,100,100,0.2)", accent: "#444" };
-              return (
-                <div key={cat.id} style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 6, paddingBottom: 4, borderBottom: `1px solid ${s.border}` }}>
-                    {cat.emoji} {cat.label}
-                  </div>
-                  {cat.items.map((item, i) => (
-                    <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: "7px 10px", marginBottom: 5 }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <span style={{ fontWeight: 600, fontSize: 11, color: "#1a2e1a" }}>{item.name}</span>
-                        {item.hours && <span style={{ fontSize: 9, color: s.accent, flexShrink: 0 }}>🕐 {item.hours}</span>}
+          {localServices && !localServices.not_applicable && (
+            <div style={{ marginTop: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 14px" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#1a2e1a", textTransform: "uppercase", letterSpacing: "1px" }}>🏥 Local Services &amp; Emergency Support</span>
+                <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, rgba(239,68,68,0.35), transparent)" }} />
+              </div>
+              {(() => {
+                const PRINT_STYLE: Record<string, { bg: string; border: string; accent: string }> = {
+                  emergency: { bg: "rgba(239,68,68,0.06)",  border: "rgba(239,68,68,0.2)",  accent: "#dc2626" },
+                  hospital:  { bg: "rgba(14,165,233,0.06)", border: "rgba(14,165,233,0.2)", accent: "#0369a1" },
+                  pharmacy:  { bg: "rgba(16,185,129,0.06)", border: "rgba(16,185,129,0.2)", accent: "#065f46" },
+                  grocery:   { bg: "rgba(45,106,79,0.06)",  border: "rgba(45,106,79,0.2)",  accent: "#1b4332" },
+                  atm:       { bg: "rgba(212,160,23,0.06)", border: "rgba(212,160,23,0.2)", accent: "#92400e" },
+                  embassy:   { bg: "rgba(139,92,246,0.06)", border: "rgba(139,92,246,0.2)", accent: "#5b21b6" },
+                };
+                const renderCat = (cat: LocalServiceCategory) => {
+                  const s = PRINT_STYLE[cat.id] ?? { bg: "rgba(100,100,100,0.06)", border: "rgba(100,100,100,0.2)", accent: "#444" };
+                  return (
+                    <div key={cat.id} style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 5, paddingBottom: 3, borderBottom: `1px solid ${s.border}` }}>
+                        {cat.emoji} {cat.label}
                       </div>
-                      {item.note    && <div style={{ fontSize: 10, color: s.accent, marginTop: 2 }}>{item.note}</div>}
-                      {item.address && <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>📍 {item.address}</div>}
-                      {item.phone   && <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>📞 {item.phone}</div>}
-                      {item.website && <div style={{ fontSize: 10, color: s.accent, marginTop: 2 }}>🌐 {item.website}</div>}
+                      {cat.items.length === 0 && cat.not_found_note && (
+                        <div style={{ fontSize: 10, color: "#999", fontStyle: "italic" }}>{cat.not_found_note}</div>
+                      )}
+                      {cat.items.map((item, i) => (
+                        <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 6, padding: "5px 8px", marginBottom: 4 }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                            <span style={{ fontWeight: 600, fontSize: 11, color: "#1a2e1a" }}>{item.name}</span>
+                            {item.hours && <span style={{ fontSize: 9, color: s.accent, flexShrink: 0 }}>🕐 {item.hours}</span>}
+                          </div>
+                          {item.note    && <div style={{ fontSize: 10, color: s.accent, marginTop: 2 }}>{item.note}</div>}
+                          {item.address && <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>📍 {item.address}</div>}
+                          {item.phone   && <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>📞 {item.phone}</div>}
+                          {item.website && <div style={{ fontSize: 10, color: s.accent, marginTop: 2 }}>🌐 {item.website}</div>}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                };
+                if (localServices.multi_city && localServices.cities?.length) {
+                  return localServices.cities.map((cityData) => (
+                    <div key={cityData.city_name} style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#0369a1", background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.18)", borderRadius: 6, padding: "3px 10px", display: "inline-block", marginBottom: 8 }}>
+                        📍 {cityData.city_name}
+                      </div>
+                      {cityData.categories.map(renderCat)}
+                    </div>
+                  ));
+                }
+                if (localServices.categories?.length) {
+                  return (
+                    <>
+                      {localServices.reference_city && (
+                        <div style={{ fontSize: 10, color: "#666", marginBottom: 10 }}>📍 Services near {localServices.reference_city}</div>
+                      )}
+                      {localServices.categories.map(renderCat)}
+                    </>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+          )}
 
           {/* Print footer */}
           <div style={{ marginTop: 32, paddingTop: 14, borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

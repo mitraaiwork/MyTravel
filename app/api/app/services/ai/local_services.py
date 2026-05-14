@@ -9,11 +9,18 @@ client = genai.Client(api_key=settings.google_api_key)
 MODEL = "gemini-2.5-flash"
 
 
-async def generate_local_services(trip: Trip) -> dict:
-    if settings.mock_ai:
-        return await ai_mock.mock_generate_local_services(trip)
+def _extract_cities(day_outline: list[dict]) -> list[str]:
+    cities: list[str] = []
+    seen: set[str] = set()
+    for entry in day_outline:
+        city = (entry.get("city") or "").strip()
+        if city and city not in seen:
+            cities.append(city)
+            seen.add(city)
+    return cities
 
-    # Build a precise destination string using geocoordinates when available
+
+async def _generate_single_city_services(trip: Trip) -> dict:
     dest = trip.destination
     if trip.destination_lat and trip.destination_lng:
         dest = f"{trip.destination} (coordinates: {trip.destination_lat:.5f}°N, {trip.destination_lng:.5f}°E)"
@@ -74,7 +81,8 @@ If no services can be identified within 25 miles for a category, return an empty
         model=MODEL,
         contents=prompt,
         config=types.GenerateContentConfig(
-            max_output_tokens=2048,
+            max_output_tokens=4096,
+            response_mime_type="application/json",
             thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
@@ -84,3 +92,74 @@ If no services can be identified within 25 miles for a category, return an empty
     if start == -1 or end == -1 or end <= start:
         raise ValueError(f"No valid JSON in local services response: {text[:200]}")
     return json.loads(text[start : end + 1])
+
+
+async def _generate_multi_city_services(trip: Trip, cities: list[str]) -> dict:
+    city_list = ", ".join(cities)
+
+    prompt = f"""You are generating a local services reference card for a multi-city trip.
+The overall destination is {trip.destination}. The traveller will visit these cities in order: {city_list}.
+Return valid JSON only — no markdown, no extra text.
+
+Return exactly this structure:
+{{
+  "multi_city": true,
+  "cities": [
+    {{
+      "city_name": "Full City Name, Country",
+      "categories": [
+        {{"id": "emergency", "label": "Emergency", "emoji": "🚨", "items": [...2 items max...]}},
+        {{"id": "hospital", "label": "Hospital & Urgent Care", "emoji": "🏥", "items": [...2 items max...]}},
+        {{"id": "pharmacy", "label": "Pharmacy", "emoji": "💊", "items": [...2 items max...]}},
+        {{"id": "grocery", "label": "Grocery & Supermarket", "emoji": "🛒", "items": [...2 items max...]}},
+        {{"id": "atm", "label": "ATM & Currency Exchange", "emoji": "🏧", "items": [...2 items max...]}},
+        {{"id": "embassy", "label": "Embassy & Consulate", "emoji": "🛟", "items": [...2 items max...]}}
+      ]
+    }}
+  ]
+}}
+
+Generate one entry per city in this order: {city_list}
+Include exactly 6 category ids per city: emergency, hospital, pharmacy, grocery, atm, embassy
+Maximum 2 items per category per city.
+
+Rules:
+- emergency: local emergency phone number for that country, police non-emergency line
+- hospital: nearest real hospital or urgent care clinic with address area and hours
+- pharmacy: nearest pharmacy; note if 24-hour
+- grocery: nearest supermarket chain or market
+- atm: main ATM networks available, foreign card fee note
+- embassy: US Embassy; note it may be in the capital city if not visiting the capital
+
+For each item include as many of: name, address, phone, hours, note, website.
+Keep addresses to neighbourhood or district level — no full street numbers.
+Omit any field you don't know rather than guessing.
+If no services can be found for a category, return empty items array with a not_found_note."""
+
+    response = await client.aio.models.generate_content(
+        model=MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            max_output_tokens=8192,
+            response_mime_type="application/json",
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    )
+    text = (response.text or "").strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError(f"No valid JSON in multi-city local services response: {text[:200]}")
+    return json.loads(text[start : end + 1])
+
+
+async def generate_local_services(trip: Trip, day_outline: list[dict] | None = None) -> dict:
+    if settings.mock_ai:
+        return await ai_mock.mock_generate_local_services(trip, day_outline)
+
+    cities = _extract_cities(day_outline or [])
+
+    if len(cities) > 1:
+        return await _generate_multi_city_services(trip, cities)
+
+    return await _generate_single_city_services(trip)

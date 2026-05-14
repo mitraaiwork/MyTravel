@@ -390,7 +390,7 @@ async def generate_itinerary(
         for c in classified
     ]
     meta_task = asyncio.create_task(generate_meta(trip, day_outline))
-    local_services_task = asyncio.create_task(generate_local_services(trip))
+    local_services_task = asyncio.create_task(generate_local_services(trip, day_outline))
     route_stops_task = (
         asyncio.create_task(generate_route_stops(trip))
         if (trip.include_route_stops or getattr(trip, "include_return_stops", False)) and trip.origin
@@ -734,13 +734,31 @@ async def get_local_services(
     trip = await _get_trip_by_public_id(public_id, db)
     if not trip or trip.user_id != user.id:
         raise HTTPException(status_code=404)
-    if not trip.itinerary or trip.itinerary.status != "done":
+    if not trip.itinerary:
         raise HTTPException(status_code=400, detail="Itinerary not yet generated")
 
-    if not trip.itinerary.local_services:
-        raise HTTPException(status_code=404, detail="Local services not yet available")
+    # Return cached data regardless of current itinerary status
+    if trip.itinerary.local_services:
+        return json.loads(trip.itinerary.local_services)
 
-    return json.loads(trip.itinerary.local_services)
+    if trip.itinerary.status != "done":
+        raise HTTPException(status_code=400, detail="Itinerary not yet generated")
+
+    # Generate on-demand: extract city info from stored itinerary content
+    content = json.loads(trip.itinerary.content) if trip.itinerary.content else {}
+    day_outline = [
+        {"city": day.get("city", ""), "day": day.get("day")}
+        for day in content.get("days", [])
+        if day.get("city")
+    ]
+
+    try:
+        local_services = await generate_local_services(trip, day_outline or None)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Local services generation failed ({type(exc).__name__}): {exc}") from exc
+    trip.itinerary.local_services = json.dumps(local_services)
+    await db.commit()
+    return local_services
 
 
 # ── AI Chat (SSE) ─────────────────────────────────────────────────────────────
