@@ -64,6 +64,7 @@ export function getCategoryColor(category: string): string {
     hotel: "bg-rose-100 text-rose-800",
     wellness: "bg-teal-100 text-teal-800",
     spa: "bg-teal-100 text-teal-800",
+    viewpoint: "bg-amber-100 text-amber-800",
   };
 
   for (const key of Object.keys(map)) {
@@ -138,4 +139,15 @@ export function getCountryFlag(countryCode?: string): string {
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
   return str.slice(0, length) + "…";
+}
+
+export function getTripPhase(trip: { itinerary_generated: boolean; start_date: string; end_date: string }): import("@/types").TripPhase {
+  if (!trip.itinerary_generated) return "planning";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(trip.start_date);
+  const end = new Date(trip.end_date);
+  if (today < start) return "pre-trip";
+  if (today <= end) return "in-trip";
+  return "post-trip";
 }

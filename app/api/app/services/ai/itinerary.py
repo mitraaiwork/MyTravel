@@ -1,19 +1,19 @@
 import json
-import anthropic
+from google import genai
+from google.genai import types
 from app.config import settings
 from app.models.trip import Trip
+from app.services.ai import mock as ai_mock
 
-client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+client = genai.Client(api_key=settings.google_api_key)
+MODEL = "gemini-2.5-flash"
 
 # ── Day outline pre-planning ───────────────────────────────────────────────────
 
 async def generate_day_outline(trip: Trip, day_list: list[dict]) -> list[dict]:
-    """
-    Fast pre-planning call (Haiku) that assigns each day a DISTINCT area and theme.
-    Called once before parallel day generation so every day prompt knows the full plan
-    and won't repeat the same landmarks.
-    Returns list of {day, area, theme} — falls back to empty list on failure.
-    """
+    if settings.mock_ai:
+        return ai_mock.mock_generate_day_outline(trip, day_list)
+
     days_text = "\n".join(f"Day {d['day']} ({d['date']})" for d in day_list)
 
     prompt = f"""You are planning a {len(day_list)}-day trip to {trip.destination}.
@@ -36,12 +36,15 @@ Days to plan:
 {days_text}"""
 
     try:
-        response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=600,
-            messages=[{"role": "user", "content": prompt}],
+        response = await client.aio.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=1024,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
         )
-        text = response.content[0].text.strip()
+        text = (response.text or "").strip()
         start = text.find("[")
         end = text.rfind("]")
         if start != -1 and end != -1:
@@ -60,15 +63,16 @@ Rules:
 - Use REAL, specific place names. Never use generic placeholders.
 - ACTIVITIES are the must-see, can't-miss experiences for the area: iconic landmarks, world-famous sights, and experiences the traveller will regret skipping (e.g. Times Square, WTC One World Observatory, Brooklyn Bridge, Eiffel Tower, Colosseum). Every visitor expects and deserves these. Include 2-3 of the day's genuinely famous highlights, then add 1-2 local gems that a well-connected resident would recommend alongside them.
 - Sequence activities to minimise backtracking — group by neighbourhood.
-- 3-4 activities maximum (NO food or dining in activities — those go in the restaurants section). Quality over quantity.
+- 3-5 activities maximum (NO food or dining in activities — those go in the restaurants section). Quality over quantity.
 - For EVERY activity include "why_chosen": one sentence a local friend would say to convince you — specific, not generic.
 - Omit optional fields unless genuinely useful — never write null values.
 - Use local currency for price_range.
 - CRITICAL: Provide accurate real-world lat/lng for every activity. Never use 0.0 as a coordinate.
 - CRITICAL: Only suggest places within your assigned area for the day. Do NOT repeat any landmark listed under other days.
-- TIME-SPECIFIC MAGIC: If the area has a famous sunrise, sunset, dawn ritual, night market, tide event, or time-of-day phenomenon — schedule it at the correct time (e.g. 04:30 for Tiger Hill sunrise, dusk for Ganga Aarti). These experiences often define a destination more than any museum.
+- VIEWPOINTS & GOLDEN HOURS (MANDATORY CHECK): Before finalising this day's activities, always ask: does this area have a famous viewpoint, hilltop, rooftop, observation deck, or a renowned sunrise/sunset vantage point? If yes, include it as an activity with category "viewpoint". Schedule sunrise viewpoints at the precise local dawn time (e.g. 05:30), sunset viewpoints 30 minutes before local sunset (e.g. 18:30). In "why_chosen" paint the view in vivid, specific words — what the traveller will actually see. Use "highlights" for the best angle, what to look for, and any lighting tips. Use "booking_tip" for advance ticket requirements or crowd-avoidance advice. Examples: Sunrise at Tiger Hill for Kanchenjunga silhouette; sunset from Sacré-Cœur steps; dawn at Angkor Wat; dusk at Empire State Building; Trolltunga at golden hour.
+- TIME-SPECIFIC MAGIC: If the area has a famous dawn ritual, night market, tide event, or time-of-day phenomenon — schedule it at the correct time. These experiences often define a destination more than any museum.
 - RESTAURANTS (2-3): Cover the meal times of the day. Mix one well-known local institution with lesser-known neighbourhood spots. State clearly what each place is famous for.
-- OFFBEAT SPOTS (2-3): Places MOST tourists completely miss — things NOT already listed in activities. A rooftop with no sign, a workshop open to visitors, a viewpoint locals keep quiet, a quirky museum, a hidden garden. These are the bonus layer on top of the must-sees.
+- OFFBEAT SPOTS (2-3): Places MOST tourists completely miss — things NOT already listed in activities. A rooftop with no sign, a workshop open to visitors, a quirky museum, a hidden garden. These are the bonus layer on top of the must-sees.
 
 Output ONLY a valid JSON object for a single day — no markdown, no text before or after:
 
@@ -80,7 +84,7 @@ Output ONLY a valid JSON object for a single day — no markdown, no text before
   "activities": [
     {
       "name": "Full place name",
-      "category": "nature|culture|adventure|nightlife|wellness|other",
+      "category": "nature|culture|adventure|nightlife|wellness|viewpoint|other",
       "time": "09:00",
       "duration": "2 hours",
       "location": "Neighbourhood or district",
@@ -106,7 +110,9 @@ Output ONLY a valid JSON object for a single day — no markdown, no text before
       "famous_for": "One sentence — the dish, the history, or the experience that makes it unmissable",
       "price_range": "$ | $$ | $$$",
       "location": "Street or neighbourhood",
-      "insider_tip": "What to order, when to go, or how to get a table (only if genuinely useful)"
+      "insider_tip": "What to order, when to go, or how to get a table (only if genuinely useful)",
+      "website": "Official website URL (only if you are certain it is correct — omit otherwise)",
+      "image_url": "A real, publicly accessible image URL of this specific restaurant or its signature dish (omit if unsure)"
     }
   ],
   "offbeat_spots": [
@@ -129,15 +135,25 @@ async def generate_single_day_stream(
     day_date: str,
     total_days: int,
     day_outline: list[dict] | None = None,
+    day_type: str = "destination",
+    arrival_time: str | None = None,
+    departure_time: str | None = None,
 ):
     """Async generator that yields raw text chunks for a single day."""
+    if settings.mock_ai:
+        async for chunk in ai_mock.mock_generate_single_day_stream(
+            trip, weather_for_day, day_num, day_date, total_days, day_outline,
+            day_type=day_type, arrival_time=arrival_time, departure_time=departure_time,
+        ):
+            yield chunk
+        return
+
     budget_line = (
         f"Budget: {trip.budget_currency} {trip.budget_amount:,.0f} total"
         if trip.budget_amount
         else "Budget: not specified"
     )
 
-    # Build the trip plan overview so this day knows what every other day covers
     plan_lines = ""
     if day_outline:
         plan_lines = "\nFULL TRIP PLAN — do NOT suggest any place listed under another day:\n"
@@ -153,6 +169,12 @@ async def generate_single_day_stream(
         else ""
     )
 
+    partial_note = ""
+    if day_type == "partial_arrival" and arrival_time:
+        partial_note = f"\nNOTE: User arrives at {arrival_time} — plan activities from {arrival_time} onwards only (afternoon/evening plan)."
+    elif day_type == "partial_departure" and departure_time:
+        partial_note = f"\nNOTE: User departs at {departure_time} — plan activities until {departure_time} only (morning plan)."
+
     prompt = f"""Generate Day {day_num} of {total_days} for this trip.
 
 Destination: {trip.destination}
@@ -165,30 +187,107 @@ Pace: {trip.pace}
 Special interests: {trip.interests or "None specified"}
 {accom_context}
 Weather: {weather_for_day}
-{plan_lines}
+{plan_lines}{partial_note}
 Output the JSON object for Day {day_num} only."""
 
-    async with client.messages.stream(
-        model="claude-sonnet-4-6",
-        max_tokens=4000,
-        system=SINGLE_DAY_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
-    ) as stream:
-        async for text in stream.text_stream:
-            yield text
+    async for chunk in await client.aio.models.generate_content_stream(
+        model=MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SINGLE_DAY_SYSTEM_PROMPT,
+            max_output_tokens=8192,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    ):
+        if chunk.text:
+            yield chunk.text
+
+
+# ── En-route stop suggestions ─────────────────────────────────────────────────
+
+async def generate_route_stops(trip: Trip) -> dict:
+    """Generate interesting stops along the driving route from origin to destination."""
+    if settings.mock_ai:
+        return ai_mock.mock_generate_route_stops(trip)
+
+    include_return = getattr(trip, "include_return_stops", False)
+
+    if include_return:
+        return_section = f"""
+  "return": [
+    {{
+      "name": "Full place name",
+      "category": "nature|culture|food|adventure|viewpoint",
+      "location": "City or area name",
+      "why_stop": "One vivid sentence — why this is worth stopping for",
+      "duration": "30 minutes | 1-2 hours",
+      "lat": 40.123,
+      "lng": -75.456
+    }}
+  ]"""
+        return_instruction = f'\n- "return": 2-4 stops ordered {trip.destination} → {trip.origin}'
+    else:
+        return_section = ""
+        return_instruction = "\n- Omit the \"return\" key entirely"
+
+    prompt = f"""Plan a road trip from {trip.origin} to {trip.destination}.
+
+Travel style: {trip.travel_style}
+Interests: {trip.interests or "general sightseeing"}
+
+Generate 2-4 interesting stops along the DRIVING route for each direction requested.
+
+If flying is the only practical option (e.g. ocean crossing, intercontinental), return:
+{{"outbound": [], "note": "Best reached by flight — no practical en-route stops"}}
+
+Otherwise output valid JSON only (no markdown):
+{{
+  "outbound": [
+    {{
+      "name": "Full place name",
+      "category": "nature|culture|food|adventure|viewpoint",
+      "location": "City or area name",
+      "why_stop": "One vivid sentence — why this is worth stopping for",
+      "duration": "30 minutes | 1-2 hours",
+      "lat": 40.123,
+      "lng": -75.456
+    }}
+  ]{return_section}
+}}
+
+Rules:
+- Only include places actually along or very near the driving route — no detours over 15 miles off route
+- "outbound": 2-4 stops ordered {trip.origin} → {trip.destination}{return_instruction}
+- Use REAL specific place names"""
+
+    try:
+        response = await client.aio.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=2048,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
+        )
+        text = (response.text or "").strip()
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1:
+            return json.loads(text[start : end + 1])
+    except Exception:
+        pass
+    return {"outbound": []}
 
 
 # ── Trip meta (summary + practical info) ─────────────────────────────────────
 
 async def generate_meta(trip: Trip, day_outline: list[dict] | None = None) -> dict:
-    """
-    Non-streaming call (haiku) for trip summary, practical info, and accommodation suggestions.
-    Runs in parallel with day generation.
-    """
+    if settings.mock_ai:
+        return await ai_mock.mock_generate_meta(trip, day_outline)
+
     num_days = (trip.end_date - trip.start_date).days + 1
     num_nights = num_days - 1
 
-    # Build zone context from day outline so AI can cluster nights intelligently
     zone_hint = ""
     if day_outline:
         zone_hint = "\nDay-by-day area plan:\n" + "\n".join(
@@ -211,7 +310,7 @@ Interests: {trip.interests or "general sightseeing"}
 
 Generate as JSON only (no markdown):
 {{
-  "summary": "2-3 sentence trip overview that gets the traveller excited",
+  "summary": "2-3 sentence trip overview tailored to a {trip.group_size} {trip.group_type} trip that gets the traveller excited — must reflect the correct group type (never say 'solo' for a family or couple trip)",
   "destination": "{trip.destination}",
   "country": "Country name",
   "practical_info": {{
@@ -250,12 +349,15 @@ Rules for accommodations:
 """
 
     try:
-        response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1800,
-            messages=[{"role": "user", "content": prompt}],
+        response = await client.aio.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=4096,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
         )
-        text = response.content[0].text.strip()
+        text = (response.text or "").strip()
         start = text.find("{")
         end = text.rfind("}")
         if start != -1 and end != -1:

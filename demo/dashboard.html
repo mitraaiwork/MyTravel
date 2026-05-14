@@ -128,16 +128,19 @@
     <a href="dashboard.html" class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
     <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
     <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
-    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages & Cabins</a>
-    <a href="#" class="nav-item locked"><span class="nav-icon">🧭</span> Discover <span class="badge badge-gray" style="margin-left:auto;font-size:10px">Soon</span></a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Upcoming · Paris ✈</div>
+    <a href="itinerary.html" class="nav-item"><span class="nav-icon">📋</span> Itinerary</a>
+    <a href="pre-trip.html" class="nav-item" style="color:var(--teal);">
+      <span class="nav-icon">🛂</span> Pre-Trip Prep
+      <span style="margin-left:auto;font-size:10px;background:rgba(13,148,136,0.12);color:var(--teal);border-radius:var(--r-full);padding:2px 7px;font-weight:700;">58d</span>
+    </a>
+    <a href="packing.html" class="nav-item"><span class="nav-icon">🎒</span> Packing List</a>
     <div class="divider"></div>
     <div class="sidebar-section-label">Premium ✦</div>
     <a href="concierge.html" class="nav-item premium-nav">
       <span class="nav-icon">💬</span> AI Concierge
-      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
-    </a>
-    <a href="packing.html" class="nav-item premium-nav">
-      <span class="nav-icon">🎒</span> Packing Lists
       <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
     </a>
     <div class="sidebar-bottom">
@@ -148,6 +151,7 @@
           <div class="sidebar-user-email" id="sidebar-email">alex@example.com</div>
         </div>
       </div>
+      <a href="profile.html" class="nav-item text-sm"><span class="nav-icon">👤</span> My Profile</a>
       <a href="#" class="nav-item text-sm"><span class="nav-icon">⚙</span> Settings</a>
       <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
     </div>
@@ -164,6 +168,21 @@
           <p>You have 1 free itinerary generation remaining this month.</p>
         </div>
         <a href="new-trip.html" class="btn btn-white btn-lg">✦ Plan a New Trip</a>
+      </div>
+
+      <!-- Pre-trip alert: Paris upcoming -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(135deg,rgba(13,148,136,0.07),rgba(20,184,166,0.04));border:1px solid rgba(13,148,136,0.2);border-radius:var(--r-xl);padding:16px 20px;margin-bottom:24px;flex-wrap:wrap;box-shadow:var(--shadow-sm);">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:44px;height:44px;border-radius:var(--r-md);background:linear-gradient(135deg,#ddd6fe,#c4b5fd);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">🗼</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:2px;">🛂 Pre-Trip · Paris, France — 58 days away</div>
+            <div style="font-size:12px;color:var(--text-muted);">Itinerary not generated · No visa required for Canadians · Passport valid ✓</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <a href="itinerary.html" class="btn btn-sm" style="background:rgba(13,148,136,0.1);color:var(--teal);border:1px solid rgba(13,148,136,0.25);">Generate Itinerary</a>
+          <a href="pre-trip.html" class="btn btn-secondary btn-sm">Pre-Trip Prep →</a>
+        </div>
       </div>
 
       <!-- Stats -->
@@ -209,28 +228,34 @@
         </div>
 
         <!-- Paris -->
-        <div class="trip-card" onclick="">
-          <div class="trip-card-banner" style="background:linear-gradient(135deg,#ddd6fe,#c4b5fd,#a78bfa)">🗼</div>
+        <div class="trip-card" onclick="window.location.href='itinerary.html'">
+          <div class="trip-card-banner" style="background:linear-gradient(135deg,#ddd6fe,#c4b5fd,#a78bfa); position:relative;">
+            🗼
+            <span style="position:absolute;bottom:10px;right:10px;background:rgba(13,148,136,0.85);color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:var(--r-full);backdrop-filter:blur(4px);">🛂 Pre-Trip · 58d</span>
+          </div>
           <div class="trip-card-body">
             <div class="trip-card-dest">
               🇫🇷 Paris, France
-              <span class="badge badge-amber badge-lg" style="margin-left:auto">Draft</span>
+              <span class="badge badge-lg" style="margin-left:auto;background:rgba(13,148,136,0.12);color:var(--teal);border:1px solid rgba(13,148,136,0.2);">Pre-Trip</span>
             </div>
             <div class="trip-card-meta">Jun 3–8, 2026 · 5 days · 2 travellers</div>
             <div class="trip-card-footer">
-              <span class="trip-card-progress">Itinerary not generated yet</span>
-              <button class="btn btn-secondary btn-sm">Generate</button>
+              <span class="trip-card-progress">Itinerary not generated · Visa-free ✓</span>
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='itinerary.html'">Generate</button>
             </div>
           </div>
         </div>
 
         <!-- Bali -->
         <div class="trip-card" onclick="">
-          <div class="trip-card-banner" style="background:linear-gradient(135deg,#fed7aa,#fdba74,#fb923c)">🌴</div>
+          <div class="trip-card-banner" style="background:linear-gradient(135deg,#fed7aa,#fdba74,#fb923c); position:relative;">
+            🌴
+            <span style="position:absolute;bottom:10px;right:10px;background:rgba(30,30,30,0.7);color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:var(--r-full);backdrop-filter:blur(4px);">📋 Planning</span>
+          </div>
           <div class="trip-card-body">
             <div class="trip-card-dest">
               🇮🇩 Bali, Indonesia
-              <span class="badge badge-amber badge-lg" style="margin-left:auto">Draft</span>
+              <span class="badge badge-amber badge-lg" style="margin-left:auto">Planning</span>
             </div>
             <div class="trip-card-meta">Aug 10–17, 2026 · 7 days · 4 travellers</div>
             <div class="trip-card-footer">
@@ -266,6 +291,63 @@
 
       </div>
 
+      <!-- New features callout -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3 style="font-size:16px;font-weight:700;color:var(--text-dark);display:flex;align-items:center;gap:8px;">🗺 Trip Lifecycle Features</h3>
+        <span style="font-size:12px;color:var(--text-muted);">Available on all plans</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:32px;">
+
+        <a href="pre-trip.html" style="display:flex;flex-direction:column;background:var(--bg-white);border:1px solid rgba(13,148,136,0.25);border-radius:var(--r-xl);overflow:hidden;text-decoration:none;transition:var(--trans);box-shadow:var(--shadow-sm);" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="padding:20px 20px 14px;background:linear-gradient(135deg,#0d9488,#14b8a6,#5eead4);">
+            <div style="font-size:26px;margin-bottom:8px;">🛂</div>
+            <div style="font-size:14px;font-weight:700;color:white;margin-bottom:3px;">Pre-Trip Preparation</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.8);line-height:1.4;">Visa requirements, health advisories, and a personalised pre-departure checklist.</div>
+          </div>
+          <div style="padding:10px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);">AI-powered live search</span>
+            <span style="font-size:11px;font-weight:700;color:var(--teal);background:rgba(13,148,136,0.1);border-radius:var(--r-full);padding:2px 8px;border:1px solid rgba(13,148,136,0.2);">Free</span>
+          </div>
+        </a>
+
+        <a href="in-trip.html" style="display:flex;flex-direction:column;background:var(--bg-white);border:1px solid rgba(45,106,79,0.25);border-radius:var(--r-xl);overflow:hidden;text-decoration:none;transition:var(--trans);box-shadow:var(--shadow-sm);" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="padding:20px 20px 14px;background:linear-gradient(135deg,#1b4332,#2d6a4f,#40916c);">
+            <div style="font-size:26px;margin-bottom:8px;">🧭</div>
+            <div style="font-size:14px;font-weight:700;color:white;margin-bottom:3px;">In-Trip Companion</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.8);line-height:1.4;">What's next, navigation guidance, trip monitoring, and weather alerts during your trip.</div>
+          </div>
+          <div style="padding:10px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);">Activates on trip start date</span>
+            <span style="font-size:11px;font-weight:700;color:var(--emerald);background:rgba(5,150,105,0.1);border-radius:var(--r-full);padding:2px 8px;border:1px solid rgba(5,150,105,0.2);">Free</span>
+          </div>
+        </a>
+
+        <a href="profile.html" style="display:flex;flex-direction:column;background:var(--bg-white);border:1px solid rgba(79,70,229,0.25);border-radius:var(--r-xl);overflow:hidden;text-decoration:none;transition:var(--trans);box-shadow:var(--shadow-sm);" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="padding:20px 20px 14px;background:linear-gradient(135deg,#4f46e5,#7c3aed,#9333ea);">
+            <div style="font-size:26px;margin-bottom:8px;">🧠</div>
+            <div style="font-size:14px;font-weight:700;color:white;margin-bottom:3px;">Preference Memory</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.8);line-height:1.4;">Save your travel style, diet, passport, and home city — AI uses them in every itinerary.</div>
+          </div>
+          <div style="padding:10px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);">Personalized from day 1</span>
+            <span style="font-size:11px;font-weight:700;color:var(--emerald);background:rgba(5,150,105,0.1);border-radius:var(--r-full);padding:2px 8px;border:1px solid rgba(5,150,105,0.2);">Free</span>
+          </div>
+        </a>
+
+        <a href="trip-completed.html" style="display:flex;flex-direction:column;background:var(--bg-white);border:1px solid rgba(212,160,23,0.25);border-radius:var(--r-xl);overflow:hidden;text-decoration:none;transition:var(--trans);box-shadow:var(--shadow-sm);" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseleave="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="padding:20px 20px 14px;background:linear-gradient(135deg,#b7791f,#d4a017,#f4a261);">
+            <div style="font-size:26px;margin-bottom:8px;">⭐</div>
+            <div style="font-size:14px;font-weight:700;color:white;margin-bottom:3px;">Post-Trip Feedback</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.8);line-height:1.4;">Rate your trip, save highlights, and let AI learn your preferences for next time.</div>
+          </div>
+          <div style="padding:10px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);">Unlocked after trip ends</span>
+            <span style="font-size:11px;font-weight:700;color:var(--emerald);background:rgba(5,150,105,0.1);border-radius:var(--r-full);padding:2px 8px;border:1px solid rgba(5,150,105,0.2);">Free</span>
+          </div>
+        </a>
+
+      </div>
+
       <!-- Premium features section -->
       <div class="section-header">
         <h3>✦ Premium Features <span class="badge badge-premium" style="font-size:11px">PRO</span></h3>
@@ -292,7 +374,7 @@
             <div class="premium-feat-desc">AI-generated packing lists based on your destination, weather, and activities.</div>
           </div>
           <div class="premium-feat-footer">
-            <span>Weather & activity aware</span>
+            <span>Weather &amp; activity aware</span>
             <span class="badge badge-teal">✦ PRO</span>
           </div>
         </a>
@@ -316,7 +398,7 @@
             <div class="premium-feat-desc">No monthly cap — plan as many trips as you want without limits.</div>
           </div>
           <div class="premium-feat-footer">
-            <span>Free: 3/month</span>
+            <span>Free: 5/month</span>
             <span class="badge badge-amber">✦ PRO</span>
           </div>
         </div>

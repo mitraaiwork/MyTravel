@@ -1,0 +1,2 @@
+API - uvicorn main:app --reload
+Web - pnpm dev

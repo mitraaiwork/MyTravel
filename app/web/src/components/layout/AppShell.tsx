@@ -40,7 +40,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <AppHeader />
         <Sidebar />
         <main className="app-shell-main">
-          <div style={{ padding: "28px 32px", maxWidth: 1100 }}>
+          <div style={{ padding: "28px 32px", maxWidth: 1280 }}>
             {children}
           </div>
         </main>

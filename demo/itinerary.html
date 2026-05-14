@@ -136,11 +136,19 @@
   <aside class="app-sidebar">
     <div class="sidebar-section-label">Main</div>
     <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-    <a href="dashboard.html" class="nav-item active"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
     <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
     <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
     <div class="divider"></div>
-    <div class="sidebar-section-label">This Trip</div>
+    <div class="sidebar-section-label">Tokyo Trip ✈</div>
+    <a href="itinerary.html" class="nav-item active"><span class="nav-icon">📋</span> Itinerary</a>
+    <a href="pre-trip.html" class="nav-item" style="color:var(--teal);">
+      <span class="nav-icon">🛂</span> Pre-Trip Prep
+      <span style="margin-left:auto;font-size:10px;background:rgba(13,148,136,0.12);color:var(--teal);border-radius:var(--r-full);padding:2px 7px;font-weight:700;">6 days</span>
+    </a>
+    <a href="packing.html" class="nav-item"><span class="nav-icon">🎒</span> Packing List</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Days</div>
     <a href="#day-1" class="nav-item text-sm day-link" id="nday-1"><span style="width:8px;height:8px;border-radius:50%;background:#52b788;flex-shrink:0;display:inline-block"></span> Day 1 · Shinjuku</a>
     <a href="#day-2" class="nav-item text-sm day-link" id="nday-2"><span style="width:8px;height:8px;border-radius:50%;background:#48cae4;flex-shrink:0;display:inline-block"></span> Day 2 · Asakusa</a>
     <a href="#day-3" class="nav-item text-sm day-link" id="nday-3"><span style="width:8px;height:8px;border-radius:50%;background:#d4a017;flex-shrink:0;display:inline-block"></span> Day 3 · Harajuku</a>
@@ -152,11 +160,15 @@
       <span class="nav-icon">💬</span> AI Concierge
       <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
     </a>
-    <a href="packing.html" class="nav-item premium-nav">
-      <span class="nav-icon">🎒</span> Packing Lists
-      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
-    </a>
     <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Alex Johnson</div>
+          <div class="sidebar-user-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="profile.html" class="nav-item text-sm"><span class="nav-icon">👤</span> My Profile</a>
       <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
     </div>
   </aside>
@@ -184,6 +196,21 @@
     <!-- ITINERARY CONTENT (hidden during generation) -->
     <div id="itin-content" style="opacity:0; transition:opacity 0.6s ease;">
     <div class="app-main-inner">
+
+      <!-- Phase banner -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,rgba(13,148,136,0.08),rgba(20,184,166,0.05));border:1px solid rgba(13,148,136,0.22);border-radius:var(--r-lg);padding:11px 16px;margin-bottom:14px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:18px;">🛂</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--teal);">Pre-Trip · Departure in 6 days</div>
+            <div style="font-size:12px;color:var(--text-muted);">Visa-free ✓ · Visit Japan Web registration pending · teamLab tickets not yet booked</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <a href="pre-trip.html" class="btn btn-sm" style="background:rgba(13,148,136,0.1);color:var(--teal);border:1px solid rgba(13,148,136,0.25);">Pre-Trip Checklist →</a>
+          <a href="packing.html" class="btn btn-secondary btn-sm">🎒 Packing List</a>
+        </div>
+      </div>
 
       <!-- Top bar -->
       <div class="trip-topbar">
@@ -214,7 +241,9 @@
         <button class="tab-btn active" onclick="switchTab('itinerary',this)">📋 Itinerary</button>
         <button class="tab-btn" onclick="switchTab('map',this)">🗺️ Map</button>
         <button class="tab-btn" onclick="switchTab('budget',this)">💰 Budget</button>
-        <button class="tab-btn locked" onclick="premiumAlert()">🎒 Packing List <span class="badge badge-premium" style="font-size:10px">✦ PRO</span></button>
+        <button class="tab-btn" onclick="window.location.href='pre-trip.html'" style="color:var(--teal);">🛂 Pre-Trip</button>
+        <a href="packing.html" class="tab-btn" style="color:var(--text-muted);text-decoration:none;">🎒 Packing List</a>
+        <button class="tab-btn" onclick="window.location.href='concierge.html'" style="color:var(--violet);">💬 AI Chat <span class="badge badge-premium" style="font-size:10px">✦ PRO</span></button>
       </div>
 
       <!-- ITINERARY TAB -->

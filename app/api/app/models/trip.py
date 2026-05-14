@@ -1,6 +1,6 @@
 import secrets
 from datetime import date, datetime
-from sqlalchemy import String, Integer, Date, ForeignKey, Text, DateTime, Boolean, Float, func
+from sqlalchemy import String, Integer, Date, ForeignKey, Text, DateTime, Boolean, Float, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
@@ -16,6 +16,7 @@ class Trip(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     title: Mapped[str | None] = mapped_column(String(255))
     destination: Mapped[str] = mapped_column(String(255))
+    origin: Mapped[str | None] = mapped_column(String(255))
     destination_lat: Mapped[float | None] = mapped_column(Float)
     destination_lng: Mapped[float | None] = mapped_column(Float)
     start_date: Mapped[date] = mapped_column(Date)
@@ -29,6 +30,13 @@ class Trip(Base):
     pace: Mapped[str] = mapped_column(String(20), default="moderate")
     interests: Mapped[str | None] = mapped_column(Text)
     accommodation_type: Mapped[str | None] = mapped_column(String(255))  # e.g. "cabin,glamping"
+    include_route_stops: Mapped[bool] = mapped_column(Boolean, default=False)
+    trip_type: Mapped[str] = mapped_column(String(20), default="destination")
+    arrive_destination_date: Mapped[date | None] = mapped_column(Date)
+    arrive_destination_time: Mapped[str | None] = mapped_column(String(5))
+    leave_destination_date: Mapped[date | None] = mapped_column(Date)
+    leave_destination_time: Mapped[str | None] = mapped_column(String(5))
+    include_return_stops: Mapped[bool] = mapped_column(Boolean, default=False)
     share_token: Mapped[str | None] = mapped_column(String(64), unique=True)
     share_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -55,4 +63,24 @@ class Itinerary(Base):
     error_message: Mapped[str | None] = mapped_column(Text)
     generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    packing_list: Mapped[str | None] = mapped_column(Text)  # Cached JSON from Claude
+    local_services: Mapped[str | None] = mapped_column(Text)  # Cached JSON from Claude
+
     trip: Mapped["Trip"] = relationship(back_populates="itinerary")
+
+
+class TripFeedback(Base):
+    __tablename__ = "trip_feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    trip_id: Mapped[int] = mapped_column(ForeignKey("trips.id"), unique=True, nullable=False)
+    overall_rating: Mapped[int | None] = mapped_column(Integer)
+    itinerary_rating: Mapped[int | None] = mapped_column(Integer)
+    restaurant_rating: Mapped[int | None] = mapped_column(Integer)
+    flow_rating: Mapped[int | None] = mapped_column(Integer)
+    pace_rating: Mapped[int | None] = mapped_column(Integer)
+    keep_list: Mapped[str | None] = mapped_column(Text)   # JSON array of strings
+    skip_list: Mapped[str | None] = mapped_column(Text)   # JSON array of strings
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())

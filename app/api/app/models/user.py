@@ -18,3 +18,10 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # Travel preferences
+    home_city: Mapped[str | None] = mapped_column(String(255))
+    passport_nationality: Mapped[str | None] = mapped_column(String(100))
+    food_preference: Mapped[str | None] = mapped_column(String(50))
+    seat_preference: Mapped[str | None] = mapped_column(String(20))
+    preferred_pace: Mapped[str | None] = mapped_column(String(20))
+    preferred_styles: Mapped[str | None] = mapped_column(String(255))

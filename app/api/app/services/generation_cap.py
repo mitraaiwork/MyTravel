@@ -10,7 +10,7 @@ async def check_and_increment_gen_count(user: User, db: AsyncSession) -> None:
     Raises HTTP 429 if the user has hit their monthly limit.
     Resets the counter automatically at the start of a new calendar month.
     """
-    limit = settings.free_tier_monthly_limit
+    limit = settings.free_tier_gen_limit
     now = datetime.now(timezone.utc)
 
     # Reset if it's a new month

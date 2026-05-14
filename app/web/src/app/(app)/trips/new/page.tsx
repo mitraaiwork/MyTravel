@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { tripsApi } from "@/lib/api";
+import { tripsApi, suggestApi, profileApi, type SuggestionResult } from "@/lib/api";
 import { useAuth } from "@/context/auth";
 import { getDayCount } from "@/lib/utils";
 import type { TravelStyle } from "@/types";
@@ -35,29 +35,79 @@ const INTERESTS = [
   "photography", "architecture", "wildlife", "wellness",
 ];
 
-const SUGGESTIONS = [
-  { label: "🇯🇵 Tokyo", value: "Tokyo, Japan" },
-  { label: "🇫🇷 Paris", value: "Paris, France" },
-  { label: "🇮🇩 Bali", value: "Bali, Indonesia" },
-  { label: "🇮🇹 Rome", value: "Rome, Italy" },
-  { label: "🇺🇸 New York", value: "New York, USA" },
-  { label: "🇬🇧 London", value: "London, UK" },
+
+const TERRAIN_OPTIONS = [
+  { value: "mountains", label: "Mountains / Hills", emoji: "🏔" },
+  { value: "beach",     label: "Beach / Coast",     emoji: "🏖" },
+  { value: "forest",    label: "Forest / National Park", emoji: "🌲" },
+  { value: "city",      label: "City Break",        emoji: "🏙" },
+  { value: "desert",    label: "Desert",            emoji: "🏜" },
+  { value: "countryside", label: "Countryside",     emoji: "🌾" },
 ];
+
+const ACTIVITY_OPTIONS = [
+  { value: "skiing",    label: "Skiing",            emoji: "⛷" },
+  { value: "hiking",    label: "Hiking",            emoji: "🥾" },
+  { value: "surfing",   label: "Surfing",           emoji: "🏄" },
+  { value: "food",      label: "Wine & Food",       emoji: "🍷" },
+  { value: "culture",   label: "Arts & Culture",    emoji: "🎭" },
+  { value: "wellness",  label: "Wellness / Spa",    emoji: "🧘" },
+  { value: "cycling",   label: "Cycling",           emoji: "🚴" },
+  { value: "wildlife",  label: "Wildlife",          emoji: "🐾" },
+];
+
+const RADIUS_OPTIONS = [
+  { value: "50",   label: "Within 50 miles" },
+  { value: "100",  label: "Within 100 miles" },
+  { value: "200",  label: "Within 200 miles" },
+  { value: "300",  label: "Within 300 miles" },
+  { value: "500",  label: "Within 500 miles" },
+  { value: "any",  label: "Any distance" },
+];
+
 
 export default function NewTripPage() {
   const router = useRouter();
   const { user } = useAuth();
 
   const [step, setStep] = useState(1);
+  const [tripType, setTripType] = useState<"destination" | "roadtrip">("destination");
   const [destination, setDestination] = useState("");
+  const [origin, setOrigin] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [arriveDestDate, setArriveDestDate] = useState("");
+  const [arriveDestTime, setArriveDestTime] = useState("");
+  const [leaveDestDate, setLeaveDestDate] = useState("");
+  const [leaveDestTime, setLeaveDestTime] = useState("");
   const [travelStyles, setTravelStyles] = useState<TravelStyle[]>([]);
   const [accommodationTypes, setAccommodationTypes] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [includeRouteStops, setIncludeRouteStops] = useState(false);
+  const [includeReturnStops, setIncludeReturnStops] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Destination suggestor state
+  const [showSuggestor, setShowSuggestor] = useState(false);
+  const [suggestFrom, setSuggestFrom] = useState("");
+  const [suggestRadius, setSuggestRadius] = useState("200");
+  const [suggestTerrain, setSuggestTerrain] = useState<string[]>([]);
+  const [suggestActivities, setSuggestActivities] = useState<string[]>([]);
+  const [suggestResults, setSuggestResults] = useState<SuggestionResult[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+
+  // Pre-fill origin from user profile home city
+  useEffect(() => {
+    profileApi.get().then((p) => {
+      if (p.home_city) {
+        setOrigin(p.home_city);
+        setSuggestFrom(p.home_city);
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const dayCount = startDate && endDate ? getDayCount(startDate, endDate) : null;
   const atCap = user != null && !user.is_premium && user.gen_count >= user.gen_limit;
@@ -85,11 +135,52 @@ export default function NewTripPage() {
     );
   }
 
+  function toggleSuggestTerrain(v: string) {
+    setSuggestTerrain((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]);
+    setSuggestResults([]);
+  }
+
+  function toggleSuggestActivity(v: string) {
+    setSuggestActivities((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]);
+    setSuggestResults([]);
+  }
+
+  async function handleSuggest() {
+    setIsSuggesting(true);
+    setSuggestResults([]);
+    try {
+      const results = await suggestApi.destinations({
+        from_location: suggestFrom,
+        radius_miles: suggestRadius !== "any" ? parseInt(suggestRadius) : null,
+        terrain: suggestTerrain,
+        activities: suggestActivities,
+      });
+      setSuggestResults(results.slice(0, 5));
+    } catch {
+      // silently fall back to empty — user can retry
+    } finally {
+      setIsSuggesting(false);
+    }
+  }
+
+  function pickSuggestion(dest: string) {
+    setDestination(dest);
+    setShowSuggestor(false);
+    setSuggestResults([]);
+  }
+
   function validateStep(n: number): string | null {
     if (n === 1) {
       if (!destination.trim()) return "Please enter a destination.";
       if (!startDate || !endDate) return "Please select both start and end dates.";
       if (endDate < startDate) return "End date must be on or after the start date.";
+      if (tripType === "roadtrip") {
+        if (!origin.trim()) return "Road trips require a starting city (Departing from).";
+        if (arriveDestDate && arriveDestDate < startDate) return "Arrival at destination cannot be before your trip start date.";
+        if (arriveDestDate && arriveDestDate > endDate) return "Arrival at destination cannot be after your trip end date.";
+        if (leaveDestDate && arriveDestDate && leaveDestDate < arriveDestDate) return "Departure from destination cannot be before arrival.";
+        if (leaveDestDate && leaveDestDate > endDate) return "Departure from destination cannot be after your trip end date.";
+      }
     }
     if (n === 2 && travelStyles.length === 0) {
       return "Please select at least one travel style.";
@@ -121,11 +212,19 @@ export default function NewTripPage() {
     try {
       const trip = await tripsApi.create({
         destination: destination.trim(),
+        origin: tripType === "roadtrip" ? origin.trim() || undefined : undefined,
         start_date: startDate,
         end_date: endDate,
         travel_style: travelStyles.join(","),
         interests: interests.length > 0 ? interests.join(",") : undefined,
         accommodation_type: accommodationTypes.length > 0 ? accommodationTypes.join(",") : undefined,
+        trip_type: tripType,
+        include_route_stops: tripType === "roadtrip" ? (includeRouteStops && !!origin.trim()) : false,
+        include_return_stops: tripType === "roadtrip" ? includeReturnStops : false,
+        arrive_destination_date: tripType === "roadtrip" && arriveDestDate ? arriveDestDate : undefined,
+        arrive_destination_time: tripType === "roadtrip" && arriveDestTime ? arriveDestTime : undefined,
+        leave_destination_date: tripType === "roadtrip" && leaveDestDate ? leaveDestDate : undefined,
+        leave_destination_time: tripType === "roadtrip" && leaveDestTime ? leaveDestTime : undefined,
       });
       router.push(`/trips/${trip.public_id}`);
     } catch (err: unknown) {
@@ -224,6 +323,58 @@ export default function NewTripPage() {
             Tell us your destination and when you&apos;re travelling.
           </p>
 
+          {/* Trip type selector */}
+          <div className="mb-6">
+            <label className="label mb-3">How are you planning this trip?</label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  value: "destination" as const,
+                  title: "Destination Stay",
+                  icon: "🏨",
+                  desc: "Just the days you spend at your destination — perfect if you're flying or don't need a driving plan.",
+                  note: "No travel days · No driving stops",
+                },
+                {
+                  value: "roadtrip" as const,
+                  title: "Road Trip",
+                  icon: "🚗",
+                  desc: "Covers your full journey including driving days, with stops along the route each way.",
+                  note: "Origin required · Includes en-route stops",
+                },
+              ].map((opt) => {
+                const active = tripType === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setTripType(opt.value)}
+                    className="rounded-xl p-4 text-left transition-all"
+                    style={{
+                      border: `2px solid ${active ? "var(--forest)" : "var(--border-mid)"}`,
+                      background: active ? "rgba(45,106,79,0.07)" : "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div className="text-2xl mb-2">{opt.icon}</div>
+                    <div className="text-sm font-bold mb-1" style={{ color: active ? "var(--forest)" : "var(--text-dark)" }}>
+                      {opt.title}
+                    </div>
+                    <div className="text-xs mb-2 leading-relaxed" style={{ color: "var(--text-mid)" }}>
+                      {opt.desc}
+                    </div>
+                    <div
+                      className="text-xs font-medium px-2 py-0.5 rounded-full inline-block"
+                      style={{ background: active ? "var(--forest)" : "var(--bg-cream)", color: active ? "white" : "var(--text-muted)", border: "1px solid var(--border-light)" }}
+                    >
+                      {opt.note}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="mb-5">
             <label className="label">Destination</label>
             <div className="relative">
@@ -236,48 +387,410 @@ export default function NewTripPage() {
                 onChange={(e) => setDestination(e.target.value)}
               />
             </div>
-            <div className="flex gap-2 flex-wrap mt-3">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setDestination(s.value)}
-                  className="text-xs px-3 py-1.5 rounded-full transition-all"
-                  style={{
-                    background: destination === s.value ? "rgba(45,106,79,0.10)" : "white",
-                    border: `1.5px solid ${destination === s.value ? "var(--forest)" : "var(--border-mid)"}`,
-                    color: destination === s.value ? "var(--forest)" : "var(--text-mid)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
+
+            {/* Not sure where to go — right-aligned toggle */}
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                onClick={() => { setShowSuggestor((v) => !v); setSuggestResults([]); }}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
+                style={showSuggestor
+                  ? { background: "var(--bg-mint)", color: "var(--forest)", border: "1.5px solid var(--border-strong)", cursor: "pointer" }
+                  : { background: "linear-gradient(135deg, var(--bg-mint), #e0f2e9)", color: "var(--forest)", border: "1.5px solid var(--border-mid)", cursor: "pointer", boxShadow: "0 1px 4px rgba(45,106,79,0.12)" }
+                }
+              >
+                <span>{showSuggestor ? "✕" : "✦"}</span>
+                {showSuggestor ? "Close suggester" : "Not sure where to go? Get suggestions"}
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-2">
-            <div>
-              <label className="label">From</label>
-              <input
-                className="input"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                min={new Date().toISOString().slice(0, 10)}
-              />
+          {/* Departing from — road trips only */}
+          {tripType === "roadtrip" && (
+            <div className="mb-5">
+              <label className="label">
+                Departing from <span className="font-normal text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">🛫</span>
+                <input
+                  className="input"
+                  style={{ paddingLeft: "2rem" }}
+                  placeholder="Your starting city (e.g. Edison, NJ)"
+                  value={origin}
+                  onChange={(e) => {
+                    setOrigin(e.target.value);
+                    setSuggestFrom(e.target.value);
+                  }}
+                />
+              </div>
+              <p className="text-xs mt-1.5" style={{ color: "var(--text-faint)" }}>
+                Used for en-route stop suggestions and destination suggestions
+              </p>
             </div>
-            <div>
-              <label className="label">To</label>
-              <input
-                className="input"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate || new Date().toISOString().slice(0, 10)}
-              />
+          )}
+
+          {/* Destination stay window — road trips only */}
+          {tripType === "roadtrip" && (
+            <div className="mb-5 rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-mid)", background: "var(--bg-cream)" }}>
+              <div
+                className="px-4 py-3 text-xs font-bold flex items-center gap-2"
+                style={{ background: "rgba(45,106,79,0.06)", borderBottom: "1px solid var(--border-light)", color: "var(--forest)" }}
+              >
+                🏁 Your stay at {destination.split(",")[0] || "your destination"}
+              </div>
+              <div className="p-4 space-y-4">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <label className="label mb-0">Arrive at destination</label>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--bg-mint)", color: "var(--forest)", border: "1px solid var(--border-light)" }}>optional</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      className="input text-sm"
+                      type="date"
+                      value={arriveDestDate}
+                      onChange={(e) => setArriveDestDate(e.target.value)}
+                      min={startDate || undefined}
+                      max={endDate || undefined}
+                    />
+                    <input
+                      className="input text-sm"
+                      type="time"
+                      value={arriveDestTime}
+                      onChange={(e) => setArriveDestTime(e.target.value)}
+                      disabled={!arriveDestDate}
+                    />
+                  </div>
+                  <p className="text-xs mt-1.5" style={{ color: "var(--text-faint)" }}>
+                    If you arrive mid-day, add the time — the AI will plan activities from your arrival time onwards.
+                    Days before this date become driving days with en-route stop suggestions.
+                  </p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <label className="label mb-0">Leave destination</label>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--bg-mint)", color: "var(--forest)", border: "1px solid var(--border-light)" }}>optional</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      className="input text-sm"
+                      type="date"
+                      value={leaveDestDate}
+                      onChange={(e) => setLeaveDestDate(e.target.value)}
+                      min={arriveDestDate || startDate || undefined}
+                      max={endDate || undefined}
+                    />
+                    <input
+                      className="input text-sm"
+                      type="time"
+                      value={leaveDestTime}
+                      onChange={(e) => setLeaveDestTime(e.target.value)}
+                      disabled={!leaveDestDate}
+                    />
+                  </div>
+                  <p className="text-xs mt-1.5" style={{ color: "var(--text-faint)" }}>
+                    If you leave mid-day, add the time — the AI will plan morning-only activities up until you depart.
+                    Days after this date become return driving days.
+                  </p>
+                </div>
+
+                {/* En-route stop checkboxes */}
+                <div className="space-y-2 pt-1">
+                  <div className="text-xs font-semibold mb-2" style={{ color: "var(--text-mid)" }}>
+                    En-route stops (driving only — skip if flying)
+                  </div>
+                  {[
+                    {
+                      checked: includeRouteStops,
+                      onChange: setIncludeRouteStops,
+                      label: "Suggest stops on the way there",
+                      desc: `Interesting places to stop driving from ${origin.split(",")[0] || "your origin"} to ${destination.split(",")[0] || "your destination"}`,
+                    },
+                    {
+                      checked: includeReturnStops,
+                      onChange: setIncludeReturnStops,
+                      label: "Suggest stops on the way back",
+                      desc: `Places to stop on the return drive to ${origin.split(",")[0] || "your origin"}`,
+                    },
+                  ].map((cb) => (
+                    <label
+                      key={cb.label}
+                      className="flex items-start gap-2.5 cursor-pointer rounded-xl px-3 py-2.5 transition-all"
+                      style={{
+                        background: cb.checked ? "rgba(45,106,79,0.07)" : "white",
+                        border: `1.5px solid ${cb.checked ? "var(--border-strong)" : "var(--border-light)"}`,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 flex-shrink-0 accent-[var(--forest)]"
+                        checked={cb.checked}
+                        onChange={(e) => cb.onChange(e.target.checked)}
+                      />
+                      <div>
+                        <div className="text-xs font-semibold" style={{ color: "var(--text-dark)" }}>
+                          {cb.label}
+                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                          {cb.desc}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* ── Destination Suggestor Panel ── */}
+          {showSuggestor && (
+            <div
+              className="rounded-2xl overflow-hidden mb-6"
+              style={{
+                border: "1px solid var(--border-mid)",
+                boxShadow: "var(--shadow-md)",
+                background: "white",
+              }}
+            >
+              {/* Panel header */}
+              <div
+                className="px-5 py-4 flex items-center gap-3"
+                style={{ background: "var(--grad-nature)", borderBottom: "1px solid rgba(255,255,255,0.12)" }}
+              >
+                <span className="text-xl">✦</span>
+                <div>
+                  <div className="font-bold text-sm text-white">Destination Finder</div>
+                  <div className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
+                    Tell us what you&apos;re looking for and we&apos;ll suggest the perfect place
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 space-y-5">
+                {/* Starting location + radius */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Starting from</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="e.g. New Jersey, USA"
+                      value={suggestFrom}
+                      onChange={(e) => { setSuggestFrom(e.target.value); setSuggestResults([]); }}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Distance</label>
+                    <select
+                      className="input"
+                      style={{ cursor: "pointer" }}
+                      value={suggestRadius}
+                      onChange={(e) => { setSuggestRadius(e.target.value); setSuggestResults([]); }}
+                    >
+                      {RADIUS_OPTIONS.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Terrain */}
+                <div>
+                  <label className="label mb-2 block">Type of place</label>
+                  <div className="flex flex-wrap gap-2">
+                    {TERRAIN_OPTIONS.map((t) => {
+                      const active = suggestTerrain.includes(t.value);
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => toggleSuggestTerrain(t.value)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                          style={
+                            active
+                              ? { background: "var(--grad-forest)", color: "white", border: "1px solid transparent", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }
+                              : { background: "white", color: "var(--text-mid)", border: "1px solid var(--border-mid)" }
+                          }
+                        >
+                          <span>{t.emoji}</span> {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Activities */}
+                <div>
+                  <label className="label mb-2 block">Activities</label>
+                  <div className="flex flex-wrap gap-2">
+                    {ACTIVITY_OPTIONS.map((a) => {
+                      const active = suggestActivities.includes(a.value);
+                      return (
+                        <button
+                          key={a.value}
+                          type="button"
+                          onClick={() => toggleSuggestActivity(a.value)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                          style={
+                            active
+                              ? { background: "var(--grad-forest)", color: "white", border: "1px solid transparent", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }
+                              : { background: "white", color: "var(--text-mid)", border: "1px solid var(--border-mid)" }
+                          }
+                        >
+                          <span>{a.emoji}</span> {a.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Suggest button */}
+                <button
+                  type="button"
+                  onClick={handleSuggest}
+                  disabled={isSuggesting}
+                  className="btn-primary w-full justify-center text-sm py-3"
+                >
+                  {isSuggesting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Finding destinations…
+                    </>
+                  ) : (
+                    "✦ Suggest destinations →"
+                  )}
+                </button>
+
+                {/* Results */}
+                {suggestResults.length > 0 && (
+                  <div className="space-y-3 pt-1">
+                    <div
+                      className="text-xs font-semibold pb-2"
+                      style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}
+                    >
+                      {suggestResults.length} suggestions based on your preferences — click one to select
+                    </div>
+                    {suggestResults.map((r) => (
+                      <button
+                        key={r.destination}
+                        type="button"
+                        onClick={() => pickSuggestion(r.destination)}
+                        className="w-full text-left rounded-xl overflow-hidden transition-all"
+                        style={{
+                          border: "1.5px solid var(--border-light)",
+                          background: "white",
+                          cursor: "pointer",
+                          boxShadow: "var(--shadow-sm)",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--forest)";
+                          (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-md)";
+                          (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-light)";
+                          (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-sm)";
+                          (e.currentTarget as HTMLButtonElement).style.transform = "none";
+                        }}
+                      >
+                        <div className="flex items-start gap-3 p-4">
+                          <span
+                            className="text-2xl w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background: "var(--bg-mint)" }}
+                          >
+                            {r.emoji}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                              <span className="text-sm font-bold" style={{ color: "var(--text-dark)" }}>
+                                {r.destination}
+                              </span>
+                              <span
+                                className="text-xs font-medium flex-shrink-0 px-2 py-0.5 rounded-full"
+                                style={{ background: "var(--bg-mint)", color: "var(--forest)", border: "1px solid var(--border-mid)" }}
+                              >
+                                {r.distance}
+                              </span>
+                            </div>
+                            <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>{r.tagline}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {r.highlights.map((h) => (
+                                <span
+                                  key={h}
+                                  className="text-xs px-2 py-0.5 rounded-full"
+                                  style={{ background: "rgba(45,106,79,0.07)", color: "var(--text-mid)", border: "1px solid var(--border-light)" }}
+                                >
+                                  {h}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          className="px-4 py-2 flex items-center justify-end gap-1 text-xs font-semibold"
+                          style={{ background: "var(--bg-mint)", borderTop: "1px solid var(--border-light)", color: "var(--forest)" }}
+                        >
+                          Select this destination →
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tripType === "destination" ? (
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <div>
+                <label className="label">From</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+              <div>
+                <label className="label">To</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <div>
+                <label className="label">Leave {origin.split(",")[0] || "origin"} on</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+              <div>
+                <label className="label">Return home on</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+            </div>
+          )}
 
           {dayCount !== null && dayCount > 0 && (
             <div
@@ -474,7 +987,7 @@ export default function NewTripPage() {
             Ready to generate your itinerary?
           </h2>
           <p className="text-sm mb-7" style={{ color: "var(--text-muted)" }}>
-            Here&apos;s everything MyTravel-AI will work with.
+            Here&apos;s everything MyTravel AI will work with.
           </p>
 
           {/* Review card */}
@@ -483,13 +996,39 @@ export default function NewTripPage() {
               className="px-6 py-5"
               style={{ background: "linear-gradient(135deg, var(--bg-mint), white)", borderBottom: "1px solid var(--border-light)" }}
             >
-              <div className="text-2xl mb-1">✈ {destination}</div>
+              <div className="text-2xl mb-1">
+                {tripType === "roadtrip" ? "🚗" : "✈"} {destination}
+              </div>
               <div className="text-sm" style={{ color: "var(--text-muted)" }}>
+                {tripType === "roadtrip" && origin && <span>🛫 {origin} → </span>}
                 {startDate} → {endDate}
                 {dayCount !== null && ` · ${dayCount} days`}
               </div>
             </div>
             <div className="px-6 py-2">
+              {tripType === "roadtrip" && (
+                <div className="py-3" style={{ borderBottom: "1px solid var(--border-light)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm" style={{ color: "var(--text-muted)" }}>Trip type</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--forest)", color: "white" }}>Road Trip</span>
+                  </div>
+                  {arriveDestDate && (
+                    <div className="text-xs mb-1" style={{ color: "var(--text-mid)" }}>
+                      🏁 Arrive at {destination.split(",")[0]}: {arriveDestDate}{arriveDestTime ? ` at ${arriveDestTime}` : ""}
+                    </div>
+                  )}
+                  {leaveDestDate && (
+                    <div className="text-xs mb-1" style={{ color: "var(--text-mid)" }}>
+                      🛣 Leave {destination.split(",")[0]}: {leaveDestDate}{leaveDestTime ? ` at ${leaveDestTime}` : ""}
+                    </div>
+                  )}
+                  {(includeRouteStops || includeReturnStops) && (
+                    <div className="text-xs mt-1" style={{ color: "var(--text-faint)" }}>
+                      En-route stops: {[includeRouteStops && "outbound", includeReturnStops && "return"].filter(Boolean).join(" + ")}
+                    </div>
+                  )}
+                </div>
+              )}
               {[
                 {
                   label: "Travel Styles",
@@ -525,9 +1064,7 @@ export default function NewTripPage() {
                   </span>
                 </div>
               ))}
-              <div
-                className="flex items-center justify-between py-3"
-              >
+              <div className="flex items-center justify-between py-3">
                 <span className="text-sm" style={{ color: "var(--text-muted)" }}>Weather</span>
                 <span className="text-sm font-semibold" style={{ color: "var(--text-dark)" }}>
                   🌤 Live forecast will be fetched
@@ -542,7 +1079,7 @@ export default function NewTripPage() {
             style={{ background: "var(--bg-mint)", border: "1px solid var(--border-mid)" }}
           >
             <h4 className="text-sm font-bold mb-3" style={{ color: "var(--forest)" }}>
-              ✦ What MyTravel-AI will do with this:
+              ✦ What MyTravel AI will do with this:
             </h4>
             <ul className="space-y-2">
               {[

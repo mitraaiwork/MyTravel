@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 10080  # 7 days
 
-    # Anthropic
-    anthropic_api_key: str = ""
+    # Google AI
+    google_api_key: str = ""
 
     # Mapbox
     mapbox_token: str = ""
@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     cors_origins: list[str] = ["http://localhost:3000"]
     debug: bool = False
+
+    # Testing — set MOCK_AI=true to skip all Anthropic API calls
+    mock_ai: bool = False
 
 
 settings = Settings()

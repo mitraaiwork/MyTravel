@@ -40,6 +40,7 @@ function getCatBadgeStyle(category: string): React.CSSProperties {
     transport:     ["rgba(72,202,228,0.12)",  "#0ea5e9", "rgba(72,202,228,0.25)"],
     wellness:      ["rgba(13,148,136,0.10)",  "#0d9488", "rgba(13,148,136,0.22)"],
     accommodation: ["rgba(245,158,11,0.12)",  "#d97706", "rgba(245,158,11,0.25)"],
+    viewpoint:     ["rgba(251,191,36,0.15)",  "#b45309", "rgba(251,191,36,0.35)"],
   };
   const [bg, color, border] = map[category] ?? ["rgba(120,140,130,0.10)", "#6e9678", "rgba(120,140,130,0.18)"];
   return {
@@ -115,6 +116,24 @@ export default function ActivityCard({
       {/* Content column */}
       <div className="flex gap-3 min-w-0">
         <div className="flex-1 min-w-0">
+        {/* Golden-hour banner for viewpoint activities */}
+        {activity.category === "viewpoint" && (
+          <div
+            className="inline-flex items-center gap-1 text-xs font-semibold mb-1.5 px-2 py-0.5 rounded-full"
+            style={{
+              background: "linear-gradient(90deg, rgba(251,191,36,0.18) 0%, rgba(251,146,60,0.14) 100%)",
+              border: "1px solid rgba(251,191,36,0.45)",
+              color: "#92400e",
+            }}
+          >
+            {activity.time && parseInt(activity.time) < 10
+              ? "🌄 Sunrise viewpoint"
+              : activity.time && parseInt(activity.time) >= 17
+                ? "🌇 Sunset viewpoint"
+                : "🔭 Scenic viewpoint"}
+          </div>
+        )}
+
         {/* Name */}
         <div className="font-semibold text-sm mb-1" style={{ color: "var(--text-dark)" }}>
           {activity.name}

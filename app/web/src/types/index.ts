@@ -26,6 +26,13 @@ export interface Trip {
   user_id: number;
   title: string | null;
   destination: string;
+  origin?: string | null;
+  trip_type?: string;
+  arrive_destination_date?: string | null;
+  arrive_destination_time?: string | null;
+  leave_destination_date?: string | null;
+  leave_destination_time?: string | null;
+  include_return_stops?: boolean;
   destination_lat: number | null;
   destination_lng: number | null;
   start_date: string;
@@ -63,6 +70,7 @@ export interface Activity {
   address?: string;
   website?: string;
   image_url?: string;
+  distance_miles?: number;
 }
 
 export interface Restaurant {
@@ -73,6 +81,8 @@ export interface Restaurant {
   price_range?: string;
   location?: string;
   insider_tip?: string;
+  website?: string;
+  image_url?: string;
 }
 
 export interface OffbeatSpot {
@@ -97,7 +107,12 @@ export interface Day {
     low_c: number;
     icon?: string;
   };
+  sunrise?: string;
+  sunset?: string;
   travel_tip?: string;
+  day_type?: "destination" | "travel_outbound" | "travel_return" | "partial_arrival" | "partial_departure";
+  arrival_time?: string;
+  departure_time?: string;
 }
 
 export interface AccommodationOption {
@@ -117,12 +132,38 @@ export interface AccommodationZone {
   options: AccommodationOption[];
 }
 
+export interface TripWeather {
+  is_forecast: boolean;
+  avg_high_c: number;
+  avg_low_c: number;
+  dominant_condition: string;
+  rain_days: number;
+  total_days: number;
+}
+
+export interface RouteStop {
+  name: string;
+  category: string;
+  location: string;
+  why_stop: string;
+  duration?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface RouteJourney {
+  outbound: RouteStop[];
+  return?: RouteStop[];
+  note?: string;
+}
+
 export interface Itinerary {
   trip_id: number;
   destination: string;
   country: string;
   summary: string;
   days: Day[];
+  weather?: TripWeather;
   practical_info?: {
     currency?: string;
     language?: string;
@@ -131,7 +172,81 @@ export interface Itinerary {
     packing_suggestions?: string[];
   };
   accommodations?: AccommodationZone[];
+  route_stops?: RouteJourney;
   generated_at: string;
+}
+
+export type TripPhase = "planning" | "pre-trip" | "in-trip" | "post-trip";
+
+export interface UserProfile {
+  home_city?: string | null;
+  passport_nationality?: string | null;
+  food_preference?: string | null;
+  seat_preference?: string | null;
+  preferred_pace?: string | null;
+  preferred_styles?: string | null;
+}
+
+export interface PackingItem {
+  label: string;
+  essential: boolean;
+  note?: string;
+}
+
+export interface PackingCategory {
+  name: string;
+  icon: string;
+  items: PackingItem[];
+}
+
+export interface PackingList {
+  weather_note?: string;
+  categories: PackingCategory[];
+}
+
+export interface LocalServiceItem {
+  name: string;
+  address?: string;
+  hours?: string;
+  phone?: string;
+  website?: string;
+  note?: string;
+}
+
+export interface LocalServiceCategory {
+  id: string;
+  label: string;
+  emoji: string;
+  items: LocalServiceItem[];
+  not_found_note?: string;
+}
+
+export interface LocalServicesResponse {
+  categories?: LocalServiceCategory[];
+  not_applicable?: boolean;
+  message?: string;
+  reference_city?: string;
+}
+
+export interface TripFeedback {
+  id?: number;
+  trip_id?: number;
+  overall_rating?: number;
+  itinerary_rating?: number;
+  restaurant_rating?: number;
+  flow_rating?: number;
+  pace_rating?: number;
+  keep_list?: string[];
+  skip_list?: string[];
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
 }
 
 export interface AuthResponse {
@@ -146,11 +261,19 @@ export interface ApiError {
 
 export interface CreateTripData {
   destination: string;
+  origin?: string;
   start_date: string;
   end_date: string;
   travel_style: string;       // comma-separated
   interests?: string;         // comma-separated
   accommodation_type?: string; // comma-separated
+  include_route_stops?: boolean;
+  trip_type?: string;
+  arrive_destination_date?: string;
+  arrive_destination_time?: string;
+  leave_destination_date?: string;
+  leave_destination_time?: string;
+  include_return_stops?: boolean;
 }
 
 export interface UpdateActivityData {

@@ -52,6 +52,19 @@ const CAT_COLOURS: Record<string, { bg: string; color: string; border: string }>
   Transport:    { bg: "rgba(148,163,184,0.12)", color: "#94a3b8", border: "rgba(148,163,184,0.2)"  },
 };
 
+const POPULAR_DESTINATIONS = [
+  { name: "Tokyo",      country: "Japan",     flag: "🇯🇵", photo: "photo-1540959733332-eab4deabeeaf", color: "#1b4332" },
+  { name: "Paris",      country: "France",    flag: "🇫🇷", photo: "photo-1502602898657-3e91760cbb34", color: "#4f46e5" },
+  { name: "Bali",       country: "Indonesia", flag: "🇮🇩", photo: "photo-1537996194471-e657df975ab4", color: "#b45309" },
+  { name: "Rome",       country: "Italy",     flag: "🇮🇹", photo: "photo-1552832230-c0197dd311b5",    color: "#0369a1" },
+  { name: "Santorini",  country: "Greece",    flag: "🇬🇷", photo: "photo-1555993539-1732b0258235",    color: "#0d9488" },
+  { name: "Bangkok",    country: "Thailand",  flag: "🇹🇭", photo: "photo-1506665531195-3566af2b4dfa", color: "#7c3aed" },
+  { name: "London",     country: "UK",        flag: "🇬🇧", photo: "photo-1513635269975-59663e0ac1ad", color: "#059669" },
+  { name: "Kyoto",      country: "Japan",     flag: "🇯🇵", photo: "photo-1493976040374-85c8e12f0c0e", color: "#9333ea" },
+  { name: "New York",   country: "USA",       flag: "🇺🇸", photo: "photo-1538970272646-f61fabb3a8a2", color: "#ea580c" },
+  { name: "Maldives",   country: "Maldives",  flag: "🇲🇻", photo: "photo-1573843981267-be1999ff37cd", color: "#0077b6" },
+];
+
 const QUOTES = [
   { text: "I used to spend a full weekend planning a 5-day trip. MyTravel built the same quality plan in 28 seconds. Tweaked two activities and it was perfect.", name: "Sarah M.", role: "Travel blogger · 42 countries", color: "#2d6a4f", init: "S" },
   { text: "The 'why I chose this' note for every activity is genius. It's not just a list — I understand the logic. Makes me trust it completely.", name: "James K.", role: "Solo traveller · Used 14 times", color: "#0096c7", init: "J" },
@@ -72,6 +85,67 @@ const FEATURES = [
 
 /* ─── Frame colors for dark demo mock ──────────────────────────────────────── */
 const F = { bg: "#0f1e14", bg2: "#1e3022", text: "#d4e8d4", text2: "#7dc99a", text3: "#4a8a5a" };
+
+/* ─── Popular destinations strip ────────────────────────────────────────────── */
+
+function DestinationsStrip() {
+  return (
+    <section className="py-16 px-4 bg-white overflow-hidden">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <span className="inline-block text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-3 text-[#1a7a4a]" style={{ background: "rgba(26,122,74,0.08)", border: "1px solid rgba(26,122,74,0.15)" }}>Popular Destinations</span>
+          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0d1f12]">
+            Plan anywhere in the world.
+          </h2>
+          <p className="text-[#4b7a5e] mt-3 text-base max-w-md mx-auto">
+            From Tokyo to Santorini — tell us where you want to go and we handle the rest.
+          </p>
+        </div>
+        <div
+          className="grid gap-3"
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}
+        >
+          {POPULAR_DESTINATIONS.map((dest) => (
+            <Link
+              key={dest.name}
+              href="/register"
+              className="group relative rounded-2xl overflow-hidden no-underline block"
+              style={{ height: 200, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}
+            >
+              {/* Photo */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://images.unsplash.com/${dest.photo}?w=400&h=400&fit=crop&auto=format&q=80`}
+                alt={dest.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                loading="lazy"
+              />
+              {/* Gradient overlay */}
+              <div
+                className="absolute inset-0"
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)" }}
+              />
+              {/* Text */}
+              <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                <div className="text-white font-bold text-sm leading-tight">{dest.flag} {dest.name}</div>
+                <div className="text-white/70 text-xs mt-0.5">{dest.country}</div>
+              </div>
+              {/* Hover CTA */}
+              <div
+                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                style={{ background: `${dest.color}cc` }}
+              >
+                <span className="text-white font-bold text-sm px-4 py-2 rounded-full" style={{ background: "rgba(255,255,255,0.2)", border: "1.5px solid rgba(255,255,255,0.4)" }}>
+                  Plan this trip →
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /* ─── Demo section ──────────────────────────────────────────────────────────── */
 
@@ -401,6 +475,7 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16" style={{ background: "radial-gradient(ellipse 90% 70% at 15% 20%, rgba(45,106,79,0.18) 0%, transparent 55%), radial-gradient(ellipse 70% 60% at 85% 15%, rgba(14,165,233,0.22) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 50% 95%, rgba(52,199,123,0.12) 0%, transparent 50%), linear-gradient(160deg, #e8faf0 0%, #ebf7ff 45%, #f5feff 100%)" }}>
+
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 text-sm font-semibold" style={{ background: "rgba(255,255,255,0.85)", border: "1px solid rgba(45,106,79,0.2)", boxShadow: "0 2px 16px rgba(45,106,79,0.12)", color: "#1a7a4a", backdropFilter: "blur(8px)" }}>
           <span className="w-2 h-2 rounded-full flex-shrink-0 pulse-badge" style={{ background: "#34c77b" }} />
@@ -436,6 +511,9 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* ── Destinations ── */}
+      <DestinationsStrip />
 
       {/* ── Demo ── */}
       <DemoSection />

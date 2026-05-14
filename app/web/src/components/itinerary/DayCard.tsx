@@ -102,6 +102,30 @@ export default function DayCard({
                 🌤 {day.weather.high_c}°/{day.weather.low_c}° · {day.weather.condition}
               </div>
             )}
+            {day.sunrise && (
+              <div
+                className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style={{
+                  background: "var(--bg-cream)",
+                  border: "1px solid var(--border-light)",
+                  color: "var(--text-muted)",
+                }}
+              >
+                🌅 {day.sunrise}
+              </div>
+            )}
+            {day.sunset && (
+              <div
+                className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style={{
+                  background: "var(--bg-cream)",
+                  border: "1px solid var(--border-light)",
+                  color: "var(--text-muted)",
+                }}
+              >
+                🌇 {day.sunset}
+              </div>
+            )}
             <span
               className="ml-auto text-sm transition-transform"
               style={{

@@ -1,15 +1,21 @@
 import asyncio
 import json
+import math
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_db
 from app.models.trip import Trip, Itinerary
 from app.models.user import User
-from app.services.ai.itinerary import generate_single_day_stream, generate_meta, generate_day_outline
-from app.services.ai.weather import get_weather_context
+from app.schemas.feedback import ChatRequest
+from app.services.ai.itinerary import generate_single_day_stream, generate_meta, generate_day_outline, generate_route_stops
+from app.services.ai.chat import stream_chat_response
+from app.services.ai.packing import generate_packing_list
+from app.services.ai.local_services import generate_local_services
+from app.services.ai.weather import get_full_weather
 from app.services.maps.mapbox import geocode
 from app.dependencies.auth import get_current_user
 from app.auth import decode_token
@@ -17,6 +23,77 @@ from app.config import settings
 from app.services.images import fetch_activity_image
 
 router = APIRouter()
+
+
+
+def _haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    R = 3958.8
+    φ1, φ2 = math.radians(lat1), math.radians(lat2)
+    Δφ = math.radians(lat2 - lat1)
+    Δλ = math.radians(lng2 - lng1)
+    a = math.sin(Δφ / 2) ** 2 + math.cos(φ1) * math.cos(φ2) * math.sin(Δλ / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _nn_order(activities: list[dict]) -> list[dict]:
+    """Nearest-neighbour reorder to minimise backtracking within a day."""
+    if len(activities) <= 2:
+        return activities
+    remaining = list(activities)
+    ordered = [remaining.pop(0)]
+    while remaining:
+        last = ordered[-1]
+        last_lat = last.get("lat") or 0.0
+        last_lng = last.get("lng") or 0.0
+        if not last_lat or not last_lng:
+            ordered.append(remaining.pop(0))
+            continue
+        best_i, best_dist = 0, float("inf")
+        for i, act in enumerate(remaining):
+            act_lat = act.get("lat") or 0.0
+            act_lng = act.get("lng") or 0.0
+            if act_lat and act_lng:
+                d = _haversine_miles(last_lat, last_lng, act_lat, act_lng)
+                if d < best_dist:
+                    best_dist = d
+                    best_i = i
+        ordered.append(remaining.pop(best_i))
+    return ordered
+
+
+def _time_minutes(t: str) -> int:
+    try:
+        h, m = t.split(":")
+        return int(h) * 60 + int(m)
+    except Exception:
+        return -1
+
+
+def _reorder_and_retime(activities: list[dict]) -> list[dict]:
+    """
+    1. NN-reorder for geographic efficiency.
+    2. Collect the AI-assigned times, sort them, and redistribute across the
+       geo-ordered sequence so visit order matches time order.
+    3. Return sorted by time.
+    """
+    if not activities:
+        return activities
+
+    geo_ordered = _nn_order(list(activities))
+
+    sorted_times = sorted(
+        [a["time"] for a in activities if a.get("time")],
+        key=_time_minutes,
+    )
+
+    timed_count = len(sorted_times)
+    for i, act in enumerate(geo_ordered):
+        if i < timed_count:
+            act["time"] = sorted_times[i]
+        else:
+            act.pop("time", None)
+
+    return sorted(geo_ordered, key=lambda a: _time_minutes(a["time"]) if a.get("time") else 9999)
 
 
 async def _get_trip_by_public_id(public_id: str, db: AsyncSession) -> Trip | None:
@@ -40,6 +117,42 @@ def _iter_dates(start_date, end_date):
     while current <= end_date:
         yield current
         current += timedelta(days=1)
+
+
+def _classify_days(trip: Trip) -> list[dict]:
+    """Return a list of day dicts with day_type classification for road trips."""
+    dates = list(_iter_dates(trip.start_date, trip.end_date))
+    is_roadtrip = getattr(trip, "trip_type", "destination") == "roadtrip"
+    arrive_date = getattr(trip, "arrive_destination_date", None)
+    arrive_time = getattr(trip, "arrive_destination_time", None)
+    leave_date = getattr(trip, "leave_destination_date", None)
+    leave_time = getattr(trip, "leave_destination_time", None)
+
+    classified = []
+    for i, d in enumerate(dates):
+        entry: dict = {"day": i + 1, "date": str(d)}
+        if not is_roadtrip or arrive_date is None:
+            entry["day_type"] = "destination"
+        elif d < arrive_date:
+            entry["day_type"] = "travel_outbound"
+        elif d == arrive_date:
+            if arrive_time:
+                entry["day_type"] = "partial_arrival"
+                entry["arrival_time"] = arrive_time
+            else:
+                entry["day_type"] = "travel_outbound"
+        elif leave_date is None or d < leave_date:
+            entry["day_type"] = "destination"
+        elif d == leave_date:
+            if leave_time:
+                entry["day_type"] = "partial_departure"
+                entry["departure_time"] = leave_time
+            else:
+                entry["day_type"] = "travel_return"
+        else:
+            entry["day_type"] = "travel_return"
+        classified.append(entry)
+    return classified
 
 
 def _clean_json(text: str) -> str:
@@ -131,12 +244,22 @@ async def generate_itinerary(
         await websocket.close()
         return
 
-    # Generation cap check
+    # Generation cap check — reset counter at the start of each new calendar month
     GEN_LIMIT = settings.free_tier_gen_limit
+    now = datetime.now(timezone.utc)
+    if (
+        user.gen_reset_at is None
+        or user.gen_reset_at.month != now.month
+        or user.gen_reset_at.year != now.year
+    ):
+        user.gen_count = 0
+        user.gen_reset_at = now
+        await db.commit()
+
     if (user.gen_count or 0) >= GEN_LIMIT:
         await websocket.send_json({
             "type": "cap_reached",
-            "message": f"You have used all {GEN_LIMIT} free generations. Upgrade to Premium for unlimited itineraries.",
+            "message": f"You have used all {GEN_LIMIT} free generations this month. Upgrade to Premium for unlimited itineraries.",
         })
         await websocket.close()
         return
@@ -152,35 +275,46 @@ async def generate_itinerary(
         db.add(itinerary)
     await db.commit()
 
-    # Build date list
-    dates = list(_iter_dates(trip.start_date, trip.end_date))
-    total_days = len(dates)
-    day_list = [{"day": i + 1, "date": str(d)} for i, d in enumerate(dates)]
+    # Classify all days (destination vs travel for road trips)
+    classified = _classify_days(trip)
+    total_days = len(classified)
+    day_type_map = {c["day"]: c["day_type"] for c in classified}
 
-    # Send "started" immediately with day list so UI can render all skeletons
-    await websocket.send_json({"type": "started", "days": day_list})
+    # Send "started" immediately with classified day list so UI can render skeletons
+    await websocket.send_json({"type": "started", "days": classified})
 
-    # Pre-planning: assign each day a distinct area (fast Haiku call, non-blocking)
+    # Pre-planning: assign areas only for destination/partial days
+    ai_days_for_outline = [
+        {"day": c["day"], "date": c["date"]}
+        for c in classified
+        if c["day_type"] not in ("travel_outbound", "travel_return")
+    ]
     day_outline: list[dict] = []
     try:
-        day_outline = await asyncio.wait_for(
-            generate_day_outline(trip, day_list),
-            timeout=10.0,
-        )
+        if ai_days_for_outline:
+            day_outline = await asyncio.wait_for(
+                generate_day_outline(trip, ai_days_for_outline),
+                timeout=10.0,
+            )
     except Exception:
         pass  # degrade gracefully — days still generate without the outline
 
-    # Fetch weather (non-blocking, 3s cap)
-    weather: dict[str, str] = {}
+    # Fetch weather — uses forecast for near-future trips, historical proxy otherwise
+    weather_per_day: dict[str, str] = {}
+    weather_structured: dict[str, dict] = {}
+    weather_summary: dict = {}
     if trip.destination_lat and trip.destination_lng:
         try:
-            weather = await asyncio.wait_for(
-                get_weather_context(
+            full_wx = await asyncio.wait_for(
+                get_full_weather(
                     trip.destination_lat, trip.destination_lng,
                     trip.start_date, trip.end_date,
                 ),
-                timeout=3.0,
+                timeout=10.0,
             )
+            weather_per_day = full_wx.get("per_day", {})
+            weather_summary = full_wx.get("summary", {})
+            weather_structured = {d["date"]: d for d in weather_summary.get("days", [])}
         except Exception:
             pass
 
@@ -190,13 +324,33 @@ async def generate_itinerary(
     day_texts: dict[int, str] = {}
     day_errors: set[int] = set()
 
-    async def stream_one_day(day_num: int, day_date: str):
-        weather_for_day = weather.get(day_date, "Weather data not available")
+    async def stream_one_day(c: dict):
+        day_num = c["day"]
+        day_date = c["date"]
+        dt = c["day_type"]
+
+        if dt in ("travel_outbound", "travel_return"):
+            stub = {
+                "day": day_num,
+                "date": day_date,
+                "day_type": dt,
+                "theme": "Travel Day",
+                "area": "",
+                "activities": [],
+            }
+            day_texts[day_num] = json.dumps(stub)
+            await queue.put({"type": "day_done", "day": day_num})
+            return
+
+        weather_for_day = weather_per_day.get(day_date, "Weather data not available")
         text = ""
         try:
             async for chunk in generate_single_day_stream(
                 trip, weather_for_day, day_num, day_date, total_days,
                 day_outline=day_outline,
+                day_type=dt,
+                arrival_time=c.get("arrival_time"),
+                departure_time=c.get("departure_time"),
             ):
                 text += chunk
                 await queue.put({"type": "day_chunk", "day": day_num, "content": chunk})
@@ -206,12 +360,18 @@ async def generate_itinerary(
             day_errors.add(day_num)
             await queue.put({"type": "day_error", "day": day_num, "error": str(e)})
 
-    # Launch all day tasks + meta task in parallel
+    # Launch all day tasks + meta + local services + optional route stops in parallel
     day_tasks = [
-        asyncio.create_task(stream_one_day(i + 1, str(d)))
-        for i, d in enumerate(dates)
+        asyncio.create_task(stream_one_day(c))
+        for c in classified
     ]
     meta_task = asyncio.create_task(generate_meta(trip, day_outline))
+    local_services_task = asyncio.create_task(generate_local_services(trip))
+    route_stops_task = (
+        asyncio.create_task(generate_route_stops(trip))
+        if (trip.include_route_stops or getattr(trip, "include_return_stops", False)) and trip.origin
+        else None
+    )
 
     # Forward queue messages to the WebSocket until all days finish
     completed = 0
@@ -225,14 +385,28 @@ async def generate_itinerary(
         for t in day_tasks:
             t.cancel()
         meta_task.cancel()
+        local_services_task.cancel()
         return
 
-    # Wait for all tasks + meta
+    # Wait for all tasks + meta + local services
     await asyncio.gather(*day_tasks, return_exceptions=True)
     try:
         meta = await asyncio.wait_for(meta_task, timeout=25.0)
     except Exception:
         meta = {}
+
+    local_services_data: dict = {}
+    try:
+        local_services_data = await asyncio.wait_for(local_services_task, timeout=30.0)
+    except Exception:
+        pass
+
+    route_stops: dict = {}
+    if route_stops_task:
+        try:
+            route_stops = await asyncio.wait_for(route_stops_task, timeout=20.0)
+        except Exception:
+            pass
 
     # If every day failed, mark as failed
     if len(day_errors) == total_days:
@@ -247,25 +421,31 @@ async def generate_itinerary(
 
     # ── Combine + geocode + save ──────────────────────────────────────────────
 
+    classified_map = {c["day"]: c for c in classified}
     all_days = []
     for day_num in sorted(day_texts.keys()):
         try:
             cleaned = _clean_json(day_texts[day_num])
             day_data = json.loads(cleaned)
+            day_data.setdefault("day_type", day_type_map.get(day_num, "destination"))
+            c = classified_map.get(day_num, {})
+            if "arrival_time" in c:
+                day_data["arrival_time"] = c["arrival_time"]
+            if "departure_time" in c:
+                day_data["departure_time"] = c["departure_time"]
             all_days.append(day_data)
         except Exception:
             # Skip malformed days
             pass
 
-    # Geocode activities with missing/zero coordinates
+    # Geocode all activities via Mapbox — skip travel day stubs (no activities)
     activities_to_geocode: list[tuple[dict, str]] = []
     for day in all_days:
+        if day.get("day_type") in ("travel_outbound", "travel_return"):
+            continue
         for activity in day.get("activities", []):
-            lat = activity.get("lat") or 0
-            lng = activity.get("lng") or 0
-            if not lat or not lng or abs(lat) < 0.001 or abs(lng) < 0.001:
-                query = f"{activity.get('name', '')}, {trip.destination}"
-                activities_to_geocode.append((activity, query))
+            query = f"{activity.get('name', '')}, {trip.destination}"
+            activities_to_geocode.append((activity, query))
 
     if activities_to_geocode:
         geo_results = await asyncio.gather(
@@ -276,10 +456,30 @@ async def generate_itinerary(
             if isinstance(result, tuple):
                 activity["lat"], activity["lng"] = result
 
-    # Fetch one Wikipedia image per activity (parallel, 12s cap)
+    # Remove any activity that already appeared on an earlier day (skip travel stubs)
+    seen_names: set[str] = set()
+    for day in all_days:
+        if day.get("day_type") in ("travel_outbound", "travel_return"):
+            continue
+        unique: list[dict] = []
+        for act in day.get("activities", []):
+            key = act.get("name", "").lower().strip()
+            if key and key not in seen_names:
+                seen_names.add(key)
+                unique.append(act)
+        day["activities"] = unique
+
+    # NN-reorder by proximity, redistribute times, then sort chronologically
+    for day in all_days:
+        if day.get("day_type") in ("travel_outbound", "travel_return"):
+            continue
+        day["activities"] = _reorder_and_retime(day["activities"])
+
+    # Fetch one Wikipedia image per activity (parallel, 12s cap) — skip travel stubs
     all_activities: list[dict] = [
         activity
         for day in all_days
+        if day.get("day_type") not in ("travel_outbound", "travel_return")
         for activity in day.get("activities", [])
     ]
     try:
@@ -303,6 +503,22 @@ async def generate_itinerary(
     except Exception:
         pass
 
+    # Stamp structured weather onto each day object
+    for day_data in all_days:
+        day_date = day_data.get("date")
+        if day_date and day_date in weather_structured:
+            wx = weather_structured[day_date]
+            day_data["weather"] = {
+                "condition": wx["condition"],
+                "high_c":    wx["high_c"],
+                "low_c":     wx["low_c"],
+                "precip_mm": wx["precip_mm"],
+            }
+            if "sunrise" in wx:
+                day_data["sunrise"] = wx["sunrise"]
+            if "sunset" in wx:
+                day_data["sunset"] = wx["sunset"]
+
     full_itinerary = {
         "destination": meta.get("destination", trip.destination),
         "country": meta.get("country", ""),
@@ -310,12 +526,16 @@ async def generate_itinerary(
         "days": all_days,
         "practical_info": meta.get("practical_info", {}),
         "accommodations": meta.get("accommodations", []),
+        "weather": weather_summary,
+        "route_stops": route_stops if route_stops else None,
     }
 
     itinerary.content = json.dumps(full_itinerary)
     itinerary.status = "done"
-    itinerary.model_used = "claude-sonnet-4-6"
+    itinerary.model_used = "gemini-2.5-flash"
     itinerary.generated_at = datetime.now(timezone.utc)
+    if local_services_data:
+        itinerary.local_services = json.dumps(local_services_data)
 
     user.gen_count = (user.gen_count or 0) + 1
     await db.commit()
@@ -389,3 +609,176 @@ async def reorder_activities(
     trip.itinerary.content = json.dumps(content)
     await db.commit()
     return _content_response(trip.id, trip.itinerary)
+
+
+# ── Packing List ──────────────────────────────────────────────────────────────
+
+@router.get("/{public_id}/packing-list")
+async def get_packing_list(
+    public_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    trip = await _get_trip_by_public_id(public_id, db)
+    if not trip or trip.user_id != user.id:
+        raise HTTPException(status_code=404)
+    if not trip.itinerary or trip.itinerary.status != "done":
+        raise HTTPException(status_code=400, detail="Itinerary not yet generated")
+
+    # Return cached result if available
+    if trip.itinerary.packing_list:
+        return json.loads(trip.itinerary.packing_list)
+
+    # Extract activities and full weather context from itinerary content
+    content = json.loads(trip.itinerary.content)
+    activities = [
+        a["name"]
+        for day in content.get("days", [])
+        for a in day.get("activities", [])
+        if a.get("name")
+    ]
+    packing_suggestions = content.get("practical_info", {}).get("packing_suggestions", [])
+
+    # Build a rich weather summary for the packing prompt
+    wx = content.get("weather", {})
+    day_wx_parts = [
+        f"{d['date']}: {d['weather']['condition']} {d['weather']['high_c']}°C/{d['weather']['low_c']}°C"
+        f"{(', ' + str(d['weather']['precip_mm']) + 'mm rain') if d['weather'].get('precip_mm', 0) > 2 else ''}"
+        for d in content.get("days", [])
+        if d.get("weather")
+    ]
+    if wx:
+        weather_summary = (
+            f"Overall: {wx.get('dominant_condition')}, avg {wx.get('avg_high_c')}°C/{wx.get('avg_low_c')}°C, "
+            f"{wx.get('rain_days', 0)} rain day(s) out of {wx.get('total_days')}. "
+            f"{'Forecast data.' if wx.get('is_forecast') else 'Based on historical averages for this time of year.'}"
+            + (f" Day-by-day: {'; '.join(day_wx_parts)}" if day_wx_parts else "")
+        )
+    else:
+        weather_summary = "; ".join(day_wx_parts) if day_wx_parts else ""
+
+    packing = await generate_packing_list(
+        trip, weather_summary, activities + packing_suggestions
+    )
+
+    # Cache to avoid redundant Claude calls
+    trip.itinerary.packing_list = json.dumps(packing)
+    await db.commit()
+    return packing
+
+
+# ── Local Services ────────────────────────────────────────────────────────────
+
+@router.get("/{public_id}/local-services")
+async def get_local_services(
+    public_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    trip = await _get_trip_by_public_id(public_id, db)
+    if not trip or trip.user_id != user.id:
+        raise HTTPException(status_code=404)
+    if not trip.itinerary or trip.itinerary.status != "done":
+        raise HTTPException(status_code=400, detail="Itinerary not yet generated")
+
+    if not trip.itinerary.local_services:
+        raise HTTPException(status_code=404, detail="Local services not yet available")
+
+    return json.loads(trip.itinerary.local_services)
+
+
+# ── AI Chat (SSE) ─────────────────────────────────────────────────────────────
+
+@router.post("/{public_id}/chat")
+async def chat(
+    public_id: str,
+    body: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    trip = await _get_trip_by_public_id(public_id, db)
+    if not trip or trip.user_id != user.id:
+        raise HTTPException(status_code=404)
+
+    return StreamingResponse(
+        stream_chat_response(trip, trip.itinerary, body.phase, body.history, body.message),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ── Single Day Regeneration (WebSocket) ───────────────────────────────────────
+
+@router.websocket("/generate/{public_id}/day/{day_num}")
+async def regenerate_day(
+    websocket: WebSocket,
+    public_id: str,
+    day_num: int,
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    await websocket.accept()
+    try:
+        user_id = decode_token(token)
+        user = await db.get(User, user_id)
+        if not user:
+            await websocket.send_json({"type": "error", "message": "Unauthorized"})
+            return
+
+        trip = await _get_trip_by_public_id(public_id, db)
+        if not trip or trip.user_id != user.id or not trip.itinerary:
+            await websocket.send_json({"type": "error", "message": "Trip not found"})
+            return
+
+        content = json.loads(trip.itinerary.content)
+        days = content.get("days", [])
+        if day_num < 1 or day_num > len(days):
+            await websocket.send_json({"type": "error", "message": "Day not found"})
+            return
+
+        day_entry = days[day_num - 1]
+        day_date = day_entry.get("date", "")
+
+        await websocket.send_json({"type": "started", "day": day_num})
+
+        # Fetch weather for this specific day
+        weather: dict[str, str] = {}
+        if trip.destination_lat and trip.destination_lng:
+            try:
+                weather = await asyncio.wait_for(
+                    get_weather_context(
+                        trip.destination_lat, trip.destination_lng,
+                        trip.start_date, trip.end_date,
+                    ),
+                    timeout=3.0,
+                )
+            except Exception:
+                pass
+        weather_for_day = weather.get(day_date, "Weather data not available")
+
+        full_text = ""
+        async for chunk in generate_single_day_stream(
+            trip, weather_for_day, day_num, day_date, len(days), day_outline=[]
+        ):
+            await websocket.send_json({"type": "day_chunk", "day": day_num, "content": chunk})
+            full_text += chunk
+
+        # Parse and persist the regenerated day
+        cleaned = _clean_json(full_text)
+        new_day = json.loads(cleaned)
+        content["days"][day_num - 1] = new_day
+        trip.itinerary.content = json.dumps(content)
+        trip.itinerary.packing_list = None  # Invalidate packing cache
+        await db.commit()
+
+        await websocket.send_json({"type": "complete", "day": day_num})
+    except Exception as e:
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except Exception:
+            pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass

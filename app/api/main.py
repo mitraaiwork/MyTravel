@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.db import engine
-from app.routers import auth, trips, itinerary, share
+from app.routers import auth, trips, itinerary, share, users, suggest
 from app.routers import oauth
 
 if settings.sentry_dsn:
@@ -38,6 +38,8 @@ app.include_router(oauth.router, prefix="/auth", tags=["auth"])
 app.include_router(trips.router, prefix="/trips", tags=["trips"])
 app.include_router(itinerary.router, prefix="/itinerary", tags=["itinerary"])
 app.include_router(share.router, prefix="/share", tags=["share"])
+app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(suggest.router, prefix="/suggest", tags=["suggest"])
 
 
 @app.get("/health")

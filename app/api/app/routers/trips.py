@@ -1,12 +1,14 @@
+import json
 import secrets
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_db
-from app.models.trip import Trip
+from app.models.trip import Trip, TripFeedback
 from app.models.user import User
 from app.schemas.trip import TripCreate, TripOut
+from app.schemas.feedback import TripFeedbackIn, TripFeedbackOut
 from app.dependencies.auth import get_current_user
 from app.services.maps.mapbox import geocode
 
@@ -112,3 +114,49 @@ async def disable_share(
     trip.share_enabled = False
     await db.commit()
     return await _get_trip_by_public_id(public_id, db)
+
+
+# ── Trip Feedback ─────────────────────────────────────────────────────────────
+
+@router.get("/{public_id}/feedback", response_model=TripFeedbackOut)
+async def get_feedback(
+    public_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    trip = await _get_trip_by_public_id(public_id, db)
+    if not trip or trip.user_id != user.id:
+        raise HTTPException(status_code=404)
+    result = await db.scalars(select(TripFeedback).where(TripFeedback.trip_id == trip.id))
+    fb = result.first()
+    if not fb:
+        raise HTTPException(status_code=404, detail="No feedback yet")
+    return fb
+
+
+@router.put("/{public_id}/feedback", response_model=TripFeedbackOut)
+async def upsert_feedback(
+    public_id: str,
+    data: TripFeedbackIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    trip = await _get_trip_by_public_id(public_id, db)
+    if not trip or trip.user_id != user.id:
+        raise HTTPException(status_code=404)
+    result = await db.scalars(select(TripFeedback).where(TripFeedback.trip_id == trip.id))
+    fb = result.first()
+    updates = data.model_dump(exclude_unset=True)
+    if fb:
+        for k, v in updates.items():
+            setattr(fb, k, json.dumps(v) if isinstance(v, list) else v)
+    else:
+        kwargs = {
+            k: (json.dumps(v) if isinstance(v, list) else v)
+            for k, v in updates.items()
+        }
+        fb = TripFeedback(trip_id=trip.id, **kwargs)
+        db.add(fb)
+    await db.commit()
+    await db.refresh(fb)
+    return fb

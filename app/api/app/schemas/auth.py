@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, computed_field
+from pydantic import BaseModel, EmailStr, ConfigDict, computed_field
 from app.config import settings
 
 
@@ -31,3 +31,22 @@ class UserOut(BaseModel):
     @property
     def gen_limit(self) -> int:
         return settings.free_tier_gen_limit
+
+
+class UserProfileOut(BaseModel):
+    home_city: str | None = None
+    passport_nationality: str | None = None
+    food_preference: str | None = None
+    seat_preference: str | None = None
+    preferred_pace: str | None = None
+    preferred_styles: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserProfileUpdate(BaseModel):
+    home_city: str | None = None
+    passport_nationality: str | None = None
+    food_preference: str | None = None
+    seat_preference: str | None = None
+    preferred_pace: str | None = None
+    preferred_styles: str | None = None

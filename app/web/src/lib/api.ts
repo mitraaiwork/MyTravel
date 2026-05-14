@@ -6,6 +6,10 @@ import type {
   Activity,
   AuthResponse,
   CreateTripData,
+  UserProfile,
+  PackingList,
+  TripFeedback,
+  LocalServicesResponse,
 } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -155,6 +159,66 @@ export const itineraryApi = {
       `/itinerary/${publicId}/days/${day}/activities/reorder`,
       { new_order: newOrder }
     );
+    return data;
+  },
+
+  getPackingList: async (publicId: string): Promise<PackingList> => {
+    const { data } = await api.get<PackingList>(`/itinerary/${publicId}/packing-list`);
+    return data;
+  },
+
+  getLocalServices: async (publicId: string): Promise<LocalServicesResponse> => {
+    const { data } = await api.get<LocalServicesResponse>(`/itinerary/${publicId}/local-services`);
+    return data;
+  },
+};
+
+// ─── Profile API ──────────────────────────────────────────────────────────────
+
+export const profileApi = {
+  get: async (): Promise<UserProfile> => {
+    const { data } = await api.get<UserProfile>("/users/profile");
+    return data;
+  },
+
+  update: async (profile: Partial<UserProfile>): Promise<UserProfile> => {
+    const { data } = await api.put<UserProfile>("/users/profile", profile);
+    return data;
+  },
+};
+
+// ─── Suggest API ─────────────────────────────────────────────────────────────
+
+export interface SuggestionResult {
+  destination: string;
+  distance: string;
+  tagline: string;
+  highlights: string[];
+  emoji: string;
+}
+
+export const suggestApi = {
+  destinations: async (params: {
+    from_location: string;
+    radius_miles: number | null;
+    terrain: string[];
+    activities: string[];
+  }): Promise<SuggestionResult[]> => {
+    const { data } = await api.post<SuggestionResult[]>("/suggest/destinations", params);
+    return data;
+  },
+};
+
+// ─── Feedback API ─────────────────────────────────────────────────────────────
+
+export const feedbackApi = {
+  get: async (publicId: string): Promise<TripFeedback> => {
+    const { data } = await api.get<TripFeedback>(`/trips/${publicId}/feedback`);
+    return data;
+  },
+
+  save: async (publicId: string, feedback: Partial<TripFeedback>): Promise<TripFeedback> => {
+    const { data } = await api.put<TripFeedback>(`/trips/${publicId}/feedback`, feedback);
     return data;
   },
 };

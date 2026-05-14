@@ -151,6 +151,31 @@ export default function Sidebar() {
           </div>
         </div>
 
+        <Link
+          href="/profile"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm w-full text-left no-underline transition-all mb-1"
+          style={
+            isActive("/profile")
+              ? {
+                  background: "linear-gradient(135deg, rgba(52,199,123,0.18), rgba(82,183,136,0.10))",
+                  color: "#74c69d",
+                  border: "1px solid rgba(52,199,123,0.22)",
+                }
+              : { color: "rgba(255,255,255,0.45)", border: "1px solid transparent" }
+          }
+          onMouseEnter={(e) => {
+            if (!isActive("/profile"))
+              (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.07)";
+          }}
+          onMouseLeave={(e) => {
+            if (!isActive("/profile"))
+              (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+          }}
+        >
+          <span className="w-5 text-center flex-shrink-0">👤</span>
+          Profile
+        </Link>
+
         <button
           onClick={handleLogout}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm w-full text-left transition-all"

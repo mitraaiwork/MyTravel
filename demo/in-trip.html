@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>In-Trip — Day 2 of 5 | Tokyo | MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Active trip banner ── */
+    .active-trip-banner {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      background: linear-gradient(135deg, #0f3d2a, #0d9488);
+      border-radius: var(--r-2xl); padding: 18px 24px; margin-bottom: 20px;
+      box-shadow: var(--shadow-lg); flex-wrap: wrap;
+      position: relative; overflow: hidden;
+    }
+    .active-trip-banner::after { content: ''; position: absolute; right: -30px; top: -30px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,0.05); pointer-events: none; }
+    .active-live-dot { width: 10px; height: 10px; background: #4ade80; border-radius: 50%; animation: live-pulse 1.5s infinite; flex-shrink: 0; }
+    @keyframes live-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0.5);} 60%{box-shadow:0 0 0 8px rgba(74,222,128,0);} }
+    .active-trip-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.6); margin-bottom: 3px; display: flex; align-items: center; gap: 7px; }
+    .active-trip-title { font-size: 20px; font-weight: 800; color: white; }
+    .active-trip-meta  { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+    .active-day-pills  { display: flex; gap: 6px; position: relative; z-index: 1; }
+    .day-pill { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.55); transition: var(--trans); }
+    .day-pill.completed { background: rgba(74,222,128,0.2); border-color: rgba(74,222,128,0.5); color: #4ade80; }
+    .day-pill.today { background: white; border-color: white; color: var(--forest); box-shadow: 0 4px 12px rgba(255,255,255,0.3); }
+    .day-pill.upcoming { border-color: rgba(255,255,255,0.15); }
+
+    /* ── Two-column layout ── */
+    .intrip-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+    @media (max-width: 900px) { .intrip-grid { grid-template-columns: 1fr; } }
+
+    /* ── What's next card ── */
+    .whats-next-card {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-md); margin-bottom: 20px;
+    }
+    .whats-next-header {
+      display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(45,106,79,0.06), rgba(13,148,136,0.04));
+      border-bottom: 1px solid var(--border-light);
+    }
+    .ai-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--teal); background: rgba(13,148,136,0.1); border-radius: var(--r-full); padding: 3px 10px; border: 1px solid rgba(13,148,136,0.2); }
+    .whats-next-body { padding: 18px 20px; }
+    .next-event-name { font-size: 18px; font-weight: 800; color: var(--text-dark); margin-bottom: 4px; }
+    .next-event-time { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .ai-guidance {
+      background: linear-gradient(135deg, rgba(45,106,79,0.05), rgba(13,148,136,0.04));
+      border: 1px solid rgba(45,106,79,0.12); border-radius: var(--r-lg);
+      padding: 14px 16px; font-size: 13px; color: var(--text-mid); line-height: 1.65;
+      position: relative; margin-bottom: 14px;
+    }
+    .ai-guidance::before { content: '✨'; position: absolute; top: 12px; right: 14px; font-size: 16px; opacity: 0.5; }
+    .nav-steps { display: flex; flex-direction: column; gap: 10px; }
+    .nav-step { display: flex; align-items: flex-start; gap: 12px; font-size: 13px; color: var(--text-mid); }
+    .nav-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--forest); color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .whats-next-footer { display: flex; gap: 8px; padding: 12px 20px; background: var(--bg-light); border-top: 1px solid var(--border-light); }
+
+    /* ── Today's schedule ── */
+    .schedule-card {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow-sm);
+    }
+    .schedule-header { padding: 14px 18px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; }
+    .schedule-header h3 { font-size: 14px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 8px; }
+    .timeline { padding: 8px 18px 14px; }
+    .timeline-item { display: flex; gap: 14px; padding: 10px 0; position: relative; }
+    .timeline-item + .timeline-item { border-top: 1px solid var(--border-light); }
+    .tl-time { font-size: 12px; font-weight: 700; color: var(--text-muted); width: 44px; flex-shrink: 0; padding-top: 2px; }
+    .tl-dot-col { display: flex; flex-direction: column; align-items: center; gap: 0; flex-shrink: 0; width: 16px; }
+    .tl-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border-mid); background: var(--bg-white); margin-top: 4px; flex-shrink: 0; }
+    .tl-dot.done    { background: var(--emerald); border-color: var(--emerald); }
+    .tl-dot.now     { background: var(--forest); border-color: var(--forest); box-shadow: 0 0 0 4px rgba(45,106,79,0.2); }
+    .tl-dot.next    { background: rgba(13,148,136,0.2); border-color: var(--teal); }
+    .tl-content { flex: 1; }
+    .tl-name  { font-size: 13px; font-weight: 600; color: var(--text-dark); margin-bottom: 2px; }
+    .tl-name.done { color: var(--text-muted); text-decoration: line-through; }
+    .tl-where { font-size: 12px; color: var(--text-muted); }
+    .tl-now-badge { font-size: 10px; font-weight: 700; color: white; background: var(--forest); border-radius: var(--r-full); padding: 2px 8px; margin-left: 6px; }
+    .tl-next-badge { font-size: 10px; font-weight: 700; color: var(--teal); background: rgba(13,148,136,0.1); border-radius: var(--r-full); padding: 2px 8px; margin-left: 6px; border: 1px solid rgba(13,148,136,0.2); }
+
+    /* ── Trip monitor ── */
+    .monitor-card {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow-sm);
+    }
+    .monitor-header { padding: 14px 18px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; }
+    .monitor-header h3 { font-size: 14px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 8px; }
+    .monitor-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--border-light); }
+    .monitor-item:last-child { border-bottom: none; }
+    .monitor-icon { width: 36px; height: 36px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+    .monitor-info { flex: 1; }
+    .monitor-title { font-size: 13px; font-weight: 600; color: var(--text-dark); margin-bottom: 2px; }
+    .monitor-detail { font-size: 12px; color: var(--text-muted); }
+    .monitor-status { font-size: 12px; font-weight: 700; border-radius: var(--r-full); padding: 4px 10px; flex-shrink: 0; }
+    .ms-ok   { background: rgba(5,150,105,0.1);  color: var(--emerald); }
+    .ms-warn { background: rgba(245,158,11,0.12); color: #92400e; }
+    .ms-info { background: rgba(72,202,228,0.1);  color: var(--teal); }
+
+    /* ── Quick chat panel ── */
+    .chat-panel {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-sm);
+    }
+    .chat-panel-header {
+      display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+      background: linear-gradient(135deg, var(--forest-dark), var(--forest));
+    }
+    .chat-panel-header h3 { font-size: 14px; font-weight: 700; color: white; flex: 1; }
+    .chat-mini-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .chat-messages { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; }
+    .chat-msg { max-width: 85%; }
+    .chat-msg.ai { align-self: flex-start; }
+    .chat-msg.user { align-self: flex-end; }
+    .chat-bubble {
+      padding: 10px 14px; border-radius: var(--r-lg); font-size: 13px; line-height: 1.5;
+    }
+    .chat-bubble.ai   { background: var(--bg-light); color: var(--text-dark); border-radius: var(--r-sm) var(--r-lg) var(--r-lg) var(--r-lg); }
+    .chat-bubble.user { background: var(--forest); color: white; border-radius: var(--r-lg) var(--r-sm) var(--r-lg) var(--r-lg); }
+    .chat-time { font-size: 10px; color: var(--text-faint); margin-top: 3px; }
+    .chat-suggestions { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 10px; }
+    .chat-suggest-chip { padding: 5px 12px; background: var(--bg-light); border: 1px solid var(--border-light); border-radius: var(--r-full); font-size: 11px; color: var(--text-mid); cursor: pointer; transition: var(--trans); white-space: nowrap; }
+    .chat-suggest-chip:hover { border-color: var(--leaf); color: var(--forest); background: var(--bg-mint); }
+    .chat-input-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-light); background: var(--bg-light); }
+    .chat-input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--border-mid); border-radius: var(--r-md); font-size: 13px; font-family: inherit; outline: none; transition: var(--trans); }
+    .chat-input:focus { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(82,183,136,0.12); }
+    .chat-send { padding: 9px 14px; background: var(--forest); color: white; border: none; border-radius: var(--r-md); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--trans); white-space: nowrap; }
+    .chat-send:hover { background: var(--forest-dark); }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search your itinerary…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn">🔔</button>
+      <div class="avatar avatar-md avatar-forest">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label" style="color:#4ade80;display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;background:#4ade80;border-radius:50%;animation:live-pulse 1.5s infinite;flex-shrink:0"></span> Tokyo · Day 2 of 5</div>
+    <a href="itinerary.html" class="nav-item"><span class="nav-icon">📋</span> Full Itinerary</a>
+    <a href="in-trip.html" class="nav-item active" style="background:rgba(74,222,128,0.08);color:#2d6a4f;">
+      <span class="nav-icon">🧭</span> In-Trip Companion
+      <span style="margin-left:auto;font-size:10px;background:rgba(74,222,128,0.2);color:#166534;border-radius:var(--r-full);padding:2px 7px;font-weight:700;">LIVE</span>
+    </a>
+    <a href="pre-trip.html" class="nav-item"><span class="nav-icon">🛂</span> Pre-Trip Prep</a>
+    <a href="packing.html" class="nav-item"><span class="nav-icon">🎒</span> Packing List</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Today · Day 2</div>
+    <a href="#" class="nav-item text-sm" style="color:var(--text-muted);text-decoration:line-through;"><span style="width:6px;height:6px;background:var(--emerald);border-radius:50%;margin-right:4px;"></span> Senso-ji Temple</a>
+    <a href="#" class="nav-item text-sm" style="color:var(--text-muted);text-decoration:line-through;"><span style="width:6px;height:6px;background:var(--emerald);border-radius:50%;margin-right:4px;"></span> Nakamise Street</a>
+    <a href="#" class="nav-item text-sm" style="font-weight:600;"><span style="width:6px;height:6px;background:var(--forest);border-radius:50%;margin-right:4px;animation:live-pulse 1.5s infinite;"></span> Tokyo Skytree ← Now</a>
+    <a href="#" class="nav-item text-sm"><span style="width:6px;height:6px;background:var(--border-mid);border-radius:50%;margin-right:4px;"></span> Ramen at Fuunji</a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Alex Johnson</div>
+          <div class="sidebar-user-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="profile.html" class="nav-item text-sm"><span class="nav-icon">👤</span> My Profile</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="app-main">
+    <div class="app-main-inner">
+
+      <!-- Active trip banner -->
+      <div class="active-trip-banner">
+        <div style="position:relative;z-index:1;">
+          <div class="active-trip-label">
+            <div class="active-live-dot"></div>
+            Active Trip · Apr 13, 2026
+          </div>
+          <div class="active-trip-title">🗼 Tokyo, Japan — Day 2 of 5</div>
+          <div class="active-trip-meta">Asakusa &amp; Sky-High Views · You're here right now</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end;position:relative;z-index:1;">
+          <div class="active-day-pills">
+            <div class="day-pill completed" title="Day 1 done">1</div>
+            <div class="day-pill today" title="Today — Day 2">2</div>
+            <div class="day-pill upcoming" title="Day 3">3</div>
+            <div class="day-pill upcoming" title="Day 4">4</div>
+            <div class="day-pill upcoming" title="Day 5">5</div>
+          </div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);">Current time: 1:42 PM JST</div>
+        </div>
+      </div>
+
+      <div class="intrip-grid">
+
+        <!-- Left column -->
+        <div>
+
+          <!-- What's Next -->
+          <div class="whats-next-card">
+            <div class="whats-next-header">
+              <div class="ai-badge">✨ AI Guidance</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-left:auto;">Updated 1 min ago</div>
+              <button onclick="alert('Refreshing guidance — in the live app!')" style="background:none;border:1px solid var(--border-mid);border-radius:var(--r-sm);padding:4px 10px;font-size:11px;color:var(--text-muted);cursor:pointer;transition:var(--trans);margin-left:8px;" onmouseenter="this.style.borderColor='var(--leaf)'" onmouseleave="this.style.borderColor='var(--border-mid)'">↻ Refresh</button>
+            </div>
+            <div class="whats-next-body">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px;">What's Next</div>
+              <div class="next-event-name">Tokyo Skytree</div>
+              <div class="next-event-time">
+                <span>🕑 1:30 PM – 3:30 PM</span>
+                <span style="background:rgba(5,150,105,0.1);color:var(--emerald);border-radius:var(--r-full);padding:2px 8px;font-size:11px;font-weight:700;border:1px solid rgba(5,150,105,0.2);">In progress now</span>
+              </div>
+              <div class="ai-guidance">
+                You're currently at Nakamise Shopping Street. Tokyo Skytree is just a 5-minute walk east along Nakamise-dori — head toward the giant tower you can already see. Book your deck tickets at the main entrance (floor B3). The afternoon light right now is perfect for photography from the Tembo Deck.
+              </div>
+              <div class="nav-steps">
+                <div class="nav-step"><div class="nav-step-num">1</div> Walk east on Nakamise-dori (5 min · 400m)</div>
+                <div class="nav-step"><div class="nav-step-num">2</div> Enter Skytree via East Tower main entrance (B3)</div>
+                <div class="nav-step"><div class="nav-step-num">3</div> Buy/scan Tembo Deck tickets (¥2,100 per person)</div>
+                <div class="nav-step"><div class="nav-step-num">4</div> Recommended time: 90 min — stay for the early dusk if you can</div>
+              </div>
+            </div>
+            <div class="whats-next-footer">
+              <button class="btn btn-primary btn-sm" onclick="alert('Opens Maps navigation — in the live app!')">🗺 Open in Maps</button>
+              <button class="btn btn-secondary btn-sm" onclick="alert('Skipping this event — in the live app!')">Skip this event</button>
+              <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="alert('Full day view — in the live app!')">See full day →</button>
+            </div>
+          </div>
+
+          <!-- Today's schedule timeline -->
+          <div class="schedule-card">
+            <div class="schedule-header">
+              <h3>📅 Today — Sunday, Apr 13</h3>
+              <span style="font-size:12px;color:var(--text-muted);">Day 2 · Asakusa &amp; Skytree</span>
+            </div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="tl-time">08:30</div>
+                <div class="tl-dot-col"><div class="tl-dot done"></div></div>
+                <div class="tl-content">
+                  <div class="tl-name done">Senso-ji Temple, Asakusa</div>
+                  <div class="tl-where">🏛 Culture · 2h · Free</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="tl-time">11:00</div>
+                <div class="tl-dot-col"><div class="tl-dot done"></div></div>
+                <div class="tl-content">
+                  <div class="tl-name done">Nakamise Shopping Street</div>
+                  <div class="tl-where">🛍 Shopping · 1h · ¥1,500 est.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="tl-time">13:30</div>
+                <div class="tl-dot-col"><div class="tl-dot now"></div></div>
+                <div class="tl-content">
+                  <div class="tl-name">Tokyo Skytree <span class="tl-now-badge">Now</span></div>
+                  <div class="tl-where">🏗 Architecture · 2h · ¥2,100</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="tl-time">19:30</div>
+                <div class="tl-dot-col"><div class="tl-dot next"></div></div>
+                <div class="tl-content">
+                  <div class="tl-name">Ramen at Fuunji, Shinjuku <span class="tl-next-badge">Next</span></div>
+                  <div class="tl-where">🍜 Food · 1h · ¥1,100 · 30 min by train</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day notes -->
+          <div class="schedule-card">
+            <div class="schedule-header">
+              <h3>📝 Day 2 Notes</h3>
+              <button class="btn btn-secondary btn-sm" onclick="alert('Save note — in the live app!')">Save</button>
+            </div>
+            <div style="padding:14px 18px;">
+              <textarea style="width:100%;resize:vertical;border:1.5px solid var(--border-mid);border-radius:var(--r-md);padding:12px 14px;font-size:13px;font-family:inherit;color:var(--text-dark);outline:none;min-height:90px;line-height:1.6;transition:var(--trans);" placeholder="Add notes, things you loved, places to remember…" onfocus="this.style.borderColor='var(--leaf)'" onblur="this.style.borderColor='var(--border-mid)'">Senso-ji was incredible at 8:30am — almost no crowds. The incense smoke and the morning light through the lantern was exactly right. Alex wanted to go back for the flea market on Sunday.</textarea>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right column -->
+        <div>
+
+          <!-- Trip monitor -->
+          <div class="monitor-card">
+            <div class="monitor-header">
+              <h3>🛰 Trip Monitor</h3>
+              <span style="font-size:11px;color:var(--text-muted);">Auto-checked every 6h</span>
+            </div>
+            <div class="monitor-item">
+              <div class="monitor-icon" style="background:rgba(5,150,105,0.1)">✈</div>
+              <div class="monitor-info">
+                <div class="monitor-title">Return flight AC-63 (Apr 17)</div>
+                <div class="monitor-detail">Narita → Toronto · On time as of 1pm</div>
+              </div>
+              <div class="monitor-status ms-ok">✓ On time</div>
+            </div>
+            <div class="monitor-item">
+              <div class="monitor-icon" style="background:rgba(245,158,11,0.1)">🌧</div>
+              <div class="monitor-info">
+                <div class="monitor-title">Rain on Apr 16 (Day 5)</div>
+                <div class="monitor-detail">Kamakura day trip affected — outdoor activities at risk</div>
+              </div>
+              <div class="monitor-status ms-warn">⚠ Check plan</div>
+            </div>
+            <div class="monitor-item">
+              <div class="monitor-icon" style="background:rgba(72,202,228,0.1)">🎫</div>
+              <div class="monitor-info">
+                <div class="monitor-title">teamLab Planets (Apr 14)</div>
+                <div class="monitor-detail">Booking confirmed · Ticket in email</div>
+              </div>
+              <div class="monitor-status ms-ok">✓ Confirmed</div>
+            </div>
+            <div class="monitor-item">
+              <div class="monitor-icon" style="background:rgba(5,150,105,0.1)">🏨</div>
+              <div class="monitor-info">
+                <div class="monitor-title">Shinjuku Grand Hotel</div>
+                <div class="monitor-detail">Check-out Apr 17 · Conf #SG-448291</div>
+              </div>
+              <div class="monitor-status ms-ok">✓ Confirmed</div>
+            </div>
+            <div style="padding:12px 18px;background:rgba(245,158,11,0.05);border-top:1px solid var(--border-light);">
+              <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:6px;">⚠ Weather alert for Day 5</div>
+              <div style="font-size:12px;color:var(--text-mid);line-height:1.5;margin-bottom:10px;">Heavy rain forecast for Apr 16 in Kamakura. Your outdoor coastal walk and hike are at risk. Consider indoor alternatives.</div>
+              <button class="btn btn-secondary btn-sm" onclick="window.location.href='concierge.html'">Ask AI for alternatives →</button>
+            </div>
+          </div>
+
+          <!-- Quick chat -->
+          <div class="chat-panel">
+            <div class="chat-panel-header">
+              <div class="chat-mini-avatar">✈</div>
+              <h3>Ask your AI Concierge</h3>
+              <a href="concierge.html" style="font-size:11px;color:rgba(255,255,255,0.65);text-decoration:none;border:1px solid rgba(255,255,255,0.2);border-radius:var(--r-full);padding:3px 8px;">Full chat →</a>
+            </div>
+            <div class="chat-messages" id="chat-msgs">
+              <div class="chat-msg ai">
+                <div class="chat-bubble ai">You're in Asakusa right now — great timing for Skytree next! Need directions or any other help for Day 2?</div>
+                <div class="chat-time">1:41 PM</div>
+              </div>
+              <div class="chat-msg user">
+                <div class="chat-bubble user">What's the best way to get to Fuunji from Skytree later?</div>
+                <div class="chat-time">1:42 PM</div>
+              </div>
+              <div class="chat-msg ai">
+                <div class="chat-bubble ai">From Skytree: take the Tobu Skytree Line to Asakusa (2 min), transfer to the Ginza Line toward Shibuya, exit at Shinjuku-Nishiguchi — Fuunji is a 4-min walk. Total: about 30 min. The queue there usually builds around 7pm so I'd aim to arrive by 6:30.</div>
+                <div class="chat-time">1:42 PM</div>
+              </div>
+            </div>
+            <div class="chat-suggestions">
+              <div class="chat-suggest-chip" onclick="addMsg('Is there a luggage locker at Skytree?')">🧳 Luggage storage?</div>
+              <div class="chat-suggest-chip" onclick="addMsg('What should I do if it rains on Day 5?')">🌧 Rain backup plan</div>
+              <div class="chat-suggest-chip" onclick="addMsg('Best spot to watch sunset from Skytree?')">🌅 Sunset tip</div>
+            </div>
+            <div class="chat-input-row">
+              <input class="chat-input" type="text" id="chat-in" placeholder="Ask anything about your trip…" onkeydown="if(event.key==='Enter')sendMsg()">
+              <button class="chat-send" onclick="sendMsg()">Send</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<style>
+@keyframes live-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0.5);} 60%{box-shadow:0 0 0 8px rgba(74,222,128,0);} }
+</style>
+
+<script>
+  function sendMsg() {
+    const input = document.getElementById('chat-in');
+    const text = input.value.trim();
+    if (!text) return;
+    addMsg(text);
+    input.value = '';
+  }
+
+  function addMsg(text) {
+    const container = document.getElementById('chat-msgs');
+    const userDiv = document.createElement('div');
+    userDiv.className = 'chat-msg user';
+    userDiv.innerHTML = `<div class="chat-bubble user">${text}</div><div class="chat-time">Just now</div>`;
+    container.appendChild(userDiv);
+    container.scrollTop = container.scrollHeight;
+    setTimeout(() => {
+      const aiDiv = document.createElement('div');
+      aiDiv.className = 'chat-msg ai';
+      aiDiv.innerHTML = `<div class="chat-bubble ai">Great question! In the live app I'll answer this using your actual itinerary and real-time info from the web.</div><div class="chat-time">Just now</div>`;
+      container.appendChild(aiDiv);
+      container.scrollTop = container.scrollHeight;
+    }, 800);
+  }
+</script>
+</body>
+</html>

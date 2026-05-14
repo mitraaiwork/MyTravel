@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pre-Trip Prep — Tokyo | MyTravel</title>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    .pretrip-inner { max-width: 900px; }
+
+    /* ── Countdown hero ── */
+    .countdown-hero {
+      background: linear-gradient(135deg, #0f3d2a, #1b5e40, #0d9488);
+      border-radius: var(--r-2xl); padding: 28px 32px; margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      position: relative; overflow: hidden; box-shadow: var(--shadow-lg); flex-wrap: wrap;
+    }
+    .countdown-hero::before { content: '🗼'; position: absolute; right: 40px; top: -20px; font-size: 120px; opacity: 0.08; pointer-events: none; }
+    .countdown-hero::after  { content: ''; position: absolute; left: -50px; bottom: -50px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.04); pointer-events: none; }
+    .countdown-left { position: relative; z-index: 1; }
+    .countdown-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.55); margin-bottom: 6px; }
+    .countdown-num { font-size: 52px; font-weight: 900; color: white; line-height: 1; letter-spacing: -2px; }
+    .countdown-unit { font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.65); }
+    .countdown-desc { font-size: 14px; color: rgba(255,255,255,0.7); margin-top: 8px; }
+    .countdown-right { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; position: relative; z-index: 1; }
+    .countdown-pill {
+      display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: var(--r-full); font-size: 13px; color: rgba(255,255,255,0.9);
+    }
+
+    /* ── AI search badge ── */
+    .ai-search-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, rgba(13,148,136,0.08), rgba(20,184,166,0.05));
+      border: 1px solid rgba(13,148,136,0.22);
+      border-radius: var(--r-full); padding: 7px 16px;
+      font-size: 12px; color: var(--teal); font-weight: 600; margin-bottom: 22px;
+    }
+    .ai-search-badge .dot { width: 7px; height: 7px; background: var(--teal); border-radius: 50%; animation: pulse-dot 2s infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.85);} }
+
+    /* ── Section tabs ── */
+    .section-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg-white); border: 1px solid var(--border-light); border-radius: var(--r-lg); padding: 4px; box-shadow: var(--shadow-sm); }
+    .stab {
+      flex: 1; padding: 9px 12px; text-align: center; border-radius: var(--r-md);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--trans);
+      color: var(--text-muted); background: none; border: none; font-family: inherit;
+    }
+    .stab:hover { color: var(--forest); background: var(--bg-mint); }
+    .stab.active { background: var(--grad-forest); color: white; box-shadow: var(--shadow-sm); }
+
+    /* ── Section panels ── */
+    .prep-panel { display: none; }
+    .prep-panel.active { display: block; }
+
+    /* ── Status card ── */
+    .status-card {
+      background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-xl); overflow: hidden; margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .status-card-header {
+      display: flex; align-items: center; gap: 14px; padding: 18px 20px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .status-icon { width: 42px; height: 42px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .status-ok    { background: rgba(5,150,105,0.1); }
+    .status-warn  { background: rgba(245,158,11,0.1); }
+    .status-info  { background: rgba(72,202,228,0.1); }
+    .status-card-title { flex: 1; }
+    .status-card-title strong { font-size: 15px; font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 2px; }
+    .status-card-title span   { font-size: 12px; color: var(--text-muted); }
+    .status-chip {
+      display: flex; align-items: center; gap: 5px; padding: 4px 12px;
+      border-radius: var(--r-full); font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .chip-ok   { background: rgba(5,150,105,0.1);  color: var(--emerald); border: 1px solid rgba(5,150,105,0.2); }
+    .chip-warn { background: rgba(245,158,11,0.1); color: #92400e; border: 1px solid rgba(245,158,11,0.25); }
+    .chip-info { background: rgba(72,202,228,0.1); color: var(--teal); border: 1px solid rgba(72,202,228,0.25); }
+
+    .status-card-body { padding: 18px 20px; }
+    .info-row { display: flex; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; gap: 16px; }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-label { color: var(--text-muted); flex-shrink: 0; }
+    .info-val   { color: var(--text-dark); font-weight: 600; text-align: right; }
+
+    /* ── Checklist ── */
+    .checklist { display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; }
+    .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-light); border-radius: var(--r-md); cursor: pointer; transition: var(--trans); }
+    .check-item:hover { background: var(--bg-mint); }
+    .check-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--forest); cursor: pointer; flex-shrink: 0; }
+    .check-item-text { font-size: 13px; color: var(--text-dark); flex: 1; }
+    .check-item-text.checked { text-decoration: line-through; color: var(--text-muted); }
+    .check-tag { font-size: 10px; font-weight: 700; border-radius: var(--r-full); padding: 2px 8px; flex-shrink: 0; }
+    .check-tag.urgent { background: rgba(220,38,38,0.1); color: #dc2626; }
+    .check-tag.soon   { background: rgba(245,158,11,0.1); color: #92400e; }
+    .check-tag.done   { background: rgba(5,150,105,0.1); color: var(--emerald); }
+
+    /* ── Weather strip ── */
+    .weather-strip {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 24px;
+    }
+    .weather-strip::-webkit-scrollbar { height: 4px; }
+    .weather-strip::-webkit-scrollbar-track { background: transparent; }
+    .weather-strip::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+    .weather-day {
+      min-width: 80px; background: var(--bg-white); border: 1px solid var(--border-light);
+      border-radius: var(--r-lg); padding: 12px 10px; text-align: center;
+      box-shadow: var(--shadow-sm); flex-shrink: 0; transition: var(--trans);
+    }
+    .weather-day:hover { border-color: var(--border-mid); box-shadow: var(--shadow-md); }
+    .weather-day.today { border-color: var(--leaf); background: var(--bg-mint); }
+    .weather-day-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+    .weather-day-icon  { font-size: 22px; margin: 6px 0; }
+    .weather-day-temp  { font-size: 16px; font-weight: 800; color: var(--text-dark); }
+    .weather-day-desc  { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Action bar ── */
+    .action-bar {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .action-btn-large {
+      display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+      background: var(--bg-white); border: 1.5px solid var(--border-mid);
+      border-radius: var(--r-lg); font-size: 14px; font-weight: 600; color: var(--text-mid);
+      cursor: pointer; transition: var(--trans); text-decoration: none;
+    }
+    .action-btn-large:hover { border-color: var(--leaf); color: var(--forest); background: var(--bg-mint); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  </style>
+</head>
+<body class="page-enter">
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="dashboard.html" class="header-logo">
+      <div class="logo-mark">✈</div>
+      MyTravel
+    </a>
+    <div class="header-search">
+      <input type="text" placeholder="Search your itinerary…">
+    </div>
+    <div class="header-right">
+      <button class="icon-btn">🔔</button>
+      <div class="avatar avatar-md avatar-forest">AJ</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">✈</span> My Trips</a>
+    <a href="compare.html" class="nav-item"><span class="nav-icon">⚖️</span> Compare</a>
+    <a href="cottages.html" class="nav-item"><span class="nav-icon">🏡</span> Cottages &amp; Cabins</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Tokyo Trip ✈</div>
+    <a href="itinerary.html" class="nav-item"><span class="nav-icon">📋</span> Itinerary</a>
+    <a href="pre-trip.html" class="nav-item active" style="background:rgba(13,148,136,0.08); color:var(--teal);">
+      <span class="nav-icon">🛂</span> Pre-Trip Prep
+      <span style="margin-left:auto; font-size:10px; background:rgba(13,148,136,0.15); color:var(--teal); border-radius:var(--r-full); padding:2px 7px; font-weight:700;">6 days</span>
+    </a>
+    <a href="packing.html" class="nav-item"><span class="nav-icon">🎒</span> Packing List</a>
+    <div class="divider"></div>
+    <div class="sidebar-section-label">Premium ✦</div>
+    <a href="concierge.html" class="nav-item premium-nav">
+      <span class="nav-icon">💬</span> AI Concierge
+      <span class="badge badge-premium" style="margin-left:auto">✦ PRO</span>
+    </a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="avatar avatar-sm avatar-forest">AJ</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Alex Johnson</div>
+          <div class="sidebar-user-email">alex@example.com</div>
+        </div>
+      </div>
+      <a href="profile.html" class="nav-item text-sm"><span class="nav-icon">👤</span> My Profile</a>
+      <a href="login.html" class="nav-item text-sm"><span class="nav-icon">→</span> Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="app-main">
+    <div class="app-main-inner pretrip-inner">
+
+      <!-- Breadcrumb -->
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+        <a href="dashboard.html" style="color:var(--forest)">My Trips</a> /
+        <a href="itinerary.html" style="color:var(--forest)">Tokyo, Japan</a> /
+        <span style="color:var(--text-dark);font-weight:600">Pre-Trip Prep</span>
+      </div>
+
+      <!-- Countdown hero -->
+      <div class="countdown-hero">
+        <div class="countdown-left">
+          <div class="countdown-label">Time until departure</div>
+          <div>
+            <span class="countdown-num">6</span>
+            <span class="countdown-unit"> days</span>
+          </div>
+          <div class="countdown-desc">🗼 Tokyo, Japan · Apr 12–17, 2026</div>
+        </div>
+        <div class="countdown-right">
+          <div class="countdown-pill">📅 Departs Apr 12 · Air Canada AC-62</div>
+          <div class="countdown-pill">🏨 Check-in Apr 12 · Shinjuku Grand</div>
+          <div class="countdown-pill">🇨🇦 Canadian Passport · 3 yrs remaining</div>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.25);" onclick="alert('Email pre-trip brief — in the live app!')">📧 Email me this checklist</button>
+        </div>
+      </div>
+
+      <!-- AI search badge -->
+      <div class="ai-search-badge">
+        <div class="dot"></div>
+        AI-powered · Information sourced via live web search · Last updated today
+      </div>
+
+      <!-- Weather at destination -->
+      <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">Tokyo Weather — Apr 12–17</div>
+      <div class="weather-strip">
+        <div class="weather-day"><div class="weather-day-label">Apr 12</div><div class="weather-day-icon">🌸</div><div class="weather-day-temp">18°C</div><div class="weather-day-desc">Partly cloudy</div></div>
+        <div class="weather-day"><div class="weather-day-label">Apr 13</div><div class="weather-day-icon">☀️</div><div class="weather-day-temp">20°C</div><div class="weather-day-desc">Clear</div></div>
+        <div class="weather-day"><div class="weather-day-label">Apr 14</div><div class="weather-day-icon">🌥</div><div class="weather-day-temp">16°C</div><div class="weather-day-desc">Overcast</div></div>
+        <div class="weather-day"><div class="weather-day-label">Apr 15</div><div class="weather-day-icon">🌤</div><div class="weather-day-temp">19°C</div><div class="weather-day-desc">Partly cloudy</div></div>
+        <div class="weather-day"><div class="weather-day-label">Apr 16</div><div class="weather-day-icon">🌧</div><div class="weather-day-temp">14°C</div><div class="weather-day-desc">Rain likely</div></div>
+        <div class="weather-day"><div class="weather-day-label">Apr 17</div><div class="weather-day-icon">🌤</div><div class="weather-day-temp">17°C</div><div class="weather-day-desc">Clearing</div></div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="action-bar">
+        <a href="packing.html" class="action-btn-large">🎒 Smart Packing List</a>
+        <button class="action-btn-large" onclick="alert('Download offline maps — in the live app!')">🗺 Download Offline Maps</button>
+        <button class="action-btn-large" onclick="alert('Add to calendar — in the live app!')">📆 Add to Calendar</button>
+        <button class="action-btn-large" onclick="alert('Sharing emergency contacts — in the live app!')">🆘 Emergency Contacts</button>
+      </div>
+
+      <!-- Section tabs -->
+      <div class="section-tabs">
+        <button class="stab active" onclick="showPrep('visa', this)">🛂 Visa &amp; Entry</button>
+        <button class="stab" onclick="showPrep('health', this)">🏥 Health &amp; Safety</button>
+        <button class="stab" onclick="showPrep('checklist', this)">✅ Pre-Trip Checklist</button>
+        <button class="stab" onclick="showPrep('money', this)">💴 Money &amp; Practicalities</button>
+      </div>
+
+      <!-- Panel: Visa & Entry -->
+      <div class="prep-panel active" id="prep-visa">
+
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-ok">🛂</div>
+            <div class="status-card-title">
+              <strong>Visa Requirement — Japan for Canadian Passport</strong>
+              <span>Sourced via live search · Verify with official embassy before travel</span>
+            </div>
+            <div class="status-chip chip-ok">✓ Visa-free</div>
+          </div>
+          <div class="status-card-body">
+            <div class="info-row"><span class="info-label">Visa required?</span><span class="info-val" style="color:var(--emerald)">No — visa-free entry for Canadians</span></div>
+            <div class="info-row"><span class="info-label">Stay allowed</span><span class="info-val">Up to 90 days</span></div>
+            <div class="info-row"><span class="info-label">Entry type</span><span class="info-val">Temporary visitor</span></div>
+            <div class="info-row"><span class="info-label">Passport validity required</span><span class="info-val">Valid for duration of stay (yours: 3 yrs remaining ✓)</span></div>
+            <div class="info-row"><span class="info-label">Entry card</span><span class="info-val">Digital arrival card (Visit Japan Web) — complete before boarding</span></div>
+            <div class="info-row"><span class="info-label">Currency declaration</span><span class="info-val">Required if carrying over ¥1,000,000 cash (~$9,000 CAD)</span></div>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-warn">⚠️</div>
+            <div class="status-card-title">
+              <strong>Visit Japan Web — Action Required</strong>
+              <span>Complete online arrival registration to skip queues at immigration</span>
+            </div>
+            <div class="status-chip chip-warn">⚠ Do this now</div>
+          </div>
+          <div class="status-card-body">
+            <p style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:14px;">Japan's Visit Japan Web lets you pre-register your arrival declaration, fast-track immigration, and set up the Japan Duty Free QR code — all in one place. It takes 15 minutes and saves up to 45 minutes in the arrivals queue.</p>
+            <button class="btn btn-primary" onclick="alert('Opens visitjapan.digital.go.jp in the live app!')">Complete Visit Japan Web →</button>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-info">🛃</div>
+            <div class="status-card-title">
+              <strong>Japan Customs — What to Know</strong>
+              <span>Common items travellers don't expect to be restricted</span>
+            </div>
+            <div class="status-chip chip-info">ℹ Read</div>
+          </div>
+          <div class="status-card-body">
+            <div class="info-row"><span class="info-label">Prescription medicine</span><span class="info-val">Carry original packaging + prescription letter. Codeine products are banned.</span></div>
+            <div class="info-row"><span class="info-label">Cannabis</span><span class="info-val">Strictly prohibited — zero tolerance policy. Do not bring any form.</span></div>
+            <div class="info-row"><span class="info-label">Food items</span><span class="info-val">Fruit, vegetables, meat require declaration. Most sealed packaged foods OK.</span></div>
+            <div class="info-row"><span class="info-label">Duty-free allowance</span><span class="info-val">400 cigarettes, 3 bottles of alcohol (760ml each), ¥200,000 in gifts</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Panel: Health & Safety -->
+      <div class="prep-panel" id="prep-health">
+
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-ok">💉</div>
+            <div class="status-card-title">
+              <strong>Vaccinations — Japan</strong>
+              <span>WHO and Government of Canada recommendations for Japan travel</span>
+            </div>
+            <div class="status-chip chip-ok">✓ Low risk</div>
+          </div>
+          <div class="status-card-body">
+            <div class="info-row"><span class="info-label">Required vaccinations</span><span class="info-val" style="color:var(--emerald)">None required for Canadians</span></div>
+            <div class="info-row"><span class="info-label">Recommended</span><span class="info-val">Routine vaccines (MMR, Tdap, flu). Hepatitis A &amp; B recommended.</span></div>
+            <div class="info-row"><span class="info-label">Japanese Encephalitis</span><span class="info-val">Low risk for city travel under 30 days. Rural areas only.</span></div>
+            <div class="info-row"><span class="info-label">COVID requirements</span><span class="info-val">No vaccine requirement or testing as of 2026</span></div>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-ok">🌍</div>
+            <div class="status-card-title">
+              <strong>Travel Advisory — Japan</strong>
+              <span>Government of Canada — updated Apr 2026</span>
+            </div>
+            <div class="status-chip chip-ok">✓ Safe to travel</div>
+          </div>
+          <div class="status-card-body">
+            <div class="info-row"><span class="info-label">Advisory level</span><span class="info-val" style="color:var(--emerald)">Level 1 — Take normal security precautions</span></div>
+            <div class="info-row"><span class="info-label">Crime</span><span class="info-val">Very low. Japan is consistently one of the world's safest countries for tourists.</span></div>
+            <div class="info-row"><span class="info-label">Natural hazards</span><span class="info-val">Seismic activity. Know your hotel's evacuation plan. Download Japan Quake alert app.</span></div>
+            <div class="info-row"><span class="info-label">Canadian Embassy</span><span class="info-val">Tokyo · +81-3-5412-6200 · Emergency: +1-613-996-8885</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Panel: Pre-Trip Checklist -->
+      <div class="prep-panel" id="prep-checklist">
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-ok">✅</div>
+            <div class="status-card-title">
+              <strong>Pre-Trip Checklist</strong>
+              <span>6 days to departure — 4 of 12 complete</span>
+            </div>
+            <div class="status-chip chip-warn">4 / 12 done</div>
+          </div>
+          <div class="checklist">
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" checked onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text checked">Book flights (Air Canada AC-62)</div>
+              <span class="check-tag done">✓ Done</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" checked onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text checked">Book hotel (Shinjuku Grand, Apr 12–17)</div>
+              <span class="check-tag done">✓ Done</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" checked onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text checked">Generate AI itinerary</div>
+              <span class="check-tag done">✓ Done</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" checked onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text checked">Check passport validity</div>
+              <span class="check-tag done">✓ Done</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Complete Visit Japan Web registration</div>
+              <span class="check-tag urgent">Urgent</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Get travel insurance</div>
+              <span class="check-tag urgent">Urgent</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Notify bank of Japan travel</div>
+              <span class="check-tag soon">This week</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Order / confirm IC Card (Suica) or Japan Rail Pass</div>
+              <span class="check-tag soon">This week</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Book teamLab Planets tickets (sells out)</div>
+              <span class="check-tag urgent">Book now</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Download offline maps (Google Maps / Maps.me)</div>
+              <span class="check-tag soon">Before travel</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Pack &amp; weigh luggage (see packing list)</div>
+              <span class="check-tag soon">1 day before</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox" onclick="event.stopPropagation();toggleCheck(this.parentElement)">
+              <div class="check-item-text">Check in online (opens 24h before flight)</div>
+              <span class="check-tag soon">Apr 11</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: Money & Practicalities -->
+      <div class="prep-panel" id="prep-money">
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-info">💴</div>
+            <div class="status-card-title">
+              <strong>Money &amp; Payments</strong>
+              <span>Japan cash culture — what to know before you go</span>
+            </div>
+            <div class="status-chip chip-warn">⚠ Bring cash</div>
+          </div>
+          <div class="status-card-body">
+            <div class="info-row"><span class="info-label">Currency</span><span class="info-val">Japanese Yen (¥ / JPY)</span></div>
+            <div class="info-row"><span class="info-label">Exchange rate</span><span class="info-val">~¥110 per $1 CAD (live rate via AI search)</span></div>
+            <div class="info-row"><span class="info-label">Cash vs card</span><span class="info-val">Japan is still heavily cash-based. Many restaurants, shrines, and taxis are cash-only.</span></div>
+            <div class="info-row"><span class="info-label">Recommended cash</span><span class="info-val">¥50,000–80,000 (~$500–700 CAD) for a 5-day trip</span></div>
+            <div class="info-row"><span class="info-label">Best ATMs</span><span class="info-val">7-Eleven and Japan Post ATMs accept foreign cards 24/7</span></div>
+            <div class="info-row"><span class="info-label">Tipping</span><span class="info-val" style="color:var(--emerald)">Not customary — tipping can be considered rude in Japan</span></div>
+          </div>
+        </div>
+        <div class="status-card">
+          <div class="status-card-header">
+            <div class="status-icon status-info">📱</div>
+            <div class="status-card-title">
+              <strong>Connectivity &amp; Apps</strong>
+              <span>Stay connected in Japan</span>
+            </div>
+            <div class="status-chip chip-info">ℹ Recommended</div>
+          </div>
+          <div class="status-card-body">
+            <div class="info-row"><span class="info-label">SIM / data</span><span class="info-val">Pocket WiFi rental or eSIM (Airalo, IIJmio). ~¥1,500/day for pocket WiFi.</span></div>
+            <div class="info-row"><span class="info-label">Must-have apps</span><span class="info-val">Google Maps (offline), Google Translate (camera mode), Hyperdia (trains), Tabelog (restaurants)</span></div>
+            <div class="info-row"><span class="info-label">Emergency number</span><span class="info-val">Police: 110 · Ambulance/Fire: 119 · Tourist helpline: 050-3816-2787</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  function showPrep(id, btn) {
+    document.querySelectorAll('.prep-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+    document.getElementById('prep-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function toggleCheck(item) {
+    const cb  = item.querySelector('input[type="checkbox"]');
+    const txt = item.querySelector('.check-item-text');
+    const tag = item.querySelector('.check-tag');
+    cb.checked = !cb.checked;
+    if (cb.checked) {
+      txt.classList.add('checked');
+      if (tag) { tag.textContent = '✓ Done'; tag.className = 'check-tag done'; }
+    } else {
+      txt.classList.remove('checked');
+    }
+  }
+</script>
+</body>
+</html>

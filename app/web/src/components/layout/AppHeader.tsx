@@ -32,7 +32,7 @@ export default function AppHeader() {
     >
       {/* Logo — fixed sidebar width */}
       <Link
-        href="/dashboard"
+        href="/"
         className="flex items-center gap-2.5 flex-shrink-0 no-underline"
         style={{ width: "calc(var(--sidebar-w) - 24px)" }}
       >
