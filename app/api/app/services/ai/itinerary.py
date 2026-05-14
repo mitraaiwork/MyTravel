@@ -21,16 +21,31 @@ Travel style: {trip.travel_style}
 Group: {trip.group_size} {trip.group_type}
 Interests: {trip.interests or "general sightseeing"}
 
-Assign each day a UNIQUE neighbourhood or area so the major landmarks are spread across days \
-without repetition. Each area should have its own iconic must-sees — no landmark should appear \
-on more than one day.
+STEP 1 — Classify the destination:
+- "city": a single city, town, or village (e.g. Tokyo, Paris, New York, Bali)
+- "region": a state, country, coastal zone, national park area, or multi-city zone \
+(e.g. Colorado, Tuscany, Scottish Highlands, Amalfi Coast, New England, Patagonia)
+
+STEP 2 — Assign days:
+If CITY: assign each day a UNIQUE neighbourhood or district within {trip.destination}. \
+Keep "city" equal to "{trip.destination}" for every day. No landmark appears on more than one day.
+If REGION: group consecutive days in the same city before moving on. \
+Choose cities that form a geographically logical sequence without backtracking. \
+Minimise unnecessary city changes. Estimate realistic driving time between consecutive cities.
 
 Output valid JSON only (no markdown, no extra text):
 [
-  {{"day": 1, "area": "Specific neighbourhood or district", "theme": "Short evocative theme (4-6 words)"}},
-  {{"day": 2, "area": "Different neighbourhood", "theme": "Different theme"}},
+  {{"day": 1, "area": "Specific neighbourhood or city area", "theme": "Short evocative theme (4-6 words)", "city": "City or town name"}},
+  {{"day": 2, "area": "Another area in the same city", "theme": "Different theme", "city": "Same city"}},
+  {{"day": 3, "area": "Area in next city", "theme": "New theme", "city": "Next city", "drive_from_prev_hours": 1.5}},
   ...
 ]
+
+Field rules:
+- "city": always include — the specific city/town for that day (for CITY destinations, always "{trip.destination}")
+- "area": a specific neighbourhood, district, or landmark cluster — never just the city name alone
+- "theme": 4-6 evocative words capturing the day mood
+- "drive_from_prev_hours": include ONLY for REGION destinations when the city changes from the previous day; omit otherwise
 
 Days to plan:
 {days_text}"""
@@ -155,11 +170,27 @@ async def generate_single_day_stream(
     )
 
     plan_lines = ""
+    city_transition_note = ""
     if day_outline:
         plan_lines = "\nFULL TRIP PLAN — do NOT suggest any place listed under another day:\n"
+        outline_by_day = {e["day"]: e for e in day_outline}
         for entry in day_outline:
             marker = " ← YOU ARE GENERATING THIS DAY" if entry["day"] == day_num else ""
-            plan_lines += f"  Day {entry['day']}: {entry['area']} — {entry['theme']}{marker}\n"
+            city = entry.get("city", "")
+            city_tag = f" [{city}]" if city and city.lower() != trip.destination.lower() else ""
+            plan_lines += f"  Day {entry['day']}: {entry['area']}{city_tag} — {entry['theme']}{marker}\n"
+
+        current = outline_by_day.get(day_num)
+        prev = outline_by_day.get(day_num - 1)
+        if current and prev:
+            curr_city = current.get("city", "")
+            prev_city = prev.get("city", "")
+            drive_hours = current.get("drive_from_prev_hours")
+            if curr_city and prev_city and curr_city != prev_city and drive_hours:
+                city_transition_note = (
+                    f"\nNOTE: This is the first day in {curr_city}. The user has just driven ~{drive_hours:.0f}h from {prev_city}. "
+                    f"Plan activities starting from early afternoon, accounting for travel time."
+                )
 
     accom_context = (
         f"Stay type: {trip.accommodation_type} — let this influence activity suggestions "
@@ -187,7 +218,7 @@ Pace: {trip.pace}
 Special interests: {trip.interests or "None specified"}
 {accom_context}
 Weather: {weather_for_day}
-{plan_lines}{partial_note}
+{plan_lines}{city_transition_note}{partial_note}
 Output the JSON object for Day {day_num} only."""
 
     async for chunk in await client.aio.models.generate_content_stream(
@@ -290,9 +321,12 @@ async def generate_meta(trip: Trip, day_outline: list[dict] | None = None) -> di
 
     zone_hint = ""
     if day_outline:
-        zone_hint = "\nDay-by-day area plan:\n" + "\n".join(
-            f"  Day {d['day']}: {d['area']}" for d in day_outline
-        )
+        zone_lines = []
+        for d in day_outline:
+            city = d.get("city", "")
+            city_tag = f" [{city}]" if city and city.lower() != trip.destination.lower() else ""
+            zone_lines.append(f"  Day {d['day']}: {d['area']}{city_tag}")
+        zone_hint = "\nDay-by-day area plan:\n" + "\n".join(zone_lines)
 
     accom_pref = trip.accommodation_type or "any"
     accom_line = (
@@ -313,6 +347,10 @@ Generate as JSON only (no markdown):
   "summary": "2-3 sentence trip overview tailored to a {trip.group_size} {trip.group_type} trip that gets the traveller excited — must reflect the correct group type (never say 'solo' for a family or couple trip)",
   "destination": "{trip.destination}",
   "country": "Country name",
+  "route_overview": [
+    {{"city": "City A", "nights": 2}},
+    {{"city": "City B", "nights": 3}}
+  ],
   "practical_info": {{
     "currency": "e.g. Japanese Yen (JPY)",
     "language": "Primary language(s)",
@@ -339,6 +377,11 @@ Generate as JSON only (no markdown):
     }}
   ]
 }}
+
+Rules for route_overview:
+- Include ONLY when the trip visits multiple distinct cities or towns (e.g. Denver → Estes Park → Colorado Springs).
+- Omit it (or return an empty array) for single-city trips (e.g. a trip that stays in Tokyo the whole time).
+- List cities in the order they are visited; "nights" is the number of nights at each city.
 
 Rules for accommodations:
 - Cluster nights into logical stay-zones based on the itinerary areas (travellers don't move hotels every night).

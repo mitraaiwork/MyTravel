@@ -155,6 +155,30 @@ def _classify_days(trip: Trip) -> list[dict]:
     return classified
 
 
+def _compute_route_overview(day_outline: list[dict]) -> list[dict]:
+    """Group consecutive same-city days; return [] if only one city is covered."""
+    if not day_outline:
+        return []
+    overview: list[dict] = []
+    current_city: str | None = None
+    nights = 0
+    for entry in day_outline:
+        city = (entry.get("city") or "").strip()
+        if not city:
+            continue
+        if city != current_city:
+            if current_city:
+                overview.append({"city": current_city, "nights": nights})
+            current_city = city
+            nights = 1
+        else:
+            nights += 1
+    if current_city:
+        overview.append({"city": current_city, "nights": nights})
+    unique_cities = {o["city"] for o in overview}
+    return overview if len(unique_cities) > 1 else []
+
+
 def _clean_json(text: str) -> str:
     """
     Strip markdown fences and find the outermost JSON object.
@@ -294,7 +318,7 @@ async def generate_itinerary(
         if ai_days_for_outline:
             day_outline = await asyncio.wait_for(
                 generate_day_outline(trip, ai_days_for_outline),
-                timeout=10.0,
+                timeout=20.0,
             )
     except Exception:
         pass  # degrade gracefully — days still generate without the outline
@@ -469,6 +493,26 @@ async def generate_itinerary(
                 unique.append(act)
         day["activities"] = unique
 
+    # Inject city and city_transition metadata from day outline
+    outline_map = {e["day"]: e for e in day_outline}
+    prev_city: str | None = None
+    for day_data in all_days:
+        day_num = day_data.get("day")
+        entry = outline_map.get(day_num)
+        if entry:
+            city = (entry.get("city") or "").strip()
+            if city:
+                day_data["city"] = city
+            drive_hours = entry.get("drive_from_prev_hours")
+            if drive_hours and prev_city and city and city != prev_city:
+                day_data["city_transition"] = {
+                    "from_city": prev_city,
+                    "to_city": city,
+                    "drive_hours": drive_hours,
+                }
+            if city:
+                prev_city = city
+
     # NN-reorder by proximity, redistribute times, then sort chronologically
     for day in all_days:
         if day.get("day_type") in ("travel_outbound", "travel_return"):
@@ -519,6 +563,17 @@ async def generate_itinerary(
             if "sunset" in wx:
                 day_data["sunset"] = wx["sunset"]
 
+    # Prefer day-outline-derived overview; fall back to meta's route_overview
+    route_overview = _compute_route_overview(day_outline)
+    if not route_overview:
+        meta_overview = meta.get("route_overview") or []
+        if isinstance(meta_overview, list) and len(meta_overview) > 1:
+            route_overview = [
+                {"city": o.get("city", ""), "nights": o.get("nights", 1)}
+                for o in meta_overview
+                if o.get("city")
+            ]
+
     full_itinerary = {
         "destination": meta.get("destination", trip.destination),
         "country": meta.get("country", ""),
@@ -528,6 +583,7 @@ async def generate_itinerary(
         "accommodations": meta.get("accommodations", []),
         "weather": weather_summary,
         "route_stops": route_stops if route_stops else None,
+        "route_overview": route_overview if route_overview else None,
     }
 
     itinerary.content = json.dumps(full_itinerary)

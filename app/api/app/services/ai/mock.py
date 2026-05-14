@@ -155,11 +155,13 @@ def mock_generate_day_outline(trip, day_list: list[dict]) -> list[dict]:  # type
         "Local Life & Food",
         "Nature & Panoramas",
     ]
+    dest = getattr(trip, "destination", "Mock City")
     return [
         {
             "day": d["day"],
             "area": areas[(d["day"] - 1) % len(areas)],
             "theme": themes[(d["day"] - 1) % len(themes)],
+            "city": dest,
         }
         for d in day_list
     ]

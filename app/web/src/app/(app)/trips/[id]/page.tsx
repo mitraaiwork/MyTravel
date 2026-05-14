@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -970,6 +970,38 @@ export default function TripPage() {
               <span className="text-xs text-gray-400">{itinerary.days?.length ?? 0} days</span>
             </div>
             <div>
+              {/* Multi-city route overview */}
+              {(itinerary.route_overview?.length ?? 0) > 1 && (
+                <div
+                  className="mb-4 rounded-2xl px-5 py-4"
+                  style={{
+                    background: "linear-gradient(135deg, #1e3a5f 0%, #1a3352 100%)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div className="text-xs font-bold uppercase tracking-widest mb-3 opacity-60" style={{ color: "#93c5fd" }}>
+                    Your Route
+                  </div>
+                  <div className="flex items-start gap-2 flex-wrap">
+                    {(itinerary.route_overview ?? []).map((stop, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        {i > 0 && (
+                          <span style={{ color: "#60a5fa", fontSize: 16 }}>→</span>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-sm" style={{ color: "#e0f2fe" }}>
+                            {stop.city}
+                          </span>
+                          <span className="text-xs" style={{ color: "#7dd3fc" }}>
+                            {stop.nights} night{stop.nights !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Outbound route stops — shown before Day 1 */}
               {itinerary.route_stops && trip?.origin && (itinerary.route_stops.outbound?.length ?? 0) > 0 && (
                 <RouteStopsPanel
@@ -1015,6 +1047,15 @@ export default function TripPage() {
                   }
                   return (
                     <div key={day.day}>
+                      {day.city_transition && (
+                        <div
+                          className="rounded-xl px-4 py-3 mb-2 mt-1 flex items-center gap-3 text-sm font-semibold"
+                          style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.35)", color: "#4338ca" }}
+                        >
+                          🚗 <span>~{Math.round(day.city_transition.drive_hours)}h drive</span>
+                          <span className="font-normal text-xs" style={{ color: "#6366f1" }}>{day.city_transition.from_city} → {day.city_transition.to_city}</span>
+                        </div>
+                      )}
                       {(dt === "partial_arrival" && day.arrival_time) && (
                         <div className="rounded-xl px-4 py-2.5 mb-2 flex items-center gap-2 text-xs font-medium" style={{ background: "rgba(45,106,79,0.07)", border: "1px solid var(--border-mid)", color: "var(--forest)" }}>
                           🏁 You arrive at {day.arrival_time} — afternoon plan from {day.arrival_time} onwards
@@ -1253,6 +1294,24 @@ export default function TripPage() {
             </div>
           )}
 
+          {/* ── Multi-city Route Overview ── */}
+          {(itinerary.route_overview?.length ?? 0) > 1 && (
+            <div style={{ marginBottom: 20, background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 12, padding: "10px 16px" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#4338ca", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 8 }}>Your Route</div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, flexWrap: "wrap" }}>
+                {(itinerary.route_overview ?? []).map((stop, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {i > 0 && <span style={{ color: "#6366f1", fontSize: 14, fontWeight: 700 }}>→</span>}
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 12, color: "#1e1b4b" }}>{stop.city}</div>
+                      <div style={{ fontSize: 10, color: "#6366f1" }}>{stop.nights} night{stop.nights !== 1 ? "s" : ""}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── En Route: Outbound ── */}
           {itinerary.route_stops && trip?.origin && (itinerary.route_stops.outbound?.length ?? 0) > 0 && (
             <div style={{ marginTop: 24 }}>
@@ -1285,7 +1344,15 @@ export default function TripPage() {
           </div>
 
           {(itinerary.days ?? []).map((day) => (
-            <div key={day.day} style={{ marginBottom: 16, border: "1px solid #d1e8d4", borderRadius: 12, overflow: "hidden" }}>
+            <Fragment key={day.day}>
+            {day.city_transition && (
+              <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 8, padding: "6px 12px", marginBottom: 6, marginTop: 4, display: "flex", alignItems: "center", gap: 8, fontSize: 10, fontWeight: 600, color: "#4338ca" }}>
+                <span>🚗</span>
+                <span>~{Math.round(day.city_transition.drive_hours)}h drive</span>
+                <span style={{ fontWeight: 400, color: "#6366f1" }}>{day.city_transition.from_city} → {day.city_transition.to_city}</span>
+              </div>
+            )}
+            <div style={{ marginBottom: 16, border: "1px solid #d1e8d4", borderRadius: 12, overflow: "hidden" }}>
               <div style={{ background: "linear-gradient(135deg, #d8f3dc, #f0faf4)", padding: "10px 16px", borderBottom: "1px solid #d1e8d4" }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: "#52b788", textTransform: "uppercase", letterSpacing: "1px" }}>
                   Day {day.day} · {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
@@ -1339,6 +1406,7 @@ export default function TripPage() {
                 )}
               </div>
             </div>
+            </Fragment>
           ))}
 
           {/* ── En Route: Return ── */}

@@ -97,6 +97,12 @@ export interface Day {
   date: string;
   theme: string;
   area?: string;
+  city?: string;
+  city_transition?: {
+    from_city: string;
+    to_city: string;
+    drive_hours: number;
+  };
   image_url?: string;
   activities: Activity[];
   restaurants?: Restaurant[];
@@ -157,6 +163,11 @@ export interface RouteJourney {
   note?: string;
 }
 
+export interface RouteOverviewCity {
+  city: string;
+  nights: number;
+}
+
 export interface Itinerary {
   trip_id: number;
   destination: string;
@@ -173,6 +184,7 @@ export interface Itinerary {
   };
   accommodations?: AccommodationZone[];
   route_stops?: RouteJourney;
+  route_overview?: RouteOverviewCity[];
   generated_at: string;
 }
 
