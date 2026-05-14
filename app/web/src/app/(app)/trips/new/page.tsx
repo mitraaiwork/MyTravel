@@ -225,7 +225,11 @@ export default function NewTripPage() {
         start_date: startDate,
         end_date: endDate,
         travel_style: travelStyles.join(","),
-        interests: interests.length > 0 ? interests.join(",") : undefined,
+        interests: (() => {
+          const parts = [...interests];
+          if (notes.trim()) parts.push(notes.trim());
+          return parts.length > 0 ? parts.join(", ") : undefined;
+        })(),
         accommodation_type: accommodationTypes.length > 0 ? accommodationTypes.join(",") : undefined,
         trip_type: tripType,
         include_route_stops: tripType === "roadtrip" ? (includeRouteStops && !!origin.trim()) : false,
@@ -1112,7 +1116,11 @@ export default function NewTripPage() {
                 },
                 {
                   label: "Interests",
-                  value: interests.length > 0 ? interests.join(", ") : <span style={{ color: "var(--text-faint)" }}>None selected</span>,
+                  value: (() => {
+                    const parts = [...interests];
+                    if (notes.trim()) parts.push(notes.trim());
+                    return parts.length > 0 ? parts.join(", ") : <span style={{ color: "var(--text-faint)" }}>None selected</span>;
+                  })(),
                 },
                 {
                   label: "Notes",

@@ -452,68 +452,95 @@ async def mock_stream_chat_response(
 
 # ── Local services ────────────────────────────────────────────────────────────
 
-async def mock_generate_local_services(trip) -> dict:  # type: ignore[type-arg]
+def _mock_city_categories(city_name: str, max_items: int = 3) -> list[dict]:  # type: ignore[type-arg]
+    base = [
+        {
+            "id": "emergency",
+            "label": "Emergency",
+            "emoji": "🚨",
+            "items": [
+                {"name": "Emergency Services", "phone": "911", "note": "Police · Fire · Ambulance", "hours": "24 hrs"},
+                {"name": "City Police Station", "address": "Downtown precinct", "hours": "24 hrs"},
+                {"name": "Fire & Rescue", "address": "Central fire station", "hours": "24 hrs"},
+            ],
+        },
+        {
+            "id": "hospital",
+            "label": "Hospital & Urgent Care",
+            "emoji": "🏥",
+            "items": [
+                {"name": f"{city_name} General Hospital", "address": "Medical district", "hours": "24 hrs"},
+                {"name": "Urgent Care Clinic", "address": "Near city centre", "hours": "8 am–10 pm"},
+                {"name": "Community Health Center", "address": "Residential district", "hours": "9 am–6 pm"},
+            ],
+        },
+        {
+            "id": "pharmacy",
+            "label": "Pharmacy",
+            "emoji": "💊",
+            "items": [
+                {"name": "Central Pharmacy", "address": "High Street", "hours": "8 am–9 pm"},
+                {"name": "24-Hour Pharmacy", "address": "Near main square", "hours": "24 hrs"},
+                {"name": "Pharmacy Plus", "address": "Shopping district", "hours": "9 am–8 pm"},
+            ],
+        },
+        {
+            "id": "grocery",
+            "label": "Grocery & Supermarket",
+            "emoji": "🛒",
+            "items": [
+                {"name": "City Supermarket", "address": "Market Square"},
+                {"name": "Convenience Store", "address": "Near accommodation", "hours": "7 am–11 pm"},
+                {"name": "Local Market", "address": "Old Town", "hours": "8 am–8 pm"},
+            ],
+        },
+        {
+            "id": "atm",
+            "label": "ATM & Currency Exchange",
+            "emoji": "🏧",
+            "items": [
+                {"name": "International ATM", "address": "City Centre", "note": "Widely available; foreign card fees may apply"},
+                {"name": "Currency Exchange", "address": "Airport & tourist areas", "hours": "6 am–10 pm"},
+                {"name": "Bank ATM", "address": "Main Street", "hours": "24 hrs"},
+            ],
+        },
+        {
+            "id": "embassy",
+            "label": "Embassy & Consulate",
+            "emoji": "🛟",
+            "items": [
+                {"name": "US Embassy", "address": "Embassy District"},
+                {"name": "UK Consulate", "address": "Diplomatic Quarter"},
+                {"name": "EU Consulate", "address": "Government District"},
+            ],
+        },
+    ]
+    for cat in base:
+        cat["items"] = cat["items"][:max_items]
+    return base
+
+
+async def mock_generate_local_services(trip, day_outline=None) -> dict:  # type: ignore[type-arg]
     await asyncio.sleep(0.1)
-    dest = trip.destination
-    return {
-        "categories": [
-            {
-                "id": "emergency",
-                "label": "Emergency",
-                "emoji": "🚨",
-                "items": [
-                    {"name": "Emergency Services", "phone": "911", "note": "Police · Fire · Ambulance", "hours": "24 hrs"},
-                    {"name": "City Police Station", "address": "Downtown precinct", "hours": "24 hrs"},
-                    {"name": "Fire & Rescue", "address": "Central fire station", "hours": "24 hrs"},
-                ],
-            },
-            {
-                "id": "hospital",
-                "label": "Hospital & Urgent Care",
-                "emoji": "🏥",
-                "items": [
-                    {"name": f"{dest} General Hospital", "address": "Medical district", "hours": "24 hrs"},
-                    {"name": "Urgent Care Clinic", "address": "Near city centre", "hours": "8 am–10 pm"},
-                ],
-            },
-            {
-                "id": "pharmacy",
-                "label": "Pharmacy",
-                "emoji": "💊",
-                "items": [
-                    {"name": "Central Pharmacy", "address": "High Street", "hours": "8 am–9 pm"},
-                    {"name": "24-Hour Pharmacy", "address": "Near main square", "hours": "24 hrs"},
-                ],
-            },
-            {
-                "id": "grocery",
-                "label": "Grocery & Supermarket",
-                "emoji": "🛒",
-                "items": [
-                    {"name": "City Supermarket", "address": "Market Square"},
-                    {"name": "Convenience Store", "address": "Near accommodation", "hours": "7 am–11 pm"},
-                ],
-            },
-            {
-                "id": "atm",
-                "label": "ATM & Currency Exchange",
-                "emoji": "🏧",
-                "items": [
-                    {"name": "International ATM", "address": "City Centre", "note": "Widely available; foreign card fees may apply"},
-                    {"name": "Currency Exchange", "address": "Airport & tourist areas", "hours": "6 am–10 pm"},
-                ],
-            },
-            {
-                "id": "embassy",
-                "label": "Embassy & Consulate",
-                "emoji": "🛟",
-                "items": [
-                    {"name": "US Embassy", "address": "Embassy District"},
-                    {"name": "UK Consulate", "address": "Diplomatic Quarter"},
-                ],
-            },
-        ]
-    }
+
+    cities: list[str] = []
+    seen: set[str] = set()
+    for entry in (day_outline or []):
+        city = (entry.get("city") or "").strip()
+        if city and city not in seen:
+            cities.append(city)
+            seen.add(city)
+
+    if len(cities) > 1:
+        return {
+            "multi_city": True,
+            "cities": [
+                {"city_name": city, "categories": _mock_city_categories(city, max_items=2)}
+                for city in cities
+            ],
+        }
+
+    return {"categories": _mock_city_categories(trip.destination, max_items=3)}
 
 
 # ── Packing list ──────────────────────────────────────────────────────────────

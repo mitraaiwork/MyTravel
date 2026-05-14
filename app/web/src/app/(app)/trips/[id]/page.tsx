@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,15 +17,14 @@ import {
   Globe,
   AlertCircle,
   AlertTriangle,
-  CheckCircle,
   Download,
   Backpack,
   X,
 } from "lucide-react";
 import { tripsApi, itineraryApi } from "@/lib/api";
-import { useItineraryStream, type DayStream } from "@/hooks/useItineraryStream";
+import { useItineraryStream } from "@/hooks/useItineraryStream";
 import { formatDateRange, getCategoryIcon, getDayCount, getTripPhase } from "@/lib/utils";
-import type { Trip, Itinerary, Activity, PackingList, LocalServicesResponse, LocalServiceCategory } from "@/types";
+import type { Trip, Itinerary, PackingList, LocalServicesResponse, LocalServiceCategory } from "@/types";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { PackingListTab } from "@/components/itinerary/PackingListTab";
 import { LocalServicesTab } from "@/components/itinerary/LocalServicesTab";
@@ -47,196 +46,6 @@ const ItineraryMap = dynamic(() => import("@/components/map/ItineraryMap"), {
     </div>
   ),
 });
-
-// ── Per-day writing phrases (rotate by day number) ───────────────────────────
-
-const WRITING_PHRASES = [
-  "Scouting the best spots…",
-  "Discovering hidden gems…",
-  "Mapping out the day…",
-  "Curating local experiences…",
-  "Finding the perfect route…",
-  "Handpicking activities…",
-  "Exploring the neighbourhood…",
-  "Consulting local insiders…",
-  "Seeking out must-sees…",
-  "Plotting the adventure…",
-  "Uncovering local favourites…",
-  "Crafting a perfect day…",
-];
-
-function writingPhrase(dayNum: number) {
-  return WRITING_PHRASES[(dayNum - 1) % WRITING_PHRASES.length];
-}
-
-// ── Per-day partial JSON parser ───────────────────────────────────────────────
-
-interface PartialDay {
-  day?: number;
-  date?: string;
-  theme?: string;
-  area?: string;
-  activities?: Partial<Activity>[];
-}
-
-function parseDayStream(text: string): PartialDay {
-  if (!text) return {};
-  let t = text.trim();
-  const start = t.indexOf("{");
-  if (start > 0) t = t.slice(start);
-  for (const closer of ["", "}", "]}", "]}}"] as const) {
-    try {
-      const r = JSON.parse(t + closer);
-      if (r?.day) return r as PartialDay;
-    } catch {}
-  }
-  const dayNum = t.match(/"day"\s*:\s*(\d+)/)?.[1];
-  if (!dayNum) return {};
-  const date = t.match(/"date"\s*:\s*"([^"]+)"/)?.[1];
-  const theme = t.match(/"theme"\s*:\s*"([^"]+)"/)?.[1];
-  const area = t.match(/"area"\s*:\s*"([^"]+)"/)?.[1];
-  let activities: Partial<Activity>[] = [];
-  const actMatch = t.match(/"activities"\s*:\s*(\[[\s\S]*)/);
-  if (actMatch) {
-    for (const closer of ["", "]", "]}", "]}}"]) {
-      try {
-        const parsed = JSON.parse(actMatch[1] + closer);
-        if (Array.isArray(parsed) && parsed.length > 0) { activities = parsed; break; }
-      } catch {}
-    }
-  }
-  return { day: Number(dayNum), date, theme, area, activities };
-}
-
-// ── Streaming day card ────────────────────────────────────────────────────────
-
-const GEN_CAT: Record<string, { bg: string; color: string; border: string }> = {
-  nature:    { bg: "rgba(64,145,108,0.15)",  color: "#74c69d", border: "rgba(64,145,108,0.3)"  },
-  food:      { bg: "rgba(212,160,23,0.15)",  color: "#e9c46a", border: "rgba(212,160,23,0.3)"  },
-  culture:   { bg: "rgba(82,183,136,0.15)",  color: "#95d5b2", border: "rgba(82,183,136,0.3)"  },
-  shopping:  { bg: "rgba(199,123,85,0.15)",  color: "#f4a261", border: "rgba(199,123,85,0.3)"  },
-  art:       { bg: "rgba(167,139,250,0.12)", color: "#c4b5fd", border: "rgba(167,139,250,0.25)"},
-  transport: { bg: "rgba(148,163,184,0.12)", color: "#94a3b8", border: "rgba(148,163,184,0.2)" },
-  adventure: { bg: "rgba(239,68,68,0.12)",   color: "#fca5a5", border: "rgba(239,68,68,0.25)"  },
-  wellness:  { bg: "rgba(20,184,166,0.12)",  color: "#5eead4", border: "rgba(20,184,166,0.25)" },
-};
-function genCatStyle(cat?: string) {
-  return GEN_CAT[(cat ?? "").toLowerCase()] ?? { bg: "rgba(148,163,184,0.12)", color: "#94a3b8", border: "rgba(148,163,184,0.2)" };
-}
-
-function GeneratingDayCard({ stream }: { stream: DayStream }) {
-  const partial = useMemo(() => parseDayStream(stream.text), [stream.text]);
-  const dayNum = partial.day ?? stream.day;
-  const activities = partial.activities ?? [];
-  const isWriting = !stream.done && !stream.hasError;
-
-  return (
-    <div
-      className="demo-card mb-4 overflow-hidden"
-      style={{ borderRadius: 14, border: "1px solid rgba(82,183,136,0.15)", background: "#0f1e14" }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-start justify-between"
-        style={{ padding: "12px 16px", background: "#1e3022", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-      >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#4a8a5a", textTransform: "uppercase", letterSpacing: "1px" }}>
-            Day {dayNum}{partial.date ? ` · ${partial.date}` : ""}
-          </div>
-          {partial.theme
-            ? <div style={{ fontSize: 14, fontWeight: 700, color: "#d4e8d4", marginTop: 2 }}>{partial.theme}</div>
-            : <div className="animate-pulse rounded" style={{ height: 16, background: "rgba(255,255,255,0.1)", width: 160, marginTop: 4 }} />}
-          {partial.area && (
-            <div style={{ fontSize: 12, color: "#7dc99a", marginTop: 2 }}>📍 {partial.area}</div>
-          )}
-        </div>
-        <div className="shrink-0 ml-3">
-          {stream.hasError ? (
-            <span style={{ fontSize: 12, color: "#f87171" }}>Failed</span>
-          ) : isWriting ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div className="demo-spinner" />
-              <span className="hidden sm:block" style={{ fontSize: 12, color: "#7dc99a" }}>{writingPhrase(dayNum)}</span>
-            </div>
-          ) : (
-            <span style={{ color: "#52b788", fontSize: 16 }}>✓</span>
-          )}
-        </div>
-      </div>
-
-      {/* Activities */}
-      {activities.length === 0 && isWriting ? (
-        <div style={{ padding: "12px 16px" }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} style={{ display: "flex", gap: 12, marginBottom: 10 }}>
-              <div className="animate-pulse rounded" style={{ width: 40, height: 12, flexShrink: 0, background: "rgba(255,255,255,0.08)", marginTop: 4 }} />
-              <div style={{ flex: 1 }}>
-                <div className="animate-pulse rounded" style={{ height: 12, background: "rgba(255,255,255,0.08)", width: "60%", marginBottom: 6 }} />
-                <div className="animate-pulse rounded" style={{ height: 10, background: "rgba(255,255,255,0.05)", width: "40%" }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div>
-          {activities.map((act, i) => {
-            const cs = genCatStyle(act.category);
-            const isLast = i === activities.length - 1;
-            return (
-              <div
-                key={i}
-                className="demo-item"
-                style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "11px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-              >
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#4a8a5a", minWidth: 40, paddingTop: 2, flexShrink: 0 }}>
-                  {act.time ?? ""}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#d4e8d4", lineHeight: 1.3 }}>
-                    {act.name ?? ""}
-                    {isWriting && isLast && <span className="demo-cursor" />}
-                  </div>
-                  {act.why_chosen && (
-                    <div style={{ fontSize: 12, color: "#7dc99a", marginTop: 4, lineHeight: 1.5, display: "flex", alignItems: "flex-start", gap: 5 }}>
-                      <span style={{ color: "#52b788", flexShrink: 0 }}>✦</span>
-                      <span>{act.why_chosen}</span>
-                    </div>
-                  )}
-                  {act.category && (
-                    <div style={{ display: "flex", gap: 5, marginTop: 6, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: cs.bg, color: cs.color, border: `1px solid ${cs.border}` }}>
-                        {act.category}
-                      </span>
-                      {act.duration && (
-                        <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 100, background: "rgba(72,202,228,0.12)", color: "#90e0ef", border: "1px solid rgba(72,202,228,0.25)" }}>
-                          ⏱ {act.duration}
-                        </span>
-                      )}
-                      {act.price_range && (
-                        <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 100, background: "rgba(212,160,23,0.12)", color: "#e9c46a", border: "1px solid rgba(212,160,23,0.25)" }}>
-                          {act.price_range}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {isWriting && (
-            <div style={{ display: "flex", gap: 12, padding: "11px 16px" }}>
-              <div className="animate-pulse rounded" style={{ width: 40, height: 10, flexShrink: 0, background: "rgba(255,255,255,0.08)", marginTop: 4 }} />
-              <div style={{ flex: 1 }}>
-                <div className="animate-pulse rounded" style={{ height: 12, background: "rgba(255,255,255,0.08)", width: "50%" }} />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Share modal ───────────────────────────────────────────────────────────────
 
@@ -641,81 +450,59 @@ export default function TripPage() {
       );
     }
 
-    if (status === "idle" || status === "connecting") {
-      return (
-        <div className="max-w-5xl">{header}
+    const totalDays = dayStreams.length;
+    const doneDays = dayStreams.filter((d) => d.done && !d.hasError).length;
+    const pct = isComplete ? 100 : totalDays > 0 ? Math.round((doneDays / totalDays) * 100) : 0;
+    const showProgress = totalDays > 0;
+
+    const statusLabel = isComplete
+      ? "Finalising your itinerary…"
+      : showProgress
+      ? `Generating Day ${Math.min(doneDays + 1, totalDays)} of ${totalDays}…`
+      : "Fetching weather · Checking routes · Optimising activities";
+
+    return (
+      <div className="max-w-5xl">{header}
+        <div
+          className="flex flex-col items-center justify-center py-20 text-center"
+          style={{ background: "#0f1e14", borderRadius: 16, border: "1px solid rgba(82,183,136,0.15)" }}
+        >
           <div
-            className="flex flex-col items-center justify-center py-20 text-center"
-            style={{ background: "#0f1e14", borderRadius: 16, border: "1px solid rgba(82,183,136,0.15)" }}
+            className="demo-orb"
+            style={{
+              width: 64, height: 64, borderRadius: "50%",
+              background: "linear-gradient(135deg,rgba(45,106,79,0.3),rgba(72,202,228,0.25))",
+              border: "1px solid rgba(82,183,136,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 28, marginBottom: 16,
+            }}
           >
-            <div
-              className="demo-orb"
-              style={{
-                width: 64, height: 64, borderRadius: "50%",
-                background: "linear-gradient(135deg,rgba(45,106,79,0.3),rgba(72,202,228,0.25))",
-                border: "1px solid rgba(82,183,136,0.4)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28, marginBottom: 16,
-              }}
-            >
-              🌿
-            </div>
-            <div style={{ fontWeight: 600, color: "#d4e8d4", fontSize: 15, marginBottom: 8 }}>
-              MyTravel AI Planner is crafting your trip…
-            </div>
-            <div style={{ fontSize: 13, color: "#7dc99a", marginBottom: 20 }}>
-              Fetching weather · Checking routes · Optimising activities
-            </div>
+            🌿
+          </div>
+          <div style={{ fontWeight: 600, color: "#d4e8d4", fontSize: 15, marginBottom: 8 }}>
+            MyTravel AI Planner is crafting your trip…
+          </div>
+          <div style={{ fontSize: 13, color: "#7dc99a", marginBottom: 20 }}>
+            {statusLabel}
+          </div>
+          {showProgress ? (
+            <>
+              <div style={{ width: 240, background: "rgba(82,183,136,0.2)", borderRadius: 99, height: 4, overflow: "hidden", marginBottom: 10 }}>
+                <div
+                  className="transition-all duration-700"
+                  style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg,#52b788,#48cae4)", borderRadius: 99 }}
+                />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#95d5b2" }}>{pct}%</span>
+            </>
+          ) : (
             <div className="demo-dots" style={{ display: "flex", gap: 6 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#52b788", display: "inline-block" }} />
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#52b788", display: "inline-block" }} />
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#52b788", display: "inline-block" }} />
             </div>
-          </div>
+          )}
         </div>
-      );
-    }
-
-    const totalDays = dayStreams.length;
-    const doneDays = dayStreams.filter((d) => d.done && !d.hasError).length;
-    const pct = isComplete ? 100 : totalDays > 0 ? Math.round((doneDays / totalDays) * 100) : 0;
-
-    return (
-      <div className="max-w-5xl">{header}
-        {/* Status bar — matches home page demo style */}
-        <div
-          className="flex items-center gap-3 rounded-xl px-4 py-3 mb-5"
-          style={{ background: "rgba(45,106,79,0.15)", border: "1px solid rgba(82,183,136,0.25)" }}
-        >
-          <div className="demo-spinner" />
-          <span className="text-sm" style={{ color: "#95d5b2" }}>
-            {isComplete
-              ? "Finalising your itinerary…"
-              : totalDays > 0
-              ? `Generating Day ${Math.min(doneDays + 1, totalDays)} of ${totalDays}…`
-              : "Starting…"}
-          </span>
-          <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: "rgba(82,183,136,0.2)" }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${pct}%`, background: "linear-gradient(90deg,#52b788,#48cae4)" }}
-            />
-          </div>
-          <span className="text-xs font-bold tabular-nums" style={{ color: "#95d5b2" }}>{pct}%</span>
-        </div>
-
-        <div>
-          {dayStreams.map((stream) => (
-            <GeneratingDayCard key={stream.day} stream={stream} />
-          ))}
-        </div>
-
-        {isComplete && (
-          <div className="card border-green-100 bg-green-50 flex items-center gap-3 mb-4 animate-fade-in">
-            <CheckCircle size={20} className="text-[#2d6a4f] shrink-0" />
-            <p className="text-sm font-semibold text-[#1b4332]">Finalising your itinerary…</p>
-          </div>
-        )}
       </div>
     );
   }
@@ -746,6 +533,16 @@ export default function TripPage() {
     (itinerary.days ?? [])
       .filter((d) => d.offbeat_spots && d.offbeat_spots.length > 0)
       .map((d) => ({ day: d.day, date: d.date, items: d.offbeat_spots! }));
+
+  function dedupByName<T extends { name: string }>(arr: T[]): T[] {
+    const seen = new Set<string>();
+    return arr.filter((item) => {
+      const key = item.name.toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
 
   const phase = getTripPhase(trip);
 
@@ -1121,8 +918,15 @@ export default function TripPage() {
 
         {/* ── Tab: Food ── */}
         {activeTab === "food" && (() => {
-          const flat = allRestaurants.flatMap(({ items }) => items);
-          const mealOrder = ["breakfast", "lunch", "dinner", "snack"];
+          const MEAL_ORDER = ["breakfast", "lunch", "dinner", "snack"];
+          const sortByMeal = (arr: Restaurant[]) =>
+            [...arr].sort((a, b) => {
+              const ai = MEAL_ORDER.indexOf((a.meal ?? "").toLowerCase());
+              const bi = MEAL_ORDER.indexOf((b.meal ?? "").toLowerCase());
+              return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+            });
+
+          const flat = sortByMeal(dedupByName(allRestaurants.flatMap(({ items }) => items)));
 
           const orderedCities = (() => {
             const seen = new Set<string>();
@@ -1136,66 +940,46 @@ export default function TripPage() {
           const isMultiCity = orderedCities.filter(Boolean).length > 1;
 
           const renderRestaurantCard = (r: Restaurant, i: number) => (
-            <div key={i} className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e6)", border: "1px solid rgba(212,160,23,0.18)" }}>
-              {r.image_url && (
-                <img
-                  src={r.image_url}
-                  alt={r.name}
-                  className="w-full object-cover"
-                  style={{ height: 160 }}
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                />
-              )}
-              <div className="px-4 py-3">
-                <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm" style={{ color: "var(--text-dark)" }}>{r.name}</span>
-                    {r.cuisine && <span className="text-xs" style={{ color: "var(--text-muted)" }}>· {r.cuisine}</span>}
-                  </div>
-                  {r.price_range && <span className="text-xs font-medium flex-shrink-0" style={{ color: "var(--text-muted)" }}>{r.price_range}</span>}
+            <div key={i} className="rounded-xl px-4 py-3" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e6)", border: "1px solid rgba(212,160,23,0.18)" }}>
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm" style={{ color: "var(--text-dark)" }}>{r.name}</span>
+                  {r.cuisine && <span className="text-xs" style={{ color: "var(--text-muted)" }}>· {r.cuisine}</span>}
                 </div>
-                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#92400e" }}>✦ {r.famous_for}</p>
-                {r.insider_tip && <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>💡 {r.insider_tip}</p>}
-                {r.location && <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>📍 {r.location}</p>}
-                {r.website && (
-                  <a
-                    href={r.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs mt-2 font-medium"
-                    style={{ color: "#92400e", textDecoration: "underline", textUnderlineOffset: 2 }}
-                  >
-                    🔗 Visit website
-                  </a>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {r.meal && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: "rgba(212,160,23,0.12)", color: "#92400e", border: "1px solid rgba(212,160,23,0.2)" }}>
+                      {r.meal}
+                    </span>
+                  )}
+                  {r.rating !== undefined && (
+                    <span className="text-xs font-bold" style={{ color: "#b45309" }}>★ {r.rating.toFixed(1)}</span>
+                  )}
+                  {r.price_range && <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>{r.price_range}</span>}
+                </div>
               </div>
+              <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#92400e" }}>✦ {r.famous_for}</p>
+              {r.insider_tip && <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>💡 {r.insider_tip}</p>}
+              {r.location && <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>📍 {r.location}</p>}
+              {r.website && (
+                <a
+                  href={r.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs mt-2 font-medium"
+                  style={{ color: "#92400e", textDecoration: "underline", textUnderlineOffset: 2 }}
+                >
+                  🔗 Visit website
+                </a>
+              )}
             </div>
           );
 
-          const renderMealSections = (restaurants: Restaurant[]) => {
-            const grouped: Record<string, Restaurant[]> = {};
-            for (const r of restaurants) {
-              const key = r.meal?.toLowerCase() ?? "other";
-              (grouped[key] ??= []).push(r);
-            }
-            const sections = [
-              ...mealOrder.filter((m) => grouped[m]?.length),
-              ...Object.keys(grouped).filter((k) => !mealOrder.includes(k) && grouped[k]?.length),
-            ];
-            return sections.map((meal) => (
-              <div key={meal} className="mb-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full capitalize" style={{ background: "rgba(212,160,23,0.1)", color: "#92400e", border: "1px solid rgba(212,160,23,0.2)" }}>
-                    {meal === "other" ? "Also Worth Trying" : meal}
-                  </span>
-                  <div className="flex-1 h-px" style={{ background: "rgba(212,160,23,0.15)" }} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {grouped[meal].map(renderRestaurantCard)}
-                </div>
-              </div>
-            ));
-          };
+          const renderList = (restaurants: Restaurant[]) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {restaurants.map(renderRestaurantCard)}
+            </div>
+          );
 
           return (
             <div className="print:hidden">
@@ -1207,9 +991,9 @@ export default function TripPage() {
                 </div>
               ) : isMultiCity ? (
                 orderedCities.map((cityKey) => {
-                  const cityRestaurants = allRestaurants
+                  const cityRestaurants = sortByMeal(dedupByName(allRestaurants
                     .filter(({ city }) => (city ?? "") === cityKey)
-                    .flatMap(({ items }) => items);
+                    .flatMap(({ items }) => items)));
                   if (!cityRestaurants.length) return null;
                   return (
                     <div key={cityKey || "_"} className="mb-8">
@@ -1219,12 +1003,12 @@ export default function TripPage() {
                         </span>
                         <div className="flex-1 h-px" style={{ background: "rgba(45,106,79,0.15)" }} />
                       </div>
-                      {renderMealSections(cityRestaurants)}
+                      {renderList(cityRestaurants)}
                     </div>
                   );
                 })
               ) : (
-                renderMealSections(flat)
+                renderList(flat)
               )}
             </div>
           );
@@ -1239,30 +1023,41 @@ export default function TripPage() {
                 <p className="text-sm font-semibold text-[#1a2e1a] mb-1">No hidden gems yet</p>
                 <p className="text-xs text-gray-400">Regenerate your itinerary to discover offbeat spots most tourists miss.</p>
               </div>
-            ) : (
-              allGems.map(({ day, date, items }) => (
-                <div key={day} className="mb-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full" style={{ background: "rgba(14,165,233,0.08)", color: "#0369a1", border: "1px solid rgba(14,165,233,0.18)" }}>
-                      Day {day} · {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                    </span>
-                    <div className="flex-1 h-px" style={{ background: "rgba(14,165,233,0.15)" }} />
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {items.map((s, i) => (
-                      <div key={i} className="rounded-xl px-4 py-3" style={{ background: "linear-gradient(135deg, rgba(14,165,233,0.06), rgba(56,189,248,0.04))", border: "1px solid rgba(14,165,233,0.15)" }}>
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <span className="font-semibold text-sm" style={{ color: "var(--text-dark)" }}>{s.name}</span>
-                          {s.best_time && <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(14,165,233,0.10)", color: "#0369a1", border: "1px solid rgba(14,165,233,0.20)" }}>{s.best_time}</span>}
+            ) : (() => {
+              const seenGems = new Set<string>();
+              return allGems.map(({ day, date, items }) => {
+                const uniqueItems = items.filter((s) => {
+                  const key = s.name.toLowerCase().trim();
+                  if (seenGems.has(key)) return false;
+                  seenGems.add(key);
+                  return true;
+                });
+                if (!uniqueItems.length) return null;
+                return (
+                  <div key={day} className="mb-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full" style={{ background: "rgba(14,165,233,0.08)", color: "#0369a1", border: "1px solid rgba(14,165,233,0.18)" }}>
+                        Day {day} · {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                      </span>
+                      <div className="flex-1 h-px" style={{ background: "rgba(14,165,233,0.15)" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {uniqueItems.map((s, i) => (
+                        <div key={i} className="rounded-xl px-4 py-3" style={{ background: "linear-gradient(135deg, rgba(14,165,233,0.06), rgba(56,189,248,0.04))", border: "1px solid rgba(14,165,233,0.15)" }}>
+                          <div className="flex items-start justify-between gap-2 flex-wrap">
+                            <span className="font-semibold text-sm" style={{ color: "var(--text-dark)" }}>{s.name}</span>
+                            {s.best_time && <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(14,165,233,0.10)", color: "#0369a1", border: "1px solid rgba(14,165,233,0.20)" }}>{s.best_time}</span>}
+                          </div>
+                          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#0369a1" }}>✦ {s.why_special}</p>
+                          {s.location && <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>📍 {s.location}</p>}
                         </div>
-                        <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#0369a1" }}>✦ {s.why_special}</p>
-                        {s.location && <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>📍 {s.location}</p>}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
+                );
+              });
+            })()
+            }
           </div>
         )}
 
@@ -1491,7 +1286,13 @@ export default function TripPage() {
 
           {/* ── Dining Guide ── */}
           {allRestaurants.length > 0 && (() => {
-            const mealOrder = ["breakfast", "lunch", "dinner", "snack"];
+            const MEAL_ORDER_P = ["breakfast", "lunch", "dinner", "snack"];
+            const sortByMealP = (arr: Restaurant[]) =>
+              [...arr].sort((a, b) => {
+                const ai = MEAL_ORDER_P.indexOf((a.meal ?? "").toLowerCase());
+                const bi = MEAL_ORDER_P.indexOf((b.meal ?? "").toLowerCase());
+                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+              });
 
             const orderedCities = (() => {
               const seen = new Set<string>();
@@ -1509,6 +1310,8 @@ export default function TripPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 600, fontSize: 11, color: "#1a2e1a" }}>{r.name}</span>
                   {r.cuisine && <span style={{ fontSize: 10, color: "#999" }}>· {r.cuisine}</span>}
+                  {r.meal && <span style={{ fontSize: 9, fontWeight: 700, color: "#92400e", background: "rgba(212,160,23,0.12)", border: "1px solid rgba(212,160,23,0.2)", borderRadius: 10, padding: "1px 6px", textTransform: "capitalize" }}>{r.meal}</span>}
+                  {r.rating !== undefined && <span style={{ fontSize: 10, fontWeight: 700, color: "#b45309" }}>★ {r.rating.toFixed(1)}</span>}
                   {r.price_range && <span style={{ fontSize: 10, color: "#999", marginLeft: "auto" }}>{r.price_range}</span>}
                 </div>
                 <div style={{ fontSize: 10, color: "#92400e", marginTop: 3 }}>✦ {r.famous_for}</div>
@@ -1518,26 +1321,6 @@ export default function TripPage() {
               </div>
             );
 
-            const renderPrintMealSections = (restaurants: Restaurant[]) => {
-              const grouped: Record<string, Restaurant[]> = {};
-              for (const r of restaurants) {
-                const key = r.meal?.toLowerCase() ?? "other";
-                (grouped[key] ??= []).push(r);
-              }
-              const sections = [
-                ...mealOrder.filter((m) => grouped[m]?.length),
-                ...Object.keys(grouped).filter((k) => !mealOrder.includes(k) && grouped[k]?.length),
-              ];
-              return sections.map((meal) => (
-                <div key={meal} style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6, paddingBottom: 4, borderBottom: "1px solid rgba(212,160,23,0.15)" }}>
-                    {meal === "other" ? "Also Worth Trying" : meal}
-                  </div>
-                  {grouped[meal].map(renderPrintRestaurant)}
-                </div>
-              ));
-            };
-
             return (
               <div style={{ marginTop: 28 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 14px" }}>
@@ -1546,21 +1329,21 @@ export default function TripPage() {
                 </div>
                 {isMultiCity ? (
                   orderedCities.map((cityKey) => {
-                    const cityRestaurants = allRestaurants
+                    const cityRestaurants = sortByMealP(dedupByName(allRestaurants
                       .filter(({ city }) => (city ?? "") === cityKey)
-                      .flatMap(({ items }) => items);
+                      .flatMap(({ items }) => items)));
                     if (!cityRestaurants.length) return null;
                     return (
                       <div key={cityKey || "_"} style={{ marginBottom: 16 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: "#1b4332", background: "rgba(45,106,79,0.08)", border: "1px solid rgba(45,106,79,0.2)", borderRadius: 6, padding: "3px 10px", display: "inline-block", marginBottom: 8 }}>
                           📍 {cityKey || itinerary.destination}
                         </div>
-                        {renderPrintMealSections(cityRestaurants)}
+                        {cityRestaurants.map(renderPrintRestaurant)}
                       </div>
                     );
                   })
                 ) : (
-                  renderPrintMealSections(allRestaurants.flatMap(({ items }) => items))
+                  sortByMealP(dedupByName(allRestaurants.flatMap(({ items }) => items))).map(renderPrintRestaurant)
                 )}
               </div>
             );
@@ -1573,12 +1356,22 @@ export default function TripPage() {
                 <span style={{ fontSize: 10, fontWeight: 700, color: "#1a2e1a", textTransform: "uppercase", letterSpacing: "1px" }}>🧭 Hidden Gems</span>
                 <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, rgba(14,165,233,0.4), transparent)" }} />
               </div>
-              {allGems.map(({ day, date, items }) => (
+              {(() => {
+                const seenPrintGems = new Set<string>();
+                return allGems.map(({ day, date, items }) => {
+                  const uniqueItems = items.filter((s) => {
+                    const key = s.name.toLowerCase().trim();
+                    if (seenPrintGems.has(key)) return false;
+                    seenPrintGems.add(key);
+                    return true;
+                  });
+                  if (!uniqueItems.length) return null;
+                  return (
                 <div key={day} style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 9, fontWeight: 700, color: "#0369a1", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6, paddingBottom: 4, borderBottom: "1px solid rgba(14,165,233,0.15)" }}>
                     Day {day} · {new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                   </div>
-                  {items.map((s, i) => (
+                  {uniqueItems.map((s, i) => (
                     <div key={i} style={{ background: "rgba(14,165,233,0.05)", border: "1px solid rgba(14,165,233,0.15)", borderRadius: 8, padding: "7px 10px", marginBottom: 6 }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
                         <span style={{ fontWeight: 600, fontSize: 11, color: "#1a2e1a" }}>{s.name}</span>
@@ -1589,7 +1382,9 @@ export default function TripPage() {
                     </div>
                   ))}
                 </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
           )}
 

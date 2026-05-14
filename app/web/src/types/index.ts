@@ -78,6 +78,7 @@ export interface Restaurant {
   meal?: string;
   cuisine?: string;
   famous_for: string;
+  rating?: number;
   price_range?: string;
   location?: string;
   insider_tip?: string;
@@ -238,6 +239,8 @@ export interface LocalServicesResponse {
   not_applicable?: boolean;
   message?: string;
   reference_city?: string;
+  multi_city?: boolean;
+  cities?: { city_name: string; categories: LocalServiceCategory[] }[];
 }
 
 export interface TripFeedback {

@@ -15,6 +15,7 @@ from app.services.ai.itinerary import generate_single_day_stream, generate_meta,
 from app.services.ai.chat import stream_chat_response
 from app.services.ai.packing import generate_packing_list
 from app.services.ai.local_services import generate_local_services
+from app.services.foursquare import enrich_restaurants
 from app.services.ai.weather import get_full_weather
 from app.services.maps.mapbox import geocode
 from app.dependencies.auth import get_current_user
@@ -519,13 +520,16 @@ async def generate_itinerary(
             continue
         day["activities"] = _reorder_and_retime(day["activities"])
 
-    # Fetch one Wikipedia image per activity (parallel, 12s cap) — skip travel stubs
+    # Fetch Wikipedia images + Foursquare restaurant ratings in parallel
     all_activities: list[dict] = [
         activity
         for day in all_days
         if day.get("day_type") not in ("travel_outbound", "travel_return")
         for activity in day.get("activities", [])
     ]
+    foursquare_task = asyncio.create_task(
+        asyncio.wait_for(enrich_restaurants(all_days, trip.destination), timeout=15.0)
+    )
     try:
         img_results = await asyncio.wait_for(
             asyncio.gather(
@@ -544,6 +548,10 @@ async def generate_itinerary(
         for activity, img in zip(all_activities, img_results):
             if isinstance(img, str) and img:
                 activity["image_url"] = img
+    except Exception:
+        pass
+    try:
+        await foursquare_task
     except Exception:
         pass
 

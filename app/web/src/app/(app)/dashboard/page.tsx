@@ -88,19 +88,20 @@ function getDestinationEmoji(destination: string): string {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
+    refreshUser();
     tripsApi
       .list()
       .then(setTrips)
       .catch(() => null)
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [refreshUser]);
 
   async function handleDelete(publicId: string) {
     setDeletingId(publicId);

@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     # Mapbox
     mapbox_token: str = ""
 
+    # Google Places API (console.cloud.google.com) — separate key from google_api_key
+    google_places_api_key: str = ""
+
+    # Foursquare Places API (foursquare.com/developer) — deprecated, replaced by Google Places
+    foursquare_api_key: str = ""
+
     # Resend
     resend_api_key: str = ""
 

@@ -23,14 +23,20 @@ Interests: {trip.interests or "general sightseeing"}
 
 STEP 1 — Classify the destination:
 - "city": a single city, town, or village (e.g. Tokyo, Paris, New York, Bali)
-- "region": a state, country, coastal zone, national park area, or multi-city zone \
+- "region": a state, country, coastal park area, or multi-city zone \
 (e.g. Colorado, Tuscany, Scottish Highlands, Amalfi Coast, New England, Patagonia)
 
 STEP 2 — Assign days:
+CRITICAL — INTERESTS DRIVE CITY AND AREA SELECTION:
+Before assigning any areas, identify whether the listed interests require specific geographic locations.
+Examples: "northern lights / aurora borealis" → must include Fairbanks AK or Tromsø; "whale watching" → coastal towns with active tours; "hot springs" → areas with accessible thermal springs; "skiing" → mountain resort towns; "wine tasting" → wine regions.
+If an interest maps to a specific city or area that is part of or accessible from {trip.destination}, that city/area MUST appear in the itinerary — assign it enough days to do it justice.
+
 If CITY: assign each day a UNIQUE neighbourhood or district within {trip.destination}. \
 Keep "city" equal to "{trip.destination}" for every day. No landmark appears on more than one day.
 If REGION: group consecutive days in the same city before moving on. \
 Choose cities that form a geographically logical sequence without backtracking. \
+Prioritise cities that are known for the traveller's listed interests. \
 Minimise unnecessary city changes. Estimate realistic driving time between consecutive cities.
 
 Output valid JSON only (no markdown, no extra text):
@@ -84,6 +90,7 @@ Rules:
 - Use local currency for price_range.
 - CRITICAL: Provide accurate real-world lat/lng for every activity. Never use 0.0 as a coordinate.
 - CRITICAL: Only suggest places within your assigned area for the day. Do NOT repeat any landmark listed under other days.
+- SPECIAL INTERESTS (MANDATORY): The user prompt includes a "Special interests" field. When it is not empty, at least one activity per day MUST directly serve those interests. If the interest requires a specific time of day (e.g. northern lights / aurora borealis → late-night activity 22:00–02:00 at a dark-sky location; whale watching → morning boat tour; sunrise photography → pre-dawn), schedule it at that exact time. Include the specific location, tour operator, or viewing point — never a generic description. If the interest spans multiple days (e.g. northern lights hunting), include a dedicated activity every day that day is spent in a suitable area.
 - VIEWPOINTS & GOLDEN HOURS (MANDATORY CHECK): Before finalising this day's activities, always ask: does this area have a famous viewpoint, hilltop, rooftop, observation deck, or a renowned sunrise/sunset vantage point? If yes, include it as an activity with category "viewpoint". Schedule sunrise viewpoints at the precise local dawn time (e.g. 05:30), sunset viewpoints 30 minutes before local sunset (e.g. 18:30). In "why_chosen" paint the view in vivid, specific words — what the traveller will actually see. Use "highlights" for the best angle, what to look for, and any lighting tips. Use "booking_tip" for advance ticket requirements or crowd-avoidance advice. Examples: Sunrise at Tiger Hill for Kanchenjunga silhouette; sunset from Sacré-Cœur steps; dawn at Angkor Wat; dusk at Empire State Building; Trolltunga at golden hour.
 - TIME-SPECIFIC MAGIC: If the area has a famous dawn ritual, night market, tide event, or time-of-day phenomenon — schedule it at the correct time. These experiences often define a destination more than any museum.
 - RESTAURANTS (2-3): Cover the meal times of the day. Mix one well-known local institution with lesser-known neighbourhood spots. State clearly what each place is famous for.

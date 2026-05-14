@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, ExternalLink } from "lucide-react";
 import { itineraryApi } from "@/lib/api";
 import { formatDateShort } from "@/lib/utils";
 import type { Day, Itinerary, Restaurant, OffbeatSpot } from "@/types";
@@ -217,11 +217,25 @@ export default function DayCard({
                         </span>
                       )}
                     </div>
-                    {r.price_range && (
-                      <span className="text-xs font-medium flex-shrink-0" style={{ color: "var(--text-muted)" }}>
-                        {r.price_range}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {r.rating != null && (
+                        <span
+                          className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                          style={{
+                            background: "rgba(34,197,94,0.12)",
+                            color: "#15803d",
+                            border: "1px solid rgba(34,197,94,0.25)",
+                          }}
+                        >
+                          ★ {r.rating}
+                        </span>
+                      )}
+                      {r.price_range && (
+                        <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                          {r.price_range}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#92400e" }}>
                     ✦ {r.famous_for}
@@ -235,6 +249,31 @@ export default function DayCard({
                     <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
                       📍 {r.location}
                     </p>
+                  )}
+                  {r.website && (
+                    <div className="mt-2">
+                      <a
+                        href={r.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-all"
+                        style={{
+                          background: "rgba(212,160,23,0.10)",
+                          color: "#92400e",
+                          border: "1px solid rgba(212,160,23,0.25)",
+                          textDecoration: "none",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLAnchorElement).style.background = "rgba(212,160,23,0.20)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLAnchorElement).style.background = "rgba(212,160,23,0.10)";
+                        }}
+                      >
+                          <ExternalLink size={11} />
+                        Visit website
+                      </a>
+                    </div>
                   )}
                 </div>
               ))}

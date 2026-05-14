@@ -17,6 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,6 +65,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [fetchUser]
   );
 
+  const refreshUser = useCallback(async () => {
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) await fetchUser(storedToken);
+  }, [fetchUser]);
+
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     setUser(null);
@@ -71,7 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
