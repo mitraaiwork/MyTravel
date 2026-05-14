@@ -204,6 +204,7 @@ export default function TripPage() {
   const startedRef = useRef(false);
 
   const [practicalOpen, setPracticalOpen] = useState(true);
+  const [destPhotoUrl, setDestPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -264,6 +265,18 @@ export default function TripPage() {
     }).catch(() => null);
   }, [isComplete, tripId]);
 
+  useEffect(() => {
+    if (!trip?.destination) return;
+    const query = trip.destination.split(",")[0].trim();
+    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const url = data?.originalimage?.source || data?.thumbnail?.source;
+        if (url) setDestPhotoUrl(url);
+      })
+      .catch(() => {});
+  }, [trip?.destination]);
+
   const handleItineraryChange = useCallback((updated: Itinerary) => {
     setItinerary(updated);
   }, []);
@@ -294,39 +307,6 @@ export default function TripPage() {
       </div>
     );
   }
-
-  // ── Destination photo (Unsplash, same map as dashboard) ────────────────────
-  const DEST_PHOTOS: Record<string, string> = {
-    tokyo: "photo-1540959733332-eab4deabeeaf", japan: "photo-1540959733332-eab4deabeeaf",
-    paris: "photo-1502602898657-3e91760cbb34", france: "photo-1502602898657-3e91760cbb34",
-    bali: "photo-1537996194471-e657df975ab4",  indonesia: "photo-1537996194471-e657df975ab4",
-    rome: "photo-1552832230-c0197dd311b5",     italy: "photo-1552832230-c0197dd311b5",
-    london: "photo-1513635269975-59663e0ac1ad", uk: "photo-1513635269975-59663e0ac1ad",
-    "new york": "photo-1538970272646-f61fabb3a8a2",
-    spain: "photo-1543785734-4b6e564642f8",    barcelona: "photo-1539037116277-4db20889f2d4",
-    thailand: "photo-1506665531195-3566af2b4dfa",
-    greece: "photo-1555993539-1732b0258235",   santorini: "photo-1555993539-1732b0258235",
-    maldives: "photo-1573843981267-be1999ff37cd",
-    switzerland: "photo-1549294787-a9c8f28ccd98",
-    amsterdam: "photo-1512470876302-972faa2aa2a4",
-    dubai: "photo-1512453979798-5ea43f634b7e",
-    singapore: "photo-1525625293386-3f8f99389ebb",
-    kyoto: "photo-1493976040374-85c8e12f0c0e",
-    iceland: "photo-1504280390367-361c6d9f38f4",
-    portugal: "photo-1585208798174-6cedd4b7ba6f", lisbon: "photo-1585208798174-6cedd4b7ba6f",
-    india: "photo-1524492412937-b28074a5d7da",
-    nepal: "photo-1544735716-392fe2489ffa",
-    morocco: "photo-1539020140153-e5e4f7d4b9d5",
-    australia: "photo-1506905925346-21bda4d32df4",
-    hawaii: "photo-1508009603885-50cf7c579365",
-    prague: "photo-1541849546-216549ae216d",
-    budapest: "photo-1549893072-4bc678117f45",
-  };
-  const destLower = (trip?.destination ?? "").toLowerCase();
-  const destPhotoId = Object.entries(DEST_PHOTOS).find(([k]) => destLower.includes(k))?.[1];
-  const destPhotoUrl = destPhotoId
-    ? `https://images.unsplash.com/${destPhotoId}?w=1200&h=320&fit=crop&auto=format&q=80`
-    : null;
 
   // ── Trip topbar ───────────────────────────────────────────────────────────────
   const header = (

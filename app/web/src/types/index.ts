@@ -71,6 +71,8 @@ export interface Activity {
   website?: string;
   image_url?: string;
   distance_miles?: number;
+  rating?: number;
+  hours_display?: string;
 }
 
 export interface Restaurant {
@@ -84,6 +86,7 @@ export interface Restaurant {
   insider_tip?: string;
   website?: string;
   image_url?: string;
+  hours_display?: string;
 }
 
 export interface OffbeatSpot {
@@ -91,6 +94,8 @@ export interface OffbeatSpot {
   why_special: string;
   location?: string;
   best_time?: string;
+  rating?: number;
+  website?: string;
 }
 
 export interface Day {

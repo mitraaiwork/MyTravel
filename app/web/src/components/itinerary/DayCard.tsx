@@ -250,6 +250,11 @@ export default function DayCard({
                       📍 {r.location}
                     </p>
                   )}
+                  {r.hours_display && (
+                    <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                      🕐 {r.hours_display}
+                    </p>
+                  )}
                   {r.website && (
                     <div className="mt-2">
                       <a
@@ -307,18 +312,32 @@ export default function DayCard({
                     <span className="font-semibold text-sm" style={{ color: "var(--text-dark)" }}>
                       {s.name}
                     </span>
-                    {s.best_time && (
-                      <span
-                        className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0"
-                        style={{
-                          background: "rgba(14,165,233,0.10)",
-                          color: "#0369a1",
-                          border: "1px solid rgba(14,165,233,0.20)",
-                        }}
-                      >
-                        {s.best_time}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {s.rating != null && (
+                        <span
+                          className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                          style={{
+                            background: "rgba(34,197,94,0.12)",
+                            color: "#15803d",
+                            border: "1px solid rgba(34,197,94,0.25)",
+                          }}
+                        >
+                          ★ {s.rating}
+                        </span>
+                      )}
+                      {s.best_time && (
+                        <span
+                          className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{
+                            background: "rgba(14,165,233,0.10)",
+                            color: "#0369a1",
+                            border: "1px solid rgba(14,165,233,0.20)",
+                          }}
+                        >
+                          {s.best_time}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#0369a1" }}>
                     ✦ {s.why_special}
@@ -327,6 +346,31 @@ export default function DayCard({
                     <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
                       📍 {s.location}
                     </p>
+                  )}
+                  {s.website && (
+                    <div className="mt-2">
+                      <a
+                        href={s.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-all"
+                        style={{
+                          background: "rgba(14,165,233,0.10)",
+                          color: "#0369a1",
+                          border: "1px solid rgba(14,165,233,0.20)",
+                          textDecoration: "none",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLAnchorElement).style.background = "rgba(14,165,233,0.20)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLAnchorElement).style.background = "rgba(14,165,233,0.10)";
+                        }}
+                      >
+                        <ExternalLink size={11} />
+                        Visit website
+                      </a>
+                    </div>
                   )}
                 </div>
               ))}

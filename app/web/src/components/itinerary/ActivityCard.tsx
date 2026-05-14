@@ -89,7 +89,8 @@ export default function ActivityCard({
     activity.location ||
     activity.booking_tip ||
     activity.weather_note ||
-    activity.website;
+    activity.website ||
+    activity.hours_display;
 
   return (
     <div
@@ -169,6 +170,20 @@ export default function ActivityCard({
             {getCategoryIcon(activity.category)} {activity.category}
           </span>
 
+          {/* Rating */}
+          {activity.rating != null && (
+            <span
+              className="text-xs font-semibold px-1.5 py-0.5 rounded"
+              style={{
+                background: "rgba(34,197,94,0.12)",
+                color: "#15803d",
+                border: "1px solid rgba(34,197,94,0.25)",
+              }}
+            >
+              ★ {activity.rating}
+            </span>
+          )}
+
           {/* Duration */}
           {activity.duration && (
             <span
@@ -221,6 +236,12 @@ export default function ActivityCard({
         {/* Extra details */}
         {hasExtras && (
           <div className="mt-2 space-y-1">
+            {activity.hours_display && (
+              <div className="flex items-start gap-1.5 text-xs" style={{ color: "var(--text-mid)" }}>
+                <Clock size={12} style={{ color: "var(--text-muted)", flexShrink: 0, marginTop: 1 }} />
+                {activity.hours_display}
+              </div>
+            )}
             {activity.booking_tip && (
               <div className="flex items-start gap-1.5 text-xs" style={{ color: "var(--text-mid)" }}>
                 <CalendarCheck size={12} style={{ color: "var(--forest)", flexShrink: 0, marginTop: 1 }} />

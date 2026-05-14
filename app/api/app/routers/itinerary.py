@@ -15,7 +15,7 @@ from app.services.ai.itinerary import generate_single_day_stream, generate_meta,
 from app.services.ai.chat import stream_chat_response
 from app.services.ai.packing import generate_packing_list
 from app.services.ai.local_services import generate_local_services
-from app.services.foursquare import enrich_restaurants
+from app.services.foursquare import enrich_restaurants, enrich_activities, enrich_offbeat_spots
 from app.services.ai.weather import get_full_weather
 from app.services.maps.mapbox import geocode
 from app.dependencies.auth import get_current_user
@@ -528,7 +528,15 @@ async def generate_itinerary(
         for activity in day.get("activities", [])
     ]
     foursquare_task = asyncio.create_task(
-        asyncio.wait_for(enrich_restaurants(all_days, trip.destination), timeout=15.0)
+        asyncio.wait_for(
+            asyncio.gather(
+                enrich_restaurants(all_days, trip.destination),
+                enrich_activities(all_days, trip.destination),
+                enrich_offbeat_spots(all_days, trip.destination),
+                return_exceptions=True,
+            ),
+            timeout=15.0,
+        )
     )
     try:
         img_results = await asyncio.wait_for(

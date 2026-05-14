@@ -31,52 +31,17 @@ const DESTINATION_EMOJIS: Record<string, string> = {
   switzerland: "⛰", nepal: "🏔", india: "🕌", china: "🏯",
 };
 
-// Unsplash photo IDs for popular destinations (no API key needed for CDN)
-const DESTINATION_PHOTOS: Record<string, string> = {
-  tokyo:      "photo-1540959733332-eab4deabeeaf",
-  japan:      "photo-1540959733332-eab4deabeeaf",
-  paris:      "photo-1502602898657-3e91760cbb34",
-  france:     "photo-1502602898657-3e91760cbb34",
-  bali:       "photo-1537996194471-e657df975ab4",
-  indonesia:  "photo-1537996194471-e657df975ab4",
-  rome:       "photo-1552832230-c0197dd311b5",
-  italy:      "photo-1552832230-c0197dd311b5",
-  london:     "photo-1513635269975-59663e0ac1ad",
-  uk:         "photo-1513635269975-59663e0ac1ad",
-  "new york": "photo-1538970272646-f61fabb3a8a2",
-  usa:        "photo-1538970272646-f61fabb3a8a2",
-  barcelona:  "photo-1539037116277-4db20889f2d4",
-  spain:      "photo-1543785734-4b6e564642f8",
-  thailand:   "photo-1506665531195-3566af2b4dfa",
-  greece:     "photo-1555993539-1732b0258235",
-  santorini:  "photo-1555993539-1732b0258235",
-  maldives:   "photo-1573843981267-be1999ff37cd",
-  switzerland:"photo-1549294787-a9c8f28ccd98",
-  amsterdam:  "photo-1512470876302-972faa2aa2a4",
-  dubai:      "photo-1512453979798-5ea43f634b7e",
-  singapore:  "photo-1525625293386-3f8f99389ebb",
-  kyoto:      "photo-1493976040374-85c8e12f0c0e",
-  iceland:    "photo-1504280390367-361c6d9f38f4",
-  morocco:    "photo-1539020140153-e5e4f7d4b9d5",
-  mexico:     "photo-1585464231875-d466b9935413",
-  australia:  "photo-1506905925346-21bda4d32df4",
-  hawaii:     "photo-1508009603885-50cf7c579365",
-  prague:     "photo-1541849546-216549ae216d",
-  budapest:   "photo-1549893072-4bc678117f45",
-  lisbon:     "photo-1585208798174-6cedd4b7ba6f",
-  portugal:   "photo-1585208798174-6cedd4b7ba6f",
-  india:      "photo-1524492412937-b28074a5d7da",
-  nepal:      "photo-1544735716-392fe2489ffa",
-};
-
-function getDestinationPhoto(destination: string): string | null {
-  const lower = destination.toLowerCase();
-  for (const [key, photoId] of Object.entries(DESTINATION_PHOTOS)) {
-    if (lower.includes(key)) {
-      return `https://images.unsplash.com/${photoId}?w=600&h=240&fit=crop&auto=format&q=80`;
-    }
+async function fetchWikipediaPhoto(destination: string): Promise<string | null> {
+  const query = destination.split(",")[0].trim();
+  try {
+    const r = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`
+    );
+    const data = await r.json();
+    return data?.originalimage?.source || data?.thumbnail?.source || null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 function getDestinationEmoji(destination: string): string {
@@ -93,6 +58,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [destPhotos, setDestPhotos] = useState<Record<string, string>>({});
 
   useEffect(() => {
     refreshUser();
@@ -102,6 +68,23 @@ export default function DashboardPage() {
       .catch(() => null)
       .finally(() => setIsLoading(false));
   }, [refreshUser]);
+
+  useEffect(() => {
+    if (trips.length === 0) return;
+    const unique = [...new Set(trips.map((t) => t.destination))];
+    Promise.all(
+      unique.map(async (dest) => {
+        const url = await fetchWikipediaPhoto(dest);
+        return [dest, url] as [string, string | null];
+      })
+    ).then((results) => {
+      const map: Record<string, string> = {};
+      for (const [dest, url] of results) {
+        if (url) map[dest] = url;
+      }
+      setDestPhotos(map);
+    });
+  }, [trips]);
 
   async function handleDelete(publicId: string) {
     setDeletingId(publicId);
@@ -302,7 +285,7 @@ export default function DashboardPage() {
                 ? "linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)"
                 : TRIP_BANNER_COLORS[idx % TRIP_BANNER_COLORS.length];
               const emoji = getDestinationEmoji(trip.destination);
-              const photoUrl = getDestinationPhoto(trip.destination);
+              const photoUrl = destPhotos[trip.destination] ?? null;
 
               return (
                 <div
