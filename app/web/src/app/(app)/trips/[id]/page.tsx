@@ -724,10 +724,10 @@ export default function TripPage() {
   const transportTips = pi.transport_tips ?? [];
   const hasEssentials = pi.currency || pi.language || pi.timezone || transportTips.length > 0;
 
-  const allRestaurants: { day: number; date: string; items: Restaurant[] }[] =
+  const allRestaurants: { day: number; date: string; city?: string; items: Restaurant[] }[] =
     (itinerary.days ?? [])
       .filter((d) => d.restaurants && d.restaurants.length > 0)
-      .map((d) => ({ day: d.day, date: d.date, items: d.restaurants! }));
+      .map((d) => ({ day: d.day, date: d.date, city: d.city, items: d.restaurants! }));
 
   const allGems: { day: number; date: string; items: OffbeatSpot[] }[] =
     (itinerary.days ?? [])
@@ -1110,15 +1110,80 @@ export default function TripPage() {
         {activeTab === "food" && (() => {
           const flat = allRestaurants.flatMap(({ items }) => items);
           const mealOrder = ["breakfast", "lunch", "dinner", "snack"];
-          const grouped: Record<string, Restaurant[]> = {};
-          for (const r of flat) {
-            const key = r.meal?.toLowerCase() ?? "other";
-            (grouped[key] ??= []).push(r);
-          }
-          const sections = [
-            ...mealOrder.filter((m) => grouped[m]?.length),
-            ...Object.keys(grouped).filter((k) => !mealOrder.includes(k) && grouped[k]?.length),
-          ];
+
+          const orderedCities = (() => {
+            const seen = new Set<string>();
+            const result: string[] = [];
+            for (const { city } of allRestaurants) {
+              const key = city ?? "";
+              if (!seen.has(key)) { seen.add(key); result.push(key); }
+            }
+            return result;
+          })();
+          const isMultiCity = orderedCities.filter(Boolean).length > 1;
+
+          const renderRestaurantCard = (r: Restaurant, i: number) => (
+            <div key={i} className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e6)", border: "1px solid rgba(212,160,23,0.18)" }}>
+              {r.image_url && (
+                <img
+                  src={r.image_url}
+                  alt={r.name}
+                  className="w-full object-cover"
+                  style={{ height: 160 }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
+              )}
+              <div className="px-4 py-3">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm" style={{ color: "var(--text-dark)" }}>{r.name}</span>
+                    {r.cuisine && <span className="text-xs" style={{ color: "var(--text-muted)" }}>· {r.cuisine}</span>}
+                  </div>
+                  {r.price_range && <span className="text-xs font-medium flex-shrink-0" style={{ color: "var(--text-muted)" }}>{r.price_range}</span>}
+                </div>
+                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#92400e" }}>✦ {r.famous_for}</p>
+                {r.insider_tip && <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>💡 {r.insider_tip}</p>}
+                {r.location && <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>📍 {r.location}</p>}
+                {r.website && (
+                  <a
+                    href={r.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs mt-2 font-medium"
+                    style={{ color: "#92400e", textDecoration: "underline", textUnderlineOffset: 2 }}
+                  >
+                    🔗 Visit website
+                  </a>
+                )}
+              </div>
+            </div>
+          );
+
+          const renderMealSections = (restaurants: Restaurant[]) => {
+            const grouped: Record<string, Restaurant[]> = {};
+            for (const r of restaurants) {
+              const key = r.meal?.toLowerCase() ?? "other";
+              (grouped[key] ??= []).push(r);
+            }
+            const sections = [
+              ...mealOrder.filter((m) => grouped[m]?.length),
+              ...Object.keys(grouped).filter((k) => !mealOrder.includes(k) && grouped[k]?.length),
+            ];
+            return sections.map((meal) => (
+              <div key={meal} className="mb-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full capitalize" style={{ background: "rgba(212,160,23,0.1)", color: "#92400e", border: "1px solid rgba(212,160,23,0.2)" }}>
+                    {meal === "other" ? "Also Worth Trying" : meal}
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: "rgba(212,160,23,0.15)" }} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {grouped[meal].map(renderRestaurantCard)}
+                </div>
+              </div>
+            ));
+          };
+
           return (
             <div className="print:hidden">
               {flat.length === 0 ? (
@@ -1127,54 +1192,27 @@ export default function TripPage() {
                   <p className="text-sm font-semibold text-[#1a2e1a] mb-1">No restaurant suggestions yet</p>
                   <p className="text-xs text-gray-400">Regenerate your itinerary to get local dining recommendations.</p>
                 </div>
-              ) : sections.map((meal) => (
-                <div key={meal} className="mb-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full capitalize" style={{ background: "rgba(212,160,23,0.1)", color: "#92400e", border: "1px solid rgba(212,160,23,0.2)" }}>
-                      {meal === "other" ? "Also Worth Trying" : meal}
-                    </span>
-                    <div className="flex-1 h-px" style={{ background: "rgba(212,160,23,0.15)" }} />
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {grouped[meal].map((r, i) => (
-                      <div key={i} className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e6)", border: "1px solid rgba(212,160,23,0.18)" }}>
-                        {r.image_url && (
-                          <img
-                            src={r.image_url}
-                            alt={r.name}
-                            className="w-full object-cover"
-                            style={{ height: 160 }}
-                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                          />
-                        )}
-                        <div className="px-4 py-3">
-                          <div className="flex items-start justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-sm" style={{ color: "var(--text-dark)" }}>{r.name}</span>
-                              {r.cuisine && <span className="text-xs" style={{ color: "var(--text-muted)" }}>· {r.cuisine}</span>}
-                            </div>
-                            {r.price_range && <span className="text-xs font-medium flex-shrink-0" style={{ color: "var(--text-muted)" }}>{r.price_range}</span>}
-                          </div>
-                          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#92400e" }}>✦ {r.famous_for}</p>
-                          {r.insider_tip && <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>💡 {r.insider_tip}</p>}
-                          {r.location && <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>📍 {r.location}</p>}
-                          {r.website && (
-                            <a
-                              href={r.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs mt-2 font-medium"
-                              style={{ color: "#92400e", textDecoration: "underline", textUnderlineOffset: 2 }}
-                            >
-                              🔗 Visit website
-                            </a>
-                          )}
-                        </div>
+              ) : isMultiCity ? (
+                orderedCities.map((cityKey) => {
+                  const cityRestaurants = allRestaurants
+                    .filter(({ city }) => (city ?? "") === cityKey)
+                    .flatMap(({ items }) => items);
+                  if (!cityRestaurants.length) return null;
+                  return (
+                    <div key={cityKey || "_"} className="mb-8">
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ background: "rgba(45,106,79,0.1)", color: "#1b4332", border: "1px solid rgba(45,106,79,0.2)" }}>
+                          📍 {cityKey || itinerary.destination}
+                        </span>
+                        <div className="flex-1 h-px" style={{ background: "rgba(45,106,79,0.15)" }} />
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      {renderMealSections(cityRestaurants)}
+                    </div>
+                  );
+                })
+              ) : (
+                renderMealSections(flat)
+              )}
             </div>
           );
         })()}
@@ -1435,43 +1473,77 @@ export default function TripPage() {
 
           {/* ── Dining Guide ── */}
           {allRestaurants.length > 0 && (() => {
-            const flat = allRestaurants.flatMap(({ items }) => items);
             const mealOrder = ["breakfast", "lunch", "dinner", "snack"];
-            const grouped: Record<string, Restaurant[]> = {};
-            for (const r of flat) {
-              const key = r.meal?.toLowerCase() ?? "other";
-              (grouped[key] ??= []).push(r);
-            }
-            const sections = [
-              ...mealOrder.filter((m) => grouped[m]?.length),
-              ...Object.keys(grouped).filter((k) => !mealOrder.includes(k) && grouped[k]?.length),
-            ];
+
+            const orderedCities = (() => {
+              const seen = new Set<string>();
+              const result: string[] = [];
+              for (const { city } of allRestaurants) {
+                const key = city ?? "";
+                if (!seen.has(key)) { seen.add(key); result.push(key); }
+              }
+              return result;
+            })();
+            const isMultiCity = orderedCities.filter(Boolean).length > 1;
+
+            const renderPrintRestaurant = (r: Restaurant, i: number) => (
+              <div key={i} style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e6)", border: "1px solid rgba(212,160,23,0.2)", borderRadius: 8, padding: "7px 10px", marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 600, fontSize: 11, color: "#1a2e1a" }}>{r.name}</span>
+                  {r.cuisine && <span style={{ fontSize: 10, color: "#999" }}>· {r.cuisine}</span>}
+                  {r.price_range && <span style={{ fontSize: 10, color: "#999", marginLeft: "auto" }}>{r.price_range}</span>}
+                </div>
+                <div style={{ fontSize: 10, color: "#92400e", marginTop: 3 }}>✦ {r.famous_for}</div>
+                {r.insider_tip && <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>💡 {r.insider_tip}</div>}
+                {r.location && <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>📍 {r.location}</div>}
+                {r.website && <div style={{ fontSize: 10, color: "#92400e", marginTop: 2 }}>🔗 {r.website}</div>}
+              </div>
+            );
+
+            const renderPrintMealSections = (restaurants: Restaurant[]) => {
+              const grouped: Record<string, Restaurant[]> = {};
+              for (const r of restaurants) {
+                const key = r.meal?.toLowerCase() ?? "other";
+                (grouped[key] ??= []).push(r);
+              }
+              const sections = [
+                ...mealOrder.filter((m) => grouped[m]?.length),
+                ...Object.keys(grouped).filter((k) => !mealOrder.includes(k) && grouped[k]?.length),
+              ];
+              return sections.map((meal) => (
+                <div key={meal} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6, paddingBottom: 4, borderBottom: "1px solid rgba(212,160,23,0.15)" }}>
+                    {meal === "other" ? "Also Worth Trying" : meal}
+                  </div>
+                  {grouped[meal].map(renderPrintRestaurant)}
+                </div>
+              ));
+            };
+
             return (
               <div style={{ marginTop: 28 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 14px" }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: "#1a2e1a", textTransform: "uppercase", letterSpacing: "1px" }}>🍽️ Dining Guide</span>
                   <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, rgba(212,160,23,0.4), transparent)" }} />
                 </div>
-                {sections.map((meal) => (
-                  <div key={meal} style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6, paddingBottom: 4, borderBottom: "1px solid rgba(212,160,23,0.15)" }}>
-                      {meal === "other" ? "Also Worth Trying" : meal}
-                    </div>
-                    {grouped[meal].map((r, i) => (
-                      <div key={i} style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e6)", border: "1px solid rgba(212,160,23,0.2)", borderRadius: 8, padding: "7px 10px", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 600, fontSize: 11, color: "#1a2e1a" }}>{r.name}</span>
-                          {r.cuisine && <span style={{ fontSize: 10, color: "#999" }}>· {r.cuisine}</span>}
-                          {r.price_range && <span style={{ fontSize: 10, color: "#999", marginLeft: "auto" }}>{r.price_range}</span>}
+                {isMultiCity ? (
+                  orderedCities.map((cityKey) => {
+                    const cityRestaurants = allRestaurants
+                      .filter(({ city }) => (city ?? "") === cityKey)
+                      .flatMap(({ items }) => items);
+                    if (!cityRestaurants.length) return null;
+                    return (
+                      <div key={cityKey || "_"} style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#1b4332", background: "rgba(45,106,79,0.08)", border: "1px solid rgba(45,106,79,0.2)", borderRadius: 6, padding: "3px 10px", display: "inline-block", marginBottom: 8 }}>
+                          📍 {cityKey || itinerary.destination}
                         </div>
-                        <div style={{ fontSize: 10, color: "#92400e", marginTop: 3 }}>✦ {r.famous_for}</div>
-                        {r.insider_tip && <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>💡 {r.insider_tip}</div>}
-                        {r.location && <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>📍 {r.location}</div>}
-                        {r.website && <div style={{ fontSize: 10, color: "#92400e", marginTop: 2 }}>🔗 {r.website}</div>}
+                        {renderPrintMealSections(cityRestaurants)}
                       </div>
-                    ))}
-                  </div>
-                ))}
+                    );
+                  })
+                ) : (
+                  renderPrintMealSections(allRestaurants.flatMap(({ items }) => items))
+                )}
               </div>
             );
           })()}

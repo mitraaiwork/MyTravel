@@ -286,6 +286,8 @@ export interface CreateTripData {
   leave_destination_date?: string;
   leave_destination_time?: string;
   include_return_stops?: boolean;
+  group_size?: number;
+  group_type?: string;
 }
 
 export interface UpdateActivityData {

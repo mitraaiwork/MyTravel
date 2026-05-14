@@ -56,6 +56,13 @@ const ACTIVITY_OPTIONS = [
   { value: "wildlife",  label: "Wildlife",          emoji: "🐾" },
 ];
 
+const GROUP_TYPES = [
+  { value: "solo",    label: "Solo",    emoji: "🧍" },
+  { value: "couple",  label: "Couple",  emoji: "👫" },
+  { value: "family",  label: "Family",  emoji: "👨‍👩‍👧" },
+  { value: "friends", label: "Friends", emoji: "👥" },
+];
+
 const RADIUS_OPTIONS = [
   { value: "50",   label: "Within 50 miles" },
   { value: "100",  label: "Within 100 miles" },
@@ -80,6 +87,8 @@ export default function NewTripPage() {
   const [arriveDestTime, setArriveDestTime] = useState("");
   const [leaveDestDate, setLeaveDestDate] = useState("");
   const [leaveDestTime, setLeaveDestTime] = useState("");
+  const [groupSize, setGroupSize] = useState(1);
+  const [groupType, setGroupType] = useState("solo");
   const [travelStyles, setTravelStyles] = useState<TravelStyle[]>([]);
   const [accommodationTypes, setAccommodationTypes] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
@@ -225,6 +234,8 @@ export default function NewTripPage() {
         arrive_destination_time: tripType === "roadtrip" && arriveDestTime ? arriveDestTime : undefined,
         leave_destination_date: tripType === "roadtrip" && leaveDestDate ? leaveDestDate : undefined,
         leave_destination_time: tripType === "roadtrip" && leaveDestTime ? leaveDestTime : undefined,
+        group_size: groupSize,
+        group_type: groupType,
       });
       router.push(`/trips/${trip.public_id}`);
     } catch (err: unknown) {
@@ -853,6 +864,57 @@ export default function NewTripPage() {
             })}
           </div>
 
+          {/* Group */}
+          <div className="mb-6">
+            <label className="label mb-3">Who&apos;s travelling?</label>
+            <div className="grid grid-cols-4 gap-2.5 mb-3">
+              {GROUP_TYPES.map(({ value, label, emoji }) => {
+                const active = groupType === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setGroupType(value);
+                      if (value === "solo") setGroupSize(1);
+                      else if (value === "couple") setGroupSize(2);
+                      else if (groupSize < 2) setGroupSize(3);
+                    }}
+                    className="rounded-xl py-3 px-2 text-center transition-all"
+                    style={{
+                      border: `1.5px solid ${active ? "var(--forest)" : "var(--border-mid)"}`,
+                      background: active ? "rgba(45,106,79,0.08)" : "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span className="text-2xl block mb-1">{emoji}</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-dark)" }}>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {groupType !== "solo" && groupType !== "couple" && (
+              <div className="flex items-center gap-3 mt-2">
+                <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Number of travellers:</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGroupSize((n) => Math.max(2, n - 1))}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
+                    style={{ border: "1.5px solid var(--border-mid)", background: "white", color: "var(--text-dark)", cursor: "pointer" }}
+                  >−</button>
+                  <span className="text-sm font-semibold w-6 text-center" style={{ color: "var(--text-dark)" }}>{groupSize}</span>
+                  <button
+                    type="button"
+                    onClick={() => setGroupSize((n) => Math.min(20, n + 1))}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
+                    style={{ border: "1.5px solid var(--border-mid)", background: "white", color: "var(--text-dark)", cursor: "pointer" }}
+                  >+</button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-3 mt-2">
             <button type="button" className="btn-secondary" onClick={goBack}>← Back</button>
             <button type="button" className="btn-primary flex-1 justify-center" onClick={goNext}>
@@ -1043,6 +1105,10 @@ export default function NewTripPage() {
                 {
                   label: "Stay Type",
                   value: accomLabel,
+                },
+                {
+                  label: "Travellers",
+                  value: `${GROUP_TYPES.find((g) => g.value === groupType)?.emoji ?? ""} ${groupType === "solo" ? "Solo" : groupType === "couple" ? "Couple (2)" : `${GROUP_TYPES.find((g) => g.value === groupType)?.label ?? groupType} · ${groupSize} people`}`,
                 },
                 {
                   label: "Interests",
