@@ -22,10 +22,11 @@ interface ChatPanelProps {
   tripId: string;
   phase: TripPhase;
   onClose: () => void;
+  initialMessage?: string;
 }
 
-export function ChatPanel({ tripId, phase, onClose }: ChatPanelProps) {
-  const [input, setInput] = useState("");
+export function ChatPanel({ tripId, phase, onClose, initialMessage }: ChatPanelProps) {
+  const [input, setInput] = useState(initialMessage ?? "");
   const { messages, isStreaming, sendMessage, clearHistory } = useChatStream(tripId, phase);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

@@ -29,6 +29,8 @@ import { ChatPanel } from "@/components/chat/ChatPanel";
 import { PackingListTab } from "@/components/itinerary/PackingListTab";
 import { LocalServicesTab } from "@/components/itinerary/LocalServicesTab";
 import { FeedbackTab } from "@/components/trips/FeedbackTab";
+import { TodayTab } from "@/components/itinerary/TodayTab";
+import { useInTripMode } from "@/hooks/useInTripMode";
 import dynamic from "next/dynamic";
 import DayCard from "@/components/itinerary/DayCard";
 import AccommodationSection from "@/components/itinerary/AccommodationSection";
@@ -191,7 +193,8 @@ export default function TripPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"itinerary" | "stay" | "food" | "gems" | "map" | "packing" | "services" | "feedback">("itinerary");
+  const [initialChatMessage, setInitialChatMessage] = useState<string | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<"today" | "itinerary" | "stay" | "food" | "gems" | "map" | "packing" | "services" | "feedback">("itinerary");
   const [packingList, setPackingList] = useState<PackingList | null>(null);
   const [packingLoading, setPackingLoading] = useState(false);
   const [packingError, setPackingError] = useState<string | null>(null);
@@ -280,6 +283,17 @@ export default function TripPage() {
   const handleItineraryChange = useCallback((updated: Itinerary) => {
     setItinerary(updated);
   }, []);
+
+  const { isInTrip, currentDay, nextActivity } = useInTripMode(trip, itinerary);
+
+  useEffect(() => {
+    if (isInTrip) setActiveTab("today");
+  }, [isInTrip]);
+
+  function handleOpenChat(message?: string) {
+    setInitialChatMessage(message);
+    setChatOpen(true);
+  }
 
   function handleRetryStream() {
     reset();
@@ -527,6 +541,7 @@ export default function TripPage() {
   const phase = getTripPhase(trip);
 
   const TABS = [
+    ...(isInTrip ? [{ id: "today" as const, label: "Today", emoji: "📍" }] : []),
     { id: "itinerary" as const, label: "Itinerary",    emoji: "📅" },
     { id: "stay"      as const, label: "Stay",         emoji: "🏕"  },
     { id: "food"      as const, label: "Food",         emoji: "🍽️"  },
@@ -567,7 +582,7 @@ export default function TripPage() {
       {/* Floating AI Chat button */}
       {!chatOpen && itinerary && (
         <button
-          onClick={() => setChatOpen(true)}
+          onClick={() => handleOpenChat()}
           className="ask-ai-btn fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full text-white text-sm font-medium shadow-lg print:hidden"
           style={{ background: "linear-gradient(135deg, #0d9488, #2d6a4f)" }}
         >
@@ -577,7 +592,12 @@ export default function TripPage() {
 
       {/* Chat panel */}
       {chatOpen && (
-        <ChatPanel tripId={tripId} phase={phase} onClose={() => setChatOpen(false)} />
+        <ChatPanel
+          tripId={tripId}
+          phase={isInTrip ? "in-trip" : phase}
+          onClose={() => { setChatOpen(false); setInitialChatMessage(undefined); }}
+          initialMessage={initialChatMessage}
+        />
       )}
 
       <div className="max-w-5xl">
@@ -648,6 +668,19 @@ export default function TripPage() {
             );
           })}
         </div>
+
+        {/* ── Tab: Today ── */}
+        {activeTab === "today" && currentDay && (
+          <div className="print:hidden">
+            <TodayTab
+              trip={trip}
+              currentDay={currentDay}
+              nextActivity={nextActivity}
+              totalDays={itinerary.days.length}
+              onOpenChat={handleOpenChat}
+            />
+          </div>
+        )}
 
         {/* ── Tab: Itinerary ── */}
         {activeTab === "itinerary" && (

@@ -469,7 +469,8 @@ async def generate_itinerary(
         if day.get("day_type") in ("travel_outbound", "travel_return"):
             continue
         for activity in day.get("activities", []):
-            query = f"{activity.get('name', '')}, {trip.destination}"
+            location_hint = activity.get("location") or activity.get("name", "")
+            query = f"{location_hint}, {trip.destination}"
             activities_to_geocode.append((activity, query))
 
     if activities_to_geocode:
