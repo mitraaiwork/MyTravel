@@ -22,6 +22,7 @@ app = FastAPI(
     title="MyTravel API",
     version="1.0.0",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
