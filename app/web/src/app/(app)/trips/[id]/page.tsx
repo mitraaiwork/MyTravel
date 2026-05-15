@@ -568,7 +568,7 @@ export default function TripPage() {
       {!chatOpen && itinerary && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full text-white text-sm font-medium shadow-lg print:hidden"
+          className="ask-ai-btn fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full text-white text-sm font-medium shadow-lg print:hidden"
           style={{ background: "linear-gradient(135deg, #0d9488, #2d6a4f)" }}
         >
           <span>✈️</span> Ask AI

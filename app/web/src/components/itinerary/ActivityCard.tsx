@@ -273,7 +273,7 @@ export default function ActivityCard({
         {/* Activity photo */}
         {activity.image_url && !imgError && (
           <div
-            className="flex-shrink-0 rounded-lg overflow-hidden print:hidden"
+            className="activity-photo flex-shrink-0 rounded-lg overflow-hidden print:hidden"
             style={{ width: 108, height: 76, alignSelf: "flex-start" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -290,7 +290,7 @@ export default function ActivityCard({
       {/* Actions column — fade in on hover */}
       {!readOnly && (
         <div
-          className="flex flex-col gap-1 pt-0.5 transition-all"
+          className="activity-actions flex flex-col gap-1 pt-0.5 transition-all"
           style={{ opacity: hovering ? 1 : 0 }}
         >
           <button

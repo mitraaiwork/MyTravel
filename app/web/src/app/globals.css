@@ -516,6 +516,20 @@ body {
 }
 .lp-feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06); }
 
+/* ─── Mobile: itinerary page fixes ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* ActivityCard: drop actions column and hide photo to give text room */
+  .activity-item {
+    grid-template-columns: 40px 1fr !important;
+  }
+  .activity-actions { display: none !important; }
+  .activity-photo   { display: none !important; }
+  /* DayCard: hide verbose regen hint text */
+  .day-regen-hint   { display: none !important; }
+  /* Ask AI bubble: sit above the 60px bottom nav */
+  .ask-ai-btn       { bottom: 76px !important; }
+}
+
 /* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar {

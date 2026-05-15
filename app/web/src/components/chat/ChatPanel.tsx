@@ -55,13 +55,13 @@ export function ChatPanel({ tripId, phase, onClose }: ChatPanelProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end"
+      className="fixed inset-0 z-[110] flex justify-end"
       style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(2px)" }}
       onClick={onClose}
     >
       <div
         className="relative flex flex-col h-full shadow-2xl"
-        style={{ width: 420, background: "var(--bg-cream)", borderLeft: "1px solid var(--border-mid)" }}
+        style={{ width: "min(420px, 100%)", background: "var(--bg-cream)", borderLeft: "1px solid var(--border-mid)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ───────────────────────────────────────────────── */}

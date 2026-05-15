@@ -405,7 +405,7 @@ export default function DayCard({
           >
             <div className="flex items-center gap-2 text-xs" style={{ color: "#92400e" }}>
               🔄 Regenerate just this day
-              <span className="text-xs ml-1" style={{ color: "#9a6700" }}>
+              <span className="day-regen-hint text-xs ml-1" style={{ color: "#9a6700" }}>
                 — change the focus, adjust the pace, or replace everything
               </span>
             </div>
