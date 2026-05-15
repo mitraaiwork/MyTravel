@@ -22,7 +22,7 @@ async def _get_trip_by_public_id(public_id: str, db: AsyncSession) -> Trip | Non
     return result.first()
 
 
-@router.post("/", response_model=TripOut)
+@router.post("", response_model=TripOut)
 async def create_trip(
     body: TripCreate,
     db: AsyncSession = Depends(get_db),
@@ -47,7 +47,7 @@ async def create_trip(
     return result.first()
 
 
-@router.get("/", response_model=list[TripOut])
+@router.get("", response_model=list[TripOut])
 async def list_trips(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
