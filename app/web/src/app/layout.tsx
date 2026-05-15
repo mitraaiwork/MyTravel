@@ -20,6 +20,12 @@ export const metadata: Metadata = {
     "MyTravel AI",
     "personalised travel",
   ],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "MyTravel",
+  },
   openGraph: {
     title: "MyTravel — AI-Powered Travel Planning",
     description:
@@ -35,6 +41,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body>
         <AuthProvider>{children}</AuthProvider>
       </body>
