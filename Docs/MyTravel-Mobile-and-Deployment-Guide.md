@@ -54,7 +54,7 @@ In the service → **Variables** tab, add:
 | Variable | Value | How to get it |
 |---|---|---|
 | `SECRET_KEY` | Random hex string | Run: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
-| `ANTHROPIC_API_KEY` | Your key | console.anthropic.com → API Keys |
+| `GOOGLE_API_KEY` | Your Gemini key | aistudio.google.com → API Keys (free) |
 | `MAPBOX_TOKEN` | Your token | account.mapbox.com → Tokens |
 | `GOOGLE_PLACES_API_KEY` | Your key | console.cloud.google.com → Credentials |
 | `RESEND_API_KEY` | Your key | resend.com → API Keys (for welcome emails) |
