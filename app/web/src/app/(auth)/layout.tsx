@@ -139,10 +139,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* ── Form panel ────────────────────────────────────────────── */}
       <div className="flex items-center justify-center px-8 py-12 bg-white min-h-screen">
         {/* Mobile logo */}
-        <div className="absolute top-6 left-6 lg:hidden flex items-center gap-2">
+        <Link href="/" className="absolute top-6 left-6 lg:hidden flex items-center gap-2 no-underline">
           <span className="text-xl">✈</span>
           <span className="font-bold text-lg" style={{ color: "var(--forest)" }}>MyTravel</span>
-        </div>
+        </Link>
         <div className="w-full max-w-sm">
           {children}
         </div>
