@@ -871,7 +871,7 @@ export default function NewTripPage() {
           {/* Group */}
           <div className="mb-6">
             <label className="label mb-3">Who&apos;s travelling?</label>
-            <div className="grid grid-cols-4 gap-2.5 mb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
               {GROUP_TYPES.map(({ value, label, emoji }) => {
                 const active = groupType === value;
                 return (
@@ -938,7 +938,7 @@ export default function NewTripPage() {
             Select one or more — the AI will suggest matching properties for each zone of your trip.
           </p>
 
-          <div className="grid grid-cols-4 gap-2.5 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-8">
             {ACCOMMODATION_TYPES.map(({ value, label, emoji }) => {
               const active = accommodationTypes.includes(value);
               return (

@@ -138,15 +138,19 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div
-      className="page-enter"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 248px",
-        gap: "20px",
-        alignItems: "start",
-      }}
-    >
+    <>
+    <style>{`
+      .dashboard-layout { display: grid; grid-template-columns: 1fr 248px; gap: 20px; align-items: start; }
+      .dashboard-stats  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+      @media (max-width: 900px) {
+        .dashboard-layout { grid-template-columns: 1fr; }
+        .dashboard-premium-panel { display: none; }
+        .dashboard-welcome-cta { display: none; }
+        .dashboard-stats { gap: 0.5rem; }
+        .dashboard-stats .stat-inner { padding: 12px 10px; }
+      }
+    `}</style>
+    <div className="page-enter dashboard-layout">
       {/* ── LEFT COLUMN ── */}
       <div>
 
@@ -189,7 +193,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/trips/new"
-            className="relative z-10 flex-shrink-0 flex items-center gap-2 font-bold text-sm px-5 py-3 rounded-xl transition-all"
+            className="dashboard-welcome-cta relative z-10 flex-shrink-0 flex items-center gap-2 font-bold text-sm px-5 py-3 rounded-xl transition-all"
             style={{
               background: "white",
               color: "var(--forest)",
@@ -210,7 +214,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4 mb-7">
+        <div className="dashboard-stats">
           {[
             {
               icon: "✈",
@@ -233,7 +237,7 @@ export default function DashboardPage() {
           ].map((s, i) => (
             <div
               key={i}
-              className="rounded-2xl px-5 py-5 flex items-center gap-4 relative overflow-hidden text-white"
+              className="stat-inner rounded-2xl px-5 py-5 flex items-center gap-4 relative overflow-hidden text-white"
               style={{ ...s.style, boxShadow: "var(--shadow-md)" }}
             >
               <div
@@ -503,7 +507,7 @@ export default function DashboardPage() {
       {/* ── RIGHT PANEL — Premium Features ── */}
       {!user?.is_premium && (
         <div
-          className="rounded-2xl overflow-hidden"
+          className="dashboard-premium-panel rounded-2xl overflow-hidden"
           style={{
             position: "sticky",
             top: "28px",
@@ -584,5 +588,6 @@ export default function DashboardPage() {
       )}
 
     </div>
+    </>
   );
 }
